@@ -12,7 +12,7 @@ Le système repose sur deux APIs principales, plusieurs frontends, et un mécani
 3. Chaque transaction est ajoutée au ledger interne :
     - Chaque entrée contient un hash du bloc précédent.
     - Ce chaînage garantit qu’aucune transaction passée ne peut être modifiée.
-4. Les frontends (loader_frontend, driver_frontend, web_frontend) interagissent avec les APIs selon leurs rôles respectifs.
+4. Les frontends (driver_frontend, web_frontend) interagissent avec les APIs selon leurs rôles respectifs.
 
 #### Technologies
 - FastAPI
