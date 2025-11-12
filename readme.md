@@ -46,7 +46,7 @@ make API_BASE_URL=http://localhost:3000/v1
 ### Card
 
 - `GET /v1/card` - Liste toutes les cartes
-- `POST /v1/card` - Enregistre une carte `{card_id: "..."}` (comment optionnel)
+- `POST /v1/card` - Crée une nouvelle carte (card_id auto-généré, comment optionnel)
 - `GET /v1/card/:card_id` - Récupère les infos d'une carte
 - `PATCH /v1/card/:card_id` - Met à jour `{comment: "...", status: "active"}`
 - `POST /v1/card/:card_id/assign` - Assigne une carte à un user `{user_id: "..."}`
