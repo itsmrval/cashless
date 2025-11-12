@@ -93,10 +93,17 @@ int write_pin_to_card(const char *pin)
     responseLen = sizeof(response);
     rv = SCardTransmit(hCard, &pioSendPci, cmd_write_pin, sizeof(cmd_write_pin),
                       NULL, response, &responseLen);
-    if (rv != SCARD_S_SUCCESS || responseLen < 2) {
+    if (rv != SCARD_S_SUCCESS) {
+        printf("DEBUG: SCardTransmit failed with code: 0x%lX\n", rv);
+        return 0;
+    }
+    if (responseLen < 2) {
+        printf("DEBUG: Response too short: %lu bytes\n", responseLen);
         return 0;
     }
     if (response[responseLen - 2] != 0x90 || response[responseLen - 1] != 0x00) {
+        printf("DEBUG: Card returned error: SW1=0x%02X SW2=0x%02X\n",
+               response[responseLen - 2], response[responseLen - 1]);
         return 0;
     }
 
