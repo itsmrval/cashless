@@ -136,6 +136,12 @@ int write_pin_to_card(const char *pin)
     }
 
     printf("DEBUG: Sending WRITE_PIN command...\n");
+    printf("DEBUG: Command bytes: ");
+    for (i = 0; i < sizeof(cmd_write_pin); i++) {
+        printf("%02X ", cmd_write_pin[i]);
+    }
+    printf("\n");
+
     responseLen = sizeof(response);
     rv = SCardTransmit(hCard, &pioSendPci, cmd_write_pin, sizeof(cmd_write_pin),
                       NULL, response, &responseLen);
