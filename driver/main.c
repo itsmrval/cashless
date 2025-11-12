@@ -67,13 +67,11 @@ int main()
 
                         print_ui("Setting up PIN...");
 
-                        printf("DEBUG: Attempting to reconnect to card...\n");
                         if (!reconnect_card()) {
                             print_ui("Error: Failed to reconnect to card");
                             card_present = 1;
                             continue;
                         }
-                        printf("DEBUG: Reconnected successfully, writing PIN...\n");
 
                         if (!write_pin_to_card(pin)) {
                             print_ui("Error: Failed to write PIN to card");
@@ -91,8 +89,8 @@ int main()
                         card_present = 1;
 
                     } else if (strcmp(card_status, "inactive") == 0) {
-                        char msg[256];
-                        sprintf(msg, "Error: Card is not yet active\n(v%d - %s)", version, card_id);
+                        char msg[512];
+                        sprintf(msg, "Card is inactive\n(v%d - %s)\n\nPlease contact administrator\nto assign user and activate", version, card_id);
                         print_ui(msg);
                         card_present = 1;
 
@@ -124,25 +122,18 @@ int main()
                             continue;
                         }
 
-                        printf("DEBUG: Entered PIN: %s\n", pin);
-                        printf("DEBUG: Card PIN: %s\n", card_pin);
-
                         if (strcmp(pin, card_pin) != 0) {
-                            printf("DEBUG: PIN mismatch - entered='%s' card='%s'\n", pin, card_pin);
-                            print_ui("Error: Invalid PIN (card mismatch)");
+                            print_ui("Error: Invalid PIN");
                             card_present = 1;
                             continue;
                         }
 
                         char user_name[256];
-                        printf("DEBUG: Verifying PIN with API...\n");
                         if (verify_pin_api((char *)card_id, pin, user_name, sizeof(user_name))) {
-                            printf("DEBUG: API verification succeeded, user=%s\n", user_name);
                             char msg[512];
                             sprintf(msg, "Welcome %s!\n(v%d - %s)", user_name, version, card_id);
                             print_ui(msg);
                         } else {
-                            printf("DEBUG: API verification failed\n");
                             print_ui("Error: Invalid PIN");
                         }
 

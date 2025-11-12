@@ -48,27 +48,17 @@ int reconnect_card()
 
     rv = SCardStatus(hCard, pbReader, &dwReaderLen, &dwState, &dwProtocol, pbAtr, &dwAtrLen);
 
-    printf("DEBUG: SCardStatus returned 0x%lX, state=0x%lX\n", rv, rv == SCARD_S_SUCCESS ? dwState : 0);
-
     if (rv == SCARD_S_SUCCESS && (dwState & SCARD_PRESENT)) {
-        printf("DEBUG: Card still present and connected, no reconnect needed\n");
         return 1;
     }
-
-    printf("DEBUG: Card needs reconnect, attempting...\n");
 
     disconnect_card();
 
     rv = SCardConnect(hContext, readers, SCARD_SHARE_EXCLUSIVE,
                      SCARD_PROTOCOL_T0 | SCARD_PROTOCOL_T1,
                      &hCard, &dwActiveProtocol);
-    if (rv != SCARD_S_SUCCESS) {
-        printf("DEBUG: SCardConnect failed with code: 0x%lX\n", rv);
-        return 0;
-    }
 
-    printf("DEBUG: Successfully reconnected with exclusive access\n");
-    return 1;
+    return (rv == SCARD_S_SUCCESS);
 }
 
 int read_data(BYTE *card_id, BYTE *version)
@@ -121,44 +111,19 @@ int write_pin_to_card(const char *pin)
     pioSendPci.dwProtocol = dwActiveProtocol;
     pioSendPci.cbPciLength = sizeof(SCARD_IO_REQUEST);
 
-    printf("DEBUG: Testing card with READ_VERSION command first...\n");
-    responseLen = sizeof(response);
-    rv = SCardTransmit(hCard, &pioSendPci, cmd_test, sizeof(cmd_test),
-                      NULL, response, &responseLen);
-    if (rv != SCARD_S_SUCCESS) {
-        printf("DEBUG: Test command failed with code: 0x%lX - card firmware issue!\n", rv);
-        return 0;
-    }
-    printf("DEBUG: Test command succeeded, version=%d\n", response[0]);
-
     for (i = 0; i < SIZE_PIN; i++) {
         cmd_write_pin[5 + i] = pin[i] - '0';
     }
 
-    printf("DEBUG: Sending WRITE_PIN command...\n");
-    printf("DEBUG: Command bytes: ");
-    for (i = 0; i < sizeof(cmd_write_pin); i++) {
-        printf("%02X ", cmd_write_pin[i]);
-    }
-    printf("\n");
-
     responseLen = sizeof(response);
     rv = SCardTransmit(hCard, &pioSendPci, cmd_write_pin, sizeof(cmd_write_pin),
                       NULL, response, &responseLen);
-    if (rv != SCARD_S_SUCCESS) {
-        printf("DEBUG: WRITE_PIN SCardTransmit failed with code: 0x%lX\n", rv);
+
+    if (rv != SCARD_S_SUCCESS || responseLen < 2) {
         return 0;
     }
-    if (responseLen < 2) {
-        printf("DEBUG: Response too short: %lu bytes\n", responseLen);
-        return 0;
-    }
+
     if (response[responseLen - 2] != 0x90 || response[responseLen - 1] != 0x00) {
-        printf("DEBUG: Card returned error: SW1=0x%02X SW2=0x%02X\n",
-               response[responseLen - 2], response[responseLen - 1]);
-        if (response[responseLen - 2] == 0x6d) {
-            printf("DEBUG: 0x6d = Instruction not supported - firmware needs update!\n");
-        }
         return 0;
     }
 

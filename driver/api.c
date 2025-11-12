@@ -219,35 +219,30 @@ int verify_pin_api(const char *card_id, const char *pin, char *name_buffer, size
             long response_code;
             curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &response_code);
 
-            printf("DEBUG: API response code: %ld\n", response_code);
-            printf("DEBUG: API response body: %s\n", chunk.memory);
-
             if (response_code == 200) {
                 char *success_start = strstr(chunk.memory, "\"success\":true");
                 if (success_start) {
-                    char *name_start = strstr(chunk.memory, "\"name\":\"");
-                    if (name_start) {
-                        name_start += 8;
-                        char *name_end = strchr(name_start, '"');
-                        if (name_end) {
-                            size_t name_len = name_end - name_start;
-                            if (name_len < buffer_size) {
-                                strncpy(name_buffer, name_start, name_len);
-                                name_buffer[name_len] = '\0';
-                                success = 1;
+                    char *user_null = strstr(chunk.memory, "\"user\":null");
+                    if (user_null) {
+                        strcpy(name_buffer, "(No user assigned)");
+                        success = 1;
+                    } else {
+                        char *name_start = strstr(chunk.memory, "\"name\":\"");
+                        if (name_start) {
+                            name_start += 8;
+                            char *name_end = strchr(name_start, '"');
+                            if (name_end) {
+                                size_t name_len = name_end - name_start;
+                                if (name_len < buffer_size) {
+                                    strncpy(name_buffer, name_start, name_len);
+                                    name_buffer[name_len] = '\0';
+                                    success = 1;
+                                }
                             }
                         }
-                    } else {
-                        printf("DEBUG: No name field found in response\n");
                     }
-                } else {
-                    printf("DEBUG: success:true not found in response\n");
                 }
-            } else {
-                printf("DEBUG: Non-200 response code\n");
             }
-        } else {
-            printf("DEBUG: curl_easy_perform failed: %s\n", curl_easy_strerror(res));
         }
 
         curl_slist_free_all(headers);

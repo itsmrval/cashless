@@ -37,8 +37,27 @@ exports.createCard = async (req, res) => {
 exports.updateCard = async (req, res) => {
   try {
     const updates = {};
-    if (req.body.comment !== undefined) updates.comment = req.body.comment;
-    if (req.body.status !== undefined) updates.status = req.body.status;
+
+    if (req.body.comment !== undefined) {
+      if (typeof req.body.comment !== 'string') {
+        return res.status(400).json({ error: 'comment must be a string' });
+      }
+      updates.comment = req.body.comment;
+    }
+
+    if (req.body.status !== undefined) {
+      const validStatuses = ['waiting_activation', 'active', 'inactive'];
+      if (!validStatuses.includes(req.body.status)) {
+        return res.status(400).json({
+          error: 'Invalid status. Must be one of: ' + validStatuses.join(', ')
+        });
+      }
+      updates.status = req.body.status;
+    }
+
+    if (Object.keys(updates).length === 0) {
+      return res.status(400).json({ error: 'No valid fields to update' });
+    }
 
     const card = await Card.findByIdAndUpdate(
       req.params.card_id,
@@ -57,6 +76,14 @@ exports.updateCard = async (req, res) => {
 
 exports.assignCard = async (req, res) => {
   try {
+    if (!req.body.user_id) {
+      return res.status(400).json({ error: 'user_id is required' });
+    }
+
+    if (typeof req.body.user_id !== 'string') {
+      return res.status(400).json({ error: 'user_id must be a string' });
+    }
+
     const card = await Card.findByIdAndUpdate(
       req.params.card_id,
       { user_id: req.body.user_id },
