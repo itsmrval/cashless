@@ -102,9 +102,12 @@ function renderCards() {
         <tr>
             <td>${card._id}</td>
             <td>${card.comment || '-'}</td>
-            <td>${card.status}</td>
+            <td>
+                <span class="status-badge status-${card.status}">${card.status}</span>
+            </td>
             <td>${card.user_id ? card.user_id.name : '-'}</td>
             <td>
+                <button onclick="editStatus('${card._id}', '${card.status}')">Statut</button>
                 <button onclick="editComment('${card._id}', '${card.comment || ''}')">Commentaire</button>
                 <button class="secondary" onclick="assignCard('${card._id}')">Assigner</button>
                 ${card.user_id ? `<button class="secondary" onclick="unassignCard('${card._id}')">Désassigner</button>` : ''}
@@ -153,6 +156,19 @@ document.getElementById('comment-confirm').addEventListener('click', async () =>
     const comment = document.getElementById('comment-input').value;
     await apiCall(`/v1/card/${currentCardId}`, 'PATCH', { comment });
     document.getElementById('comment-modal').classList.remove('active');
+    loadCards();
+});
+
+function editStatus(cardId, currentStatus) {
+    currentCardId = cardId;
+    document.getElementById('status-select').value = currentStatus;
+    document.getElementById('status-modal').classList.add('active');
+}
+
+document.getElementById('status-confirm').addEventListener('click', async () => {
+    const status = document.getElementById('status-select').value;
+    await apiCall(`/v1/card/${currentCardId}`, 'PATCH', { status });
+    document.getElementById('status-modal').classList.remove('active');
     loadCards();
 });
 

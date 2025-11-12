@@ -101,7 +101,6 @@ int read_data(BYTE *card_id, BYTE *version)
 int write_pin_to_card(const char *pin)
 {
     LONG rv;
-    BYTE cmd_test[5] = {0x80, 0x02, 0x00, 0x00, 0x01};
     BYTE cmd_write_pin[5 + SIZE_PIN] = {0x80, 0x03, 0x00, 0x00, SIZE_PIN};
     BYTE response[258];
     DWORD responseLen;
