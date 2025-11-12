@@ -14,6 +14,7 @@
 int init_reader();
 int connect_card();
 int reconnect_card();
+int is_card_present();
 int read_data(BYTE *card_id, BYTE *version);
 int write_pin_to_card(const char *pin);
 int read_pin_from_card(char *pin);

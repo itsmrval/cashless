@@ -38,6 +38,23 @@ int connect_card()
     return (rv == SCARD_S_SUCCESS);
 }
 
+int is_card_present()
+{
+    if (!hCard) {
+        return 0;
+    }
+
+    LONG rv;
+    DWORD dwState, dwProtocol, dwAtrLen = 33;
+    BYTE pbAtr[33];
+    DWORD dwReaderLen = 256;
+    char pbReader[256];
+
+    rv = SCardStatus(hCard, pbReader, &dwReaderLen, &dwState, &dwProtocol, pbAtr, &dwAtrLen);
+
+    return (rv == SCARD_S_SUCCESS && (dwState & SCARD_PRESENT));
+}
+
 int reconnect_card()
 {
     LONG rv;

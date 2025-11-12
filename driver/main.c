@@ -27,21 +27,23 @@ int read_pin_with_timeout(char *pin, int timeout_seconds)
 
     while (pos < SIZE_PIN) {
         // Check if card is still present
-        if (!connect_card()) {
+        if (!is_card_present()) {
+            printf("\n");
             tcsetattr(STDIN_FILENO, TCSANOW, &old_tio);
             return 0;
         }
 
         // Check timeout
         if (time(NULL) - start_time >= timeout_seconds) {
+            printf("\nTimeout\n");
             tcsetattr(STDIN_FILENO, TCSANOW, &old_tio);
             return 0;
         }
 
         FD_ZERO(&readfds);
         FD_SET(STDIN_FILENO, &readfds);
-        tv.tv_sec = 1;
-        tv.tv_usec = 0;
+        tv.tv_sec = 0;
+        tv.tv_usec = 500000; // Check every 0.5 seconds
 
         int ret = select(STDIN_FILENO + 1, &readfds, NULL, NULL, &tv);
         if (ret > 0 && FD_ISSET(STDIN_FILENO, &readfds)) {
