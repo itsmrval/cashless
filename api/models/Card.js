@@ -3,8 +3,9 @@ const mongoose = require('mongoose');
 const cardSchema = new mongoose.Schema({
   card_id: {
     type: String,
-    required: true,
-    unique: true
+    required: false,
+    unique: true,
+    sparse: true
   },
   comment: {
     type: String,

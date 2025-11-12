@@ -52,9 +52,9 @@ make API_BASE_URL=http://localhost:3000/v1
 ### Card
 
 - `GET /v1/card` - Liste toutes les cartes
-- `POST /v1/card` - Crée une nouvelle carte `{card_id: "..."}` (card_id requis, comment optionnel)
+- `POST /v1/card` - Crée une nouvelle carte en DB (comment optionnel, retourne l'_id MongoDB)
 - `GET /v1/card/:card_id` - Récupère les infos d'une carte
-- `PATCH /v1/card/:card_id` - Met à jour `{comment: "...", status: "active"}`
+- `PATCH /v1/card/:card_id` - Met à jour `{comment: "...", status: "active", card_id: "..."}`
 - `POST /v1/card/:card_id/assign` - Assigne une carte à un user `{user_id: "..."}`
 - `DELETE /v1/card/:card_id/assign` - Désassigne une carte
 - `DELETE /v1/card/:card_id` - Supprime une carte

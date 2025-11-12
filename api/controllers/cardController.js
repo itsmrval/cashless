@@ -24,7 +24,6 @@ exports.getCardByCardId = async (req, res) => {
 exports.createCard = async (req, res) => {
   try {
     const card = new Card({
-      card_id: req.body.card_id,
       comment: req.body.comment || ''
     });
     await card.save();
