@@ -2,40 +2,28 @@
 #include <unistd.h>
 #include <string.h>
 #include <sys/select.h>
-#include <errno.h>
 #include <termios.h>
-#include <time.h>
 #include "card.h"
 #include "api.h"
 #include "ui.h"
 
-// Read PIN with timeout and card presence checking
-// Returns: 1 if PIN read successfully, 0 if card removed or timeout
-int read_pin_with_timeout(char *pin, int timeout_seconds)
+// Read PIN with card presence checking
+// Returns: 1 if PIN read successfully, 0 if card removed
+int read_pin(char *pin)
 {
+    struct termios old_tio, new_tio;
     fd_set readfds;
     struct timeval tv;
     int pos = 0;
-    time_t start_time = time(NULL);
 
-    // Set terminal to non-canonical mode
-    struct termios old_tio, new_tio;
     tcgetattr(STDIN_FILENO, &old_tio);
     new_tio = old_tio;
     new_tio.c_lflag &= ~(ICANON | ECHO);
     tcsetattr(STDIN_FILENO, TCSANOW, &new_tio);
 
     while (pos < SIZE_PIN) {
-        // Check if card is still present
         if (!is_card_present()) {
             printf("\n");
-            tcsetattr(STDIN_FILENO, TCSANOW, &old_tio);
-            return 0;
-        }
-
-        // Check timeout
-        if (time(NULL) - start_time >= timeout_seconds) {
-            printf("\nTimeout\n");
             tcsetattr(STDIN_FILENO, TCSANOW, &old_tio);
             return 0;
         }
@@ -43,26 +31,19 @@ int read_pin_with_timeout(char *pin, int timeout_seconds)
         FD_ZERO(&readfds);
         FD_SET(STDIN_FILENO, &readfds);
         tv.tv_sec = 0;
-        tv.tv_usec = 500000; // Check every 0.5 seconds
+        tv.tv_usec = 500000;
 
-        int ret = select(STDIN_FILENO + 1, &readfds, NULL, NULL, &tv);
-        if (ret > 0 && FD_ISSET(STDIN_FILENO, &readfds)) {
+        if (select(STDIN_FILENO + 1, &readfds, NULL, NULL, &tv) > 0) {
             char c;
             if (read(STDIN_FILENO, &c, 1) == 1) {
                 if (c >= '0' && c <= '9') {
                     pin[pos++] = c;
                     printf("*");
                     fflush(stdout);
-                } else if (c == 127 || c == 8) { // Backspace
-                    if (pos > 0) {
-                        pos--;
-                        printf("\b \b");
-                        fflush(stdout);
-                    }
-                } else if (c == '\n' || c == '\r') {
-                    if (pos == SIZE_PIN) {
-                        break;
-                    }
+                } else if ((c == 127 || c == 8) && pos > 0) {
+                    pos--;
+                    printf("\b \b");
+                    fflush(stdout);
                 }
             }
         }
@@ -71,7 +52,7 @@ int read_pin_with_timeout(char *pin, int timeout_seconds)
     pin[SIZE_PIN] = '\0';
     printf("\n");
     tcsetattr(STDIN_FILENO, TCSANOW, &old_tio);
-    return (pos == SIZE_PIN);
+    return 1;
 }
 
 int main()
@@ -122,7 +103,10 @@ int main()
                         printf("Enter PIN: ");
                         fflush(stdout);
 
-                        if (!read_pin_with_timeout(pin, 10)) {
+                        if (!read_pin(pin)) {
+                            disconnect_card();
+                            card_present = 0;
+                            print_ui("Waiting for a card", 0, NULL, NULL);
                             continue;
                         }
 
@@ -184,7 +168,10 @@ int main()
                         printf("PIN: ");
                         fflush(stdout);
 
-                        if (!read_pin_with_timeout(pin, 10)) {
+                        if (!read_pin(pin)) {
+                            disconnect_card();
+                            card_present = 0;
+                            print_ui("Waiting for a card", 0, NULL, NULL);
                             continue;
                         }
 
