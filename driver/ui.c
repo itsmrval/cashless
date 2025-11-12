@@ -14,16 +14,17 @@ void print_ui(const char *status, unsigned char version, const char *card_id, co
     clear_screen();
     printf("cashless - v%s\n", VERSION);
 
-    if (user_name && strlen(user_name) > 0) {
-        printf("\nWelcome, %s\n", user_name);
-    } else {
-        printf("\n");
-    }
-
     if (card_id && strlen(card_id) > 0) {
+        if (user_name && strlen(user_name) > 0) {
+            printf("\nWelcome, %s\n", user_name);
+        } else {
+            printf("\n");
+        }
         printf("- version v0.0.%d, id %s\n", version, card_id);
+        printf("\n%s\n", status);
+    } else {
+        printf("\n%s\n", status);
     }
 
-    printf("\n%s\n", status);
     fflush(stdout);
 }
