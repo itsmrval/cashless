@@ -69,6 +69,12 @@ int main()
 
                         print_ui("Setting up PIN...");
 
+                        if (!reconnect_card()) {
+                            print_ui("Error: Failed to reconnect to card");
+                            card_present = 1;
+                            continue;
+                        }
+
                         if (!write_pin_to_card(pin)) {
                             print_ui("Error: Failed to write PIN to card");
                             card_present = 1;
@@ -102,6 +108,12 @@ int main()
                         }
 
                         print_ui("Verifying PIN...");
+
+                        if (!reconnect_card()) {
+                            print_ui("Error: Failed to reconnect to card");
+                            card_present = 1;
+                            continue;
+                        }
 
                         char card_pin[SIZE_PIN + 1];
                         if (!read_pin_from_card(card_pin)) {

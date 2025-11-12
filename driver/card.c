@@ -38,6 +38,17 @@ int connect_card()
     return (rv == SCARD_S_SUCCESS);
 }
 
+int reconnect_card()
+{
+    LONG rv;
+
+    rv = SCardReconnect(hCard, SCARD_SHARE_SHARED,
+                       SCARD_PROTOCOL_T0 | SCARD_PROTOCOL_T1,
+                       SCARD_LEAVE_CARD, &dwActiveProtocol);
+
+    return (rv == SCARD_S_SUCCESS);
+}
+
 int read_data(BYTE *card_id, BYTE *version)
 {
     LONG rv;
