@@ -24,6 +24,14 @@ docker-compose up
 
 l'api est disponible sur `http://localhost:3000`
 
+### Configuration Ansible
+
+```bash
+cd ansible
+cp group_vars/all.yml.example group_vars/all.yml
+# Éditer all.yml avec vos paramètres locaux
+```
+
 ### Créer une carte
 
 ```bash
