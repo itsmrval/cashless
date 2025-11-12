@@ -124,7 +124,11 @@ int main()
                             continue;
                         }
 
+                        printf("DEBUG: Entered PIN: %s\n", pin);
+                        printf("DEBUG: Card PIN: %s\n", card_pin);
+
                         if (strcmp(pin, card_pin) != 0) {
+                            printf("DEBUG: PIN mismatch - entered='%s' card='%s'\n", pin, card_pin);
                             print_ui("Error: Invalid PIN (card mismatch)");
                             card_present = 1;
                             continue;
