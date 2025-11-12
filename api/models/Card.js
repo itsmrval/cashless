@@ -1,14 +1,10 @@
 const mongoose = require('mongoose');
-const { customAlphabet } = require('nanoid');
-
-const nanoid = customAlphabet('0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ', 24);
 
 const cardSchema = new mongoose.Schema({
   card_id: {
     type: String,
     required: true,
-    unique: true,
-    default: () => nanoid()
+    unique: true
   },
   comment: {
     type: String,

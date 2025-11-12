@@ -2,12 +2,18 @@ NAME = card
 PROGNAME = $(NAME).hex
 EENAME = $(NAME).eep
 
+CARD_ID ?=
+ifndef CARD_ID
+$(error CARD_ID is not set. Use: make CARD_ID=<24_char_id>)
+endif
+
 PROC = -mmcu=atmega328p
 AVR = avr5
 
 CC = avr-gcc
 IDIR = -I/usr/lib/avr/include/avr
 LDIR = -L/usr/lib/avr/lib/$(AVR)/
+CFLAGS = -DCARD_ID=\"$(CARD_ID)\"
 
 all: prog
 
@@ -26,4 +32,4 @@ clean:
 	rm -f $(NAME).elf *.o $(NAME).eep $(NAME).hex
 
 $(NAME).o: $(NAME).c
-	$(CC) -c -Wall -Ofast $(NAME).c $(PROC) $(IDIR)
+	$(CC) -c -Wall -Ofast $(CFLAGS) $(NAME).c $(PROC) $(IDIR)

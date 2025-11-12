@@ -3,7 +3,10 @@
 all: card driver
 
 card:
-	$(MAKE) -C card
+ifndef CARD_ID
+	$(error CARD_ID is not set. Use: make card CARD_ID=<24_char_id>)
+endif
+	$(MAKE) -C card CARD_ID=$(CARD_ID)
 
 driver:
 	$(MAKE) -C driver

@@ -14,7 +14,12 @@ const char atr_str[SIZE_ATR] PROGMEM = "cashless";
 
 #define CARD_VERSION 1
 #define SIZE_CARD_ID 24
-const char card_id[SIZE_CARD_ID] PROGMEM = "000000000000000000000000";
+
+#ifndef CARD_ID
+#error "CARD_ID must be defined at compile time"
+#endif
+
+const char card_id[SIZE_CARD_ID] PROGMEM = CARD_ID;
 
 void atr()
 {

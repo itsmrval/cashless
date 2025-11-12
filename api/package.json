@@ -13,7 +13,6 @@
   "type": "commonjs",
   "dependencies": {
     "express": "^5.1.0",
-    "mongoose": "^8.19.3",
-    "nanoid": "^3.3.7"
+    "mongoose": "^8.19.3"
   }
 }
