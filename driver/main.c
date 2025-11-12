@@ -69,11 +69,13 @@ int main()
 
                         print_ui("Setting up PIN...");
 
+                        printf("DEBUG: Attempting to reconnect to card...\n");
                         if (!reconnect_card()) {
                             print_ui("Error: Failed to reconnect to card");
                             card_present = 1;
                             continue;
                         }
+                        printf("DEBUG: Reconnected successfully, writing PIN...\n");
 
                         if (!write_pin_to_card(pin)) {
                             print_ui("Error: Failed to write PIN to card");
