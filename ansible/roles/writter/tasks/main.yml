@@ -1,0 +1,22 @@
+---
+- name: Verify card_id is defined
+  fail:
+    msg: "card_id must be defined"
+  when: card_id is not defined
+
+- name: Clean card build directory
+  make:
+    chdir: "{{ card_folder }}"
+    target: clean
+  ignore_errors: yes
+
+- name: Build and upload card firmware
+  make:
+    chdir: "{{ card_folder }}"
+    params:
+      CARD_ID: "{{ card_id }}"
+  register: make_result
+
+- name: Display card write result
+  debug:
+    msg: "Card {{ card_id }} successfully burned to hardware"

@@ -17,7 +17,7 @@ exports.getAllUsers = async (req, res) => {
 
 exports.getUserByCardId = async (req, res) => {
   try {
-    const card = await Card.findOne({ card_id: req.query.card_id }).populate('user_id');
+    const card = await Card.findById(req.query.card_id).populate('user_id');
     if (!card) {
       return res.status(404).json({ error: 'Card not found' });
     }

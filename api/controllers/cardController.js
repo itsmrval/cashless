@@ -11,7 +11,7 @@ exports.getAllCards = async (req, res) => {
 
 exports.getCardByCardId = async (req, res) => {
   try {
-    const card = await Card.findOne({ card_id: req.params.card_id }).populate('user_id', 'name');
+    const card = await Card.findById(req.params.card_id).populate('user_id', 'name');
     if (!card) {
       return res.status(404).json({ error: 'Card not found' });
     }
@@ -39,8 +39,8 @@ exports.updateCard = async (req, res) => {
     if (req.body.comment !== undefined) updates.comment = req.body.comment;
     if (req.body.status !== undefined) updates.status = req.body.status;
 
-    const card = await Card.findOneAndUpdate(
-      { card_id: req.params.card_id },
+    const card = await Card.findByIdAndUpdate(
+      req.params.card_id,
       updates,
       { new: true, runValidators: true }
     ).populate('user_id', 'name');
@@ -56,8 +56,8 @@ exports.updateCard = async (req, res) => {
 
 exports.assignCard = async (req, res) => {
   try {
-    const card = await Card.findOneAndUpdate(
-      { card_id: req.params.card_id },
+    const card = await Card.findByIdAndUpdate(
+      req.params.card_id,
       { user_id: req.body.user_id },
       { new: true, runValidators: true }
     ).populate('user_id', 'name');
@@ -73,8 +73,8 @@ exports.assignCard = async (req, res) => {
 
 exports.unassignCard = async (req, res) => {
   try {
-    const card = await Card.findOneAndUpdate(
-      { card_id: req.params.card_id },
+    const card = await Card.findByIdAndUpdate(
+      req.params.card_id,
       { user_id: null },
       { new: true }
     );
@@ -90,7 +90,7 @@ exports.unassignCard = async (req, res) => {
 
 exports.deleteCard = async (req, res) => {
   try {
-    const card = await Card.findOneAndDelete({ card_id: req.params.card_id });
+    const card = await Card.findByIdAndDelete(req.params.card_id);
     if (!card) {
       return res.status(404).json({ error: 'Card not found' });
     }

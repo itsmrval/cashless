@@ -1,0 +1,20 @@
+---
+- name: Create card in API
+  uri:
+    url: "{{ api_url }}/v1/card"
+    method: POST
+    body_format: json
+    body:
+      comment: "{{ card_comment }}"
+    status_code: 201
+    return_content: yes
+  register: card_response
+
+- name: Set card_id fact
+  set_fact:
+    card_id: "{{ card_response.json._id }}"
+    card_data: "{{ card_response.json }}"
+
+- name: Display card creation result
+  debug:
+    msg: "Card created with ID: {{ card_id }}"

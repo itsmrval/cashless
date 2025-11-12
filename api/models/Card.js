@@ -1,12 +1,6 @@
 const mongoose = require('mongoose');
 
 const cardSchema = new mongoose.Schema({
-  card_id: {
-    type: String,
-    required: false,
-    unique: true,
-    sparse: true
-  },
   comment: {
     type: String,
     default: ''
@@ -18,13 +12,11 @@ const cardSchema = new mongoose.Schema({
   },
   status: {
     type: String,
-    enum: ['active', 'inactive', 'lost'],
-    default: 'active'
+    enum: ['active', 'inactive'],
+    default: 'inactive'
   }
 }, {
   timestamps: true
 });
-
-cardSchema.index({ card_id: 1 });
 
 module.exports = mongoose.model('Card', cardSchema);
