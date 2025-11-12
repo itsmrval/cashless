@@ -2,17 +2,20 @@ NAME = card
 PROGNAME = $(NAME).hex
 EENAME = $(NAME).eep
 
-CARD_ID ?=
-ifndef CARD_ID
-$(error CARD_ID is not set. Use: make CARD_ID=<24_char_id>)
-endif
-
 PROC = -mmcu=atmega328p
 AVR = avr5
 
 CC = avr-gcc
 IDIR = -I/usr/lib/avr/include/avr
 LDIR = -L/usr/lib/avr/lib/$(AVR)/
+
+CARD_ID ?=
+ifneq ($(MAKECMDGOALS),clean)
+ifndef CARD_ID
+$(error CARD_ID is not set. Use: make CARD_ID=<24_char_id>)
+endif
+endif
+
 CFLAGS = -DCARD_ID=\"$(CARD_ID)\"
 
 all: prog

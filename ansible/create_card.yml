@@ -37,8 +37,6 @@
 
         - name: Delete card from API
           include_tasks: roles/api/tasks/delete.yml
-          vars:
-            card_id: "{{ card_id }}"
 
         - name: Fail playbook
           fail:
