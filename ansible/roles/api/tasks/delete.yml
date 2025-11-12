@@ -4,9 +4,7 @@
     url: "{{ api_url }}/v1/card/{{ card_id }}"
     method: DELETE
     status_code: 204
-  when: card_id is defined
 
 - name: Display card deletion result
   debug:
     msg: "Card {{ card_id }} deleted from API"
-  when: card_id is defined
