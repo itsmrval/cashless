@@ -84,9 +84,11 @@ La carte communique via le protocole PC/SC avec des commandes APDU:
 | `0x02` | READ_VERSION | 1 byte | Lit la version du firmware | 1 byte + SW1/SW2 |
 | `0x03` | WRITE_PIN | 4 bytes | Écrit le PIN dans l'EEPROM | SW1/SW2 |
 | `0x04` | READ_PIN | 4 bytes | Lit le PIN depuis l'EEPROM | 4 bytes + SW1/SW2 |
+| `0x05` | ASSIGN_CARD_ID | 24 bytes | Assigne le card_id dans l'EEPROM (opération unique, échoue si déjà assigné) | SW1/SW2 |
 
 **Status:**
 - `0x90 0x00` - Succès
+- `0x6a 0x81` - Fonction non supportée (carte déjà assignée pour INS=0x05)
 - `0x6c XX` - Erreur de longueur, XX = longueur attendue
 - `0x6d 0x00` - Instruction non supportée
 - `0x6e 0x00` - Classe non supportée
@@ -96,6 +98,8 @@ La carte communique via le protocole PC/SC avec des commandes APDU:
 | Adresse | Taille | Contenu |
 |---------|--------|---------|
 | `0x00-0x03` | 4 bytes | PIN (4 chiffres en format numérique 0-9) |
+| `0x04-0x1B` | 24 bytes | Card ID (identifiant unique, assigné via APDU 0x05) |
+| `0x1C` | 1 byte | Flag d'assignation (0x01 = assigné, autre = non assigné) |
 
 ### ATR (Answer-To-Reset)
 
