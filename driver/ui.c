@@ -9,15 +9,21 @@ static void clear_screen()
     printf("\033[2J\033[H");
 }
 
-void print_ui(const char *status, unsigned char version, const char *card_id)
+void print_ui(const char *status, unsigned char version, const char *card_id, const char *user_name)
 {
     clear_screen();
     printf("cashless - v%s\n", VERSION);
 
-    if (card_id && strlen(card_id) > 0) {
-        printf("version v0.0.%d, id %s\n", version, card_id);
+    if (user_name && strlen(user_name) > 0) {
+        printf("\nWelcome on your terminal, %s\n", user_name);
+    } else {
+        printf("\n");
     }
 
-    printf("\n\n%s\n", status);
+    if (card_id && strlen(card_id) > 0) {
+        printf("- version v0.0.%d, id %s\n", version, card_id);
+    }
+
+    printf("\n%s\n", status);
     fflush(stdout);
 }
