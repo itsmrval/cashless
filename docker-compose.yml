@@ -1,0 +1,29 @@
+services:
+  mongodb:
+    image: mongo:7
+    container_name: cashless-mongodb
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: admin
+      MONGO_INITDB_ROOT_PASSWORD: admin
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongodb_data:/data/db
+
+  api:
+    build: ./api
+    container_name: cashless-api
+    environment:
+      MONGO_URI: mongodb://admin:admin@mongodb:27017/cashless?authSource=admin
+      PORT: 3000
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./api:/app
+      - /app/node_modules
+    depends_on:
+      - mongodb
+    command: npm start
+
+volumes:
+  mongodb_data:
