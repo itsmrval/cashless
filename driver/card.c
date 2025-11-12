@@ -111,24 +111,38 @@ int read_data(BYTE *card_id, BYTE *version)
 int write_pin_to_card(const char *pin)
 {
     LONG rv;
+    BYTE cmd_test[5] = {0x80, 0x02, 0x00, 0x00, 0x01};
     BYTE cmd_write_pin[5 + SIZE_PIN] = {0x80, 0x03, 0x00, 0x00, SIZE_PIN};
     BYTE response[258];
     DWORD responseLen;
     SCARD_IO_REQUEST pioSendPci;
     int i;
 
+    pioSendPci.dwProtocol = dwActiveProtocol;
+    pioSendPci.cbPciLength = sizeof(SCARD_IO_REQUEST);
+
+    printf("DEBUG: Testing card with READ_VERSION command first...\n");
+    responseLen = sizeof(response);
+    rv = SCardTransmit(hCard, &pioSendPci, cmd_test, sizeof(cmd_test),
+                      NULL, response, &responseLen);
+    if (rv != SCARD_S_SUCCESS) {
+        printf("DEBUG: Test command failed with code: 0x%lX - card firmware issue!\n", rv);
+        return 0;
+    }
+    printf("DEBUG: Test command succeeded, version=%d\n", response[0]);
+
     for (i = 0; i < SIZE_PIN; i++) {
         cmd_write_pin[5 + i] = pin[i] - '0';
     }
 
-    pioSendPci.dwProtocol = dwActiveProtocol;
-    pioSendPci.cbPciLength = sizeof(SCARD_IO_REQUEST);
-
+    printf("DEBUG: Sending WRITE_PIN command...\n");
     responseLen = sizeof(response);
     rv = SCardTransmit(hCard, &pioSendPci, cmd_write_pin, sizeof(cmd_write_pin),
                       NULL, response, &responseLen);
     if (rv != SCARD_S_SUCCESS) {
-        printf("DEBUG: SCardTransmit failed with code: 0x%lX\n", rv);
+        printf("DEBUG: WRITE_PIN SCardTransmit failed with code: 0x%lX\n", rv);
+        printf("DEBUG: This means the card firmware does NOT support PIN commands!\n");
+        printf("DEBUG: You need to rebuild the card firmware with: make card CARD_ID=...\n");
         return 0;
     }
     if (responseLen < 2) {
@@ -138,6 +152,9 @@ int write_pin_to_card(const char *pin)
     if (response[responseLen - 2] != 0x90 || response[responseLen - 1] != 0x00) {
         printf("DEBUG: Card returned error: SW1=0x%02X SW2=0x%02X\n",
                response[responseLen - 2], response[responseLen - 1]);
+        if (response[responseLen - 2] == 0x6d) {
+            printf("DEBUG: 0x6d = Instruction not supported - firmware needs update!\n");
+        }
         return 0;
     }
 
