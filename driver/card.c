@@ -1,35 +1,11 @@
-#include <stdio.h>
-#include <stdlib.h>
+#include "card.h"
 #include <string.h>
-#include <unistd.h>
-#ifdef __APPLE__
-#include <PCSC/winscard.h>
-#else
-#include <pcsclite.h>
-#include <winscard.h>
-#endif
 
-#define VERSION "0.0.1"
-#define SIZE_USER_ID 24
-#define ADDR_VERSION 0x18
-
-SCARDCONTEXT hContext;
-SCARDHANDLE hCard;
-DWORD dwActiveProtocol;
-char readers[256];
-DWORD readersLen;
-
-void clear_screen()
-{
-    printf("\033[2J\033[H");
-}
-
-void print_ui(const char *status)
-{
-    clear_screen();
-    printf("cashless - v%s\n\n%s\n", VERSION, status);
-    fflush(stdout);
-}
+static SCARDCONTEXT hContext;
+static SCARDHANDLE hCard;
+static DWORD dwActiveProtocol;
+static char readers[256];
+static DWORD readersLen;
 
 int init_reader()
 {
@@ -106,43 +82,7 @@ void disconnect_card()
     }
 }
 
-int main()
+void cleanup_card()
 {
-    BYTE user_id[SIZE_USER_ID + 1];
-    BYTE version;
-    int card_present = 0;
-
-    if (!init_reader()) {
-        printf("Error: No reader detected\n");
-        return 1;
-    }
-
-    print_ui("Waiting for a card");
-
-    while (1) {
-        if (connect_card()) {
-            if (!card_present) {
-                if (read_data(user_id, &version)) {
-                    user_id[SIZE_USER_ID] = '\0';
-                    char msg[128];
-                    sprintf(msg, "Card readed (v%d): user_id %s", version, user_id);
-                    print_ui(msg);
-                    card_present = 1;
-                } else {
-                    disconnect_card();
-                }
-            }
-        } else {
-            if (card_present) {
-                print_ui("Waiting for a card");
-                card_present = 0;
-            }
-            disconnect_card();
-        }
-
-        usleep(500000);
-    }
-
     SCardReleaseContext(hContext);
-    return 0;
 }
