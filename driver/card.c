@@ -41,15 +41,28 @@ int connect_card()
 int reconnect_card()
 {
     LONG rv;
+    DWORD dwState, dwProtocol, dwAtrLen;
+    BYTE pbAtr[33];
+    DWORD dwReaderLen = 256;
+    char pbReader[256];
 
-    rv = SCardReconnect(hCard, SCARD_SHARE_SHARED,
+    rv = SCardStatus(hCard, pbReader, &dwReaderLen, &dwState, &dwProtocol, pbAtr, &dwAtrLen);
+
+    if (rv == SCARD_S_SUCCESS && dwState == SCARD_PRESENT) {
+        printf("DEBUG: Card still present, no reconnect needed\n");
+        return 1;
+    }
+
+    printf("DEBUG: Card status check failed (0x%lX), attempting reconnect...\n", rv);
+
+    rv = SCardReconnect(hCard, SCARD_SHARE_EXCLUSIVE,
                        SCARD_PROTOCOL_T0 | SCARD_PROTOCOL_T1,
-                       SCARD_LEAVE_CARD, &dwActiveProtocol);
+                       SCARD_RESET_CARD, &dwActiveProtocol);
 
     if (rv != SCARD_S_SUCCESS) {
         printf("DEBUG: SCardReconnect failed with code: 0x%lX\n", rv);
         disconnect_card();
-        rv = SCardConnect(hContext, readers, SCARD_SHARE_SHARED,
+        rv = SCardConnect(hContext, readers, SCARD_SHARE_EXCLUSIVE,
                          SCARD_PROTOCOL_T0 | SCARD_PROTOCOL_T1,
                          &hCard, &dwActiveProtocol);
         if (rv != SCARD_S_SUCCESS) {
