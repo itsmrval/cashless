@@ -74,6 +74,67 @@ int read_data(BYTE *card_id, BYTE *version)
     return 1;
 }
 
+int write_pin_to_card(const char *pin)
+{
+    LONG rv;
+    BYTE cmd_write_pin[5 + SIZE_PIN] = {0x80, 0x03, 0x00, 0x00, SIZE_PIN};
+    BYTE response[258];
+    DWORD responseLen;
+    SCARD_IO_REQUEST pioSendPci;
+    int i;
+
+    // Copy PIN digits to command
+    for (i = 0; i < SIZE_PIN; i++) {
+        cmd_write_pin[5 + i] = pin[i] - '0'; // Convert ASCII to numeric
+    }
+
+    pioSendPci.dwProtocol = dwActiveProtocol;
+    pioSendPci.cbPciLength = sizeof(SCARD_IO_REQUEST);
+
+    responseLen = sizeof(response);
+    rv = SCardTransmit(hCard, &pioSendPci, cmd_write_pin, sizeof(cmd_write_pin),
+                      NULL, response, &responseLen);
+    if (rv != SCARD_S_SUCCESS || responseLen < 2) {
+        return 0;
+    }
+    if (response[responseLen - 2] != 0x90 || response[responseLen - 1] != 0x00) {
+        return 0;
+    }
+
+    return 1;
+}
+
+int read_pin_from_card(char *pin)
+{
+    LONG rv;
+    BYTE cmd_read_pin[] = {0x80, 0x04, 0x00, 0x00, SIZE_PIN};
+    BYTE response[258];
+    DWORD responseLen;
+    SCARD_IO_REQUEST pioSendPci;
+    int i;
+
+    pioSendPci.dwProtocol = dwActiveProtocol;
+    pioSendPci.cbPciLength = sizeof(SCARD_IO_REQUEST);
+
+    responseLen = sizeof(response);
+    rv = SCardTransmit(hCard, &pioSendPci, cmd_read_pin, sizeof(cmd_read_pin),
+                      NULL, response, &responseLen);
+    if (rv != SCARD_S_SUCCESS || responseLen < SIZE_PIN + 2) {
+        return 0;
+    }
+    if (response[responseLen - 2] != 0x90 || response[responseLen - 1] != 0x00) {
+        return 0;
+    }
+
+    // Convert numeric to ASCII
+    for (i = 0; i < SIZE_PIN; i++) {
+        pin[i] = response[i] + '0';
+    }
+    pin[SIZE_PIN] = '\0';
+
+    return 1;
+}
+
 void disconnect_card()
 {
     if (hCard) {

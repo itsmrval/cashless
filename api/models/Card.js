@@ -12,8 +12,16 @@ const cardSchema = new mongoose.Schema({
   },
   status: {
     type: String,
-    enum: ['active', 'inactive'],
-    default: 'inactive'
+    enum: ['waiting_activation', 'active', 'inactive'],
+    default: 'waiting_activation'
+  },
+  pin_hash: {
+    type: String,
+    default: null
+  },
+  pin_set_at: {
+    type: Date,
+    default: null
   }
 }, {
   timestamps: true

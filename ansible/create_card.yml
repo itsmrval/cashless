@@ -26,9 +26,9 @@
         - name: Display success message
           debug:
             msg: |
-              ✓ Card successfully created and burned!
-              Card ID: {{ card_id }}
-              Status: active
+              Card successfully created.
+              ID: {{ card_id }}
+              Status: waiting_pin
 
       rescue:
         - name: Display error message

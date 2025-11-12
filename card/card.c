@@ -14,6 +14,8 @@ const char atr_str[SIZE_ATR] PROGMEM = "cashless";
 
 #define CARD_VERSION 1
 #define SIZE_CARD_ID 24
+#define SIZE_PIN 4
+#define EEPROM_PIN_ADDR 0
 
 #ifndef CARD_ID
 #error "CARD_ID must be defined at compile time"
@@ -65,6 +67,42 @@ void read_version()
     sw1 = 0x90;
 }
 
+void write_pin()
+{
+    int i;
+
+    if (p3 != SIZE_PIN) {
+        sw1 = 0x6c;
+        sw2 = SIZE_PIN;
+        return;
+    }
+
+    sendbytet0(ins);
+    for (i = 0; i < SIZE_PIN; i++) {
+        uint8_t digit = recbytet0();
+        eeprom_write_byte((uint8_t*)(EEPROM_PIN_ADDR + i), digit);
+    }
+    sw1 = 0x90;
+}
+
+void read_pin()
+{
+    int i;
+
+    if (p3 != SIZE_PIN) {
+        sw1 = 0x6c;
+        sw2 = SIZE_PIN;
+        return;
+    }
+
+    sendbytet0(ins);
+    for (i = 0; i < SIZE_PIN; i++) {
+        uint8_t digit = eeprom_read_byte((uint8_t*)(EEPROM_PIN_ADDR + i));
+        sendbytet0(digit);
+    }
+    sw1 = 0x90;
+}
+
 int main(void)
 {
     ACSR = 0x80;
@@ -96,6 +134,12 @@ int main(void)
                 break;
             case 0x02:
                 read_version();
+                break;
+            case 0x03:
+                write_pin();
+                break;
+            case 0x04:
+                read_pin();
                 break;
             default:
                 sw1 = 0x6d;
