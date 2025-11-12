@@ -13,8 +13,8 @@ uint8_t sw1, sw2;
 const char atr_str[SIZE_ATR] PROGMEM = "cashless";
 
 #define CARD_VERSION 1
-#define SIZE_USER_ID 24
-const char user_id[SIZE_USER_ID] PROGMEM = "000000000000000000000000";
+#define SIZE_CARD_ID 24
+const char card_id[SIZE_CARD_ID] PROGMEM = "000000000000000000000000";
 
 void atr()
 {
@@ -32,18 +32,18 @@ void atr()
     }
 }
 
-void read_user_id()
+void read_card_id()
 {
     int i;
 
-    if (p3 != SIZE_USER_ID) {
+    if (p3 != SIZE_CARD_ID) {
         sw1 = 0x6c;
-        sw2 = SIZE_USER_ID;
+        sw2 = SIZE_CARD_ID;
         return;
     }
     sendbytet0(ins);
-    for (i = 0; i < SIZE_USER_ID; i++) {
-        sendbytet0(pgm_read_byte(user_id + i));
+    for (i = 0; i < SIZE_CARD_ID; i++) {
+        sendbytet0(pgm_read_byte(card_id + i));
     }
     sw1 = 0x90;
 }
@@ -87,7 +87,7 @@ int main(void)
         case 0x80:
             switch (ins) {
             case 0x01:
-                read_user_id();
+                read_card_id();
                 break;
             case 0x02:
                 read_version();

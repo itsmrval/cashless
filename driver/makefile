@@ -4,10 +4,16 @@ API_BASE_URL=http://localhost:3000/v1
 SRCS=main.c card.c api.c ui.c
 OBJS=$(SRCS:.c=.o)
 
-CPPFLAGS=$(shell pkg-config --cflags libpcsclite 2>/dev/null || echo "-I/usr/include/PCSC") -DAPI_BASE_URL=\"$(API_BASE_URL)\"
-LDFLAGS=$(shell pkg-config --libs libpcsclite 2>/dev/null || echo "-lpcsclite") -lcurl
+CPPFLAGS=$(shell pkg-config --cflags libpcsclite libcurl 2>/dev/null || echo "-I/usr/include/PCSC")
+CPPFLAGS+=-DAPI_BASE_URL=\"$(API_BASE_URL)\"
+LDFLAGS=$(shell pkg-config --libs libpcsclite libcurl 2>/dev/null || echo "-lpcsclite -lcurl")
 
-all: $(NOM)
+all: check-deps $(NOM)
+
+check-deps:
+	@command -v pkg-config >/dev/null 2>&1 || { echo "Error: pkg-config is required. Install it with: apt-get install pkg-config"; exit 1; }
+	@pkg-config --exists libcurl || { echo "Error: libcurl development headers not found. Install with: apt-get install libcurl4-openssl-dev"; exit 1; }
+	@pkg-config --exists libpcsclite || { echo "Error: libpcsclite development headers not found. Install with: apt-get install libpcsclite-dev"; exit 1; }
 
 $(NOM): $(OBJS)
 	gcc -o $(NOM) $(OBJS) $(LDFLAGS)

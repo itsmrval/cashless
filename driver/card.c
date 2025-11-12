@@ -37,10 +37,10 @@ int connect_card()
     return (rv == SCARD_S_SUCCESS);
 }
 
-int read_data(BYTE *user_id, BYTE *version)
+int read_data(BYTE *card_id, BYTE *version)
 {
     LONG rv;
-    BYTE cmd_user_id[] = {0x80, 0x01, 0x00, 0x00, SIZE_USER_ID};
+    BYTE cmd_card_id[] = {0x80, 0x01, 0x00, 0x00, SIZE_CARD_ID};
     BYTE cmd_version[] = {0x80, 0x02, 0x00, 0x00, 0x01};
     BYTE response[258];
     DWORD responseLen;
@@ -50,15 +50,15 @@ int read_data(BYTE *user_id, BYTE *version)
     pioSendPci.cbPciLength = sizeof(SCARD_IO_REQUEST);
 
     responseLen = sizeof(response);
-    rv = SCardTransmit(hCard, &pioSendPci, cmd_user_id, sizeof(cmd_user_id),
+    rv = SCardTransmit(hCard, &pioSendPci, cmd_card_id, sizeof(cmd_card_id),
                       NULL, response, &responseLen);
-    if (rv != SCARD_S_SUCCESS || responseLen < SIZE_USER_ID + 2) {
+    if (rv != SCARD_S_SUCCESS || responseLen < SIZE_CARD_ID + 2) {
         return 0;
     }
     if (response[responseLen - 2] != 0x90 || response[responseLen - 1] != 0x00) {
         return 0;
     }
-    memcpy(user_id, response, SIZE_USER_ID);
+    memcpy(card_id, response, SIZE_CARD_ID);
 
     responseLen = sizeof(response);
     rv = SCardTransmit(hCard, &pioSendPci, cmd_version, sizeof(cmd_version),

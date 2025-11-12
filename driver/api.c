@@ -37,7 +37,7 @@ void api_cleanup()
     curl_global_cleanup();
 }
 
-int fetch_user_name(const char *user_id, char *name_buffer, size_t buffer_size)
+int fetch_user_by_card(const char *card_id, char *name_buffer, size_t buffer_size)
 {
     CURL *curl;
     CURLcode res;
@@ -48,7 +48,7 @@ int fetch_user_name(const char *user_id, char *name_buffer, size_t buffer_size)
     chunk.memory = malloc(1);
     chunk.size = 0;
 
-    snprintf(url, sizeof(url), "%s/user/%s", API_BASE_URL, user_id);
+    snprintf(url, sizeof(url), "%s/user?card_id=%s", API_BASE_URL, card_id);
 
     curl = curl_easy_init();
     if (curl) {

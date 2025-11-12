@@ -1,6 +1,7 @@
 const express = require('express');
 const mongoose = require('mongoose');
 const userRoutes = require('./routes/userRoutes');
+const cardRoutes = require('./routes/cardRoutes');
 
 const app = express();
 const PORT = process.env.PORT;
@@ -13,6 +14,7 @@ mongoose.connect(MONGO_URI)
   .catch(err => console.error('MongoDB connection error:', err));
 
 app.use('/v1/user', userRoutes);
+app.use('/v1/card', cardRoutes);
 
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);

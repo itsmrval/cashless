@@ -6,7 +6,7 @@
 
 int main()
 {
-    unsigned char user_id[SIZE_USER_ID + 1];
+    unsigned char card_id[SIZE_CARD_ID + 1];
     unsigned char version;
     int card_present = 0;
 
@@ -26,19 +26,19 @@ int main()
     while (1) {
         if (connect_card()) {
             if (!card_present) {
-                if (read_data(user_id, &version)) {
-                    user_id[SIZE_USER_ID] = '\0';
+                if (read_data(card_id, &version)) {
+                    card_id[SIZE_CARD_ID] = '\0';
 
                     print_ui("Retrieving user informations...");
 
                     char user_name[256];
-                    if (fetch_user_name((char *)user_id, user_name, sizeof(user_name))) {
+                    if (fetch_user_by_card((char *)card_id, user_name, sizeof(user_name))) {
                         char msg[512];
-                        sprintf(msg, "Welcome %s!\n(v%d - %s)", user_name, version, user_id);
+                        sprintf(msg, "Welcome %s!\n(v%d - %s)", user_name, version, card_id);
                         print_ui(msg);
                     } else {
                         char msg[256];
-                        sprintf(msg, "Error: User not found\n(v%d - %s)", version, user_id);
+                        sprintf(msg, "Error: Card not assigned\n(v%d - %s)", version, card_id);
                         print_ui(msg);
                     }
 

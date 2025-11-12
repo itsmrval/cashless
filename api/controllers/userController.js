@@ -1,9 +1,30 @@
 const User = require('../models/User');
+const Card = require('../models/Card');
 
 exports.getAllUsers = async (req, res) => {
   try {
+    // Check if card_id query parameter is provided
+    if (req.query.card_id) {
+      return exports.getUserByCardId(req, res);
+    }
+
     const users = await User.find();
     res.json(users);
+  } catch (error) {
+    res.status(400).json({ error: error.message });
+  }
+};
+
+exports.getUserByCardId = async (req, res) => {
+  try {
+    const card = await Card.findOne({ card_id: req.query.card_id }).populate('user_id');
+    if (!card) {
+      return res.status(404).json({ error: 'Card not found' });
+    }
+    if (!card.user_id) {
+      return res.status(404).json({ error: 'Card not assigned to any user' });
+    }
+    res.json(card.user_id);
   } catch (error) {
     res.status(400).json({ error: error.message });
   }
@@ -42,6 +63,18 @@ exports.updateUser = async (req, res) => {
       return res.status(404).json({ error: 'User not found' });
     }
     res.json(user);
+  } catch (error) {
+    res.status(400).json({ error: error.message });
+  }
+};
+
+exports.deleteUser = async (req, res) => {
+  try {
+    const user = await User.findByIdAndDelete(req.params.id);
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+    res.status(204).send();
   } catch (error) {
     res.status(400).json({ error: error.message });
   }
