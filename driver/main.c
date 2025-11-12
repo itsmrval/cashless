@@ -41,7 +41,7 @@ int main()
                     int has_user = fetch_user_by_card((char *)card_id, user_name, sizeof(user_name));
 
                     if (strcmp(card_status, "waiting_activation") == 0) {
-                        char msg[256];
+                        char msg[512];
                         if (has_user) {
                             sprintf(msg, "Welcome, %s\n\nCard activation required\n\nPlease enter a 4-digit PIN:", user_name);
                         } else {
@@ -93,7 +93,7 @@ int main()
                         card_present = 1;
 
                     } else if (strcmp(card_status, "inactive") == 0) {
-                        char msg[256];
+                        char msg[512];
                         if (has_user) {
                             sprintf(msg, "Welcome, %s\n\nPlease remove your card.", user_name);
                         } else {
@@ -103,7 +103,7 @@ int main()
                         card_present = 1;
 
                     } else if (strcmp(card_status, "active") == 0) {
-                        char msg[256];
+                        char msg[512];
                         if (has_user) {
                             sprintf(msg, "Welcome, %s\n\nEnter your PIN:", user_name);
                         } else {
@@ -142,7 +142,7 @@ int main()
 
                         char verified_user_name[256];
                         if (verify_pin_api((char *)card_id, pin, verified_user_name, sizeof(verified_user_name))) {
-                            char msg[256];
+                            char msg[512];
                             sprintf(msg, "Welcome, %s!", verified_user_name);
                             print_ui(msg, version, (char *)card_id);
                         } else {
@@ -152,7 +152,7 @@ int main()
                         card_present = 1;
 
                     } else {
-                        char msg[256];
+                        char msg[512];
                         sprintf(msg, "Error: Unknown card status: %s\n\nPlease remove your card.", card_status);
                         print_ui(msg, version, (char *)card_id);
                         card_present = 1;
