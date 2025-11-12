@@ -1,9 +1,76 @@
 #include <stdio.h>
 #include <unistd.h>
 #include <string.h>
+#include <sys/select.h>
+#include <errno.h>
+#include <termios.h>
+#include <time.h>
 #include "card.h"
 #include "api.h"
 #include "ui.h"
+
+// Read PIN with timeout and card presence checking
+// Returns: 1 if PIN read successfully, 0 if card removed or timeout
+int read_pin_with_timeout(char *pin, int timeout_seconds)
+{
+    fd_set readfds;
+    struct timeval tv;
+    int pos = 0;
+    time_t start_time = time(NULL);
+
+    // Set terminal to non-canonical mode
+    struct termios old_tio, new_tio;
+    tcgetattr(STDIN_FILENO, &old_tio);
+    new_tio = old_tio;
+    new_tio.c_lflag &= ~(ICANON | ECHO);
+    tcsetattr(STDIN_FILENO, TCSANOW, &new_tio);
+
+    while (pos < SIZE_PIN) {
+        // Check if card is still present
+        if (!connect_card()) {
+            tcsetattr(STDIN_FILENO, TCSANOW, &old_tio);
+            return 0;
+        }
+
+        // Check timeout
+        if (time(NULL) - start_time >= timeout_seconds) {
+            tcsetattr(STDIN_FILENO, TCSANOW, &old_tio);
+            return 0;
+        }
+
+        FD_ZERO(&readfds);
+        FD_SET(STDIN_FILENO, &readfds);
+        tv.tv_sec = 1;
+        tv.tv_usec = 0;
+
+        int ret = select(STDIN_FILENO + 1, &readfds, NULL, NULL, &tv);
+        if (ret > 0 && FD_ISSET(STDIN_FILENO, &readfds)) {
+            char c;
+            if (read(STDIN_FILENO, &c, 1) == 1) {
+                if (c >= '0' && c <= '9') {
+                    pin[pos++] = c;
+                    printf("*");
+                    fflush(stdout);
+                } else if (c == 127 || c == 8) { // Backspace
+                    if (pos > 0) {
+                        pos--;
+                        printf("\b \b");
+                        fflush(stdout);
+                    }
+                } else if (c == '\n' || c == '\r') {
+                    if (pos == SIZE_PIN) {
+                        break;
+                    }
+                }
+            }
+        }
+    }
+
+    pin[SIZE_PIN] = '\0';
+    printf("\n");
+    tcsetattr(STDIN_FILENO, TCSANOW, &old_tio);
+    return (pos == SIZE_PIN);
+}
 
 int main()
 {
@@ -51,35 +118,10 @@ int main()
 
                         char pin[SIZE_PIN + 1];
                         printf("Enter PIN: ");
-                        if (scanf("%4s", pin) != 1 || strlen(pin) != SIZE_PIN) {
-                            if (!connect_card()) {
-                                card_present = 0;
-                                continue;
-                            }
-                            print_ui("Error: Invalid PIN format\n\nPlease remove your card.", version, (char *)card_id, user_name);
-                            card_present = 1;
-                            continue;
-                        }
+                        fflush(stdout);
 
-                        if (!connect_card()) {
+                        if (!read_pin_with_timeout(pin, 10)) {
                             card_present = 0;
-                            continue;
-                        }
-
-                        int valid = 1;
-                        for (int i = 0; i < SIZE_PIN; i++) {
-                            if (pin[i] < '0' || pin[i] > '9') {
-                                valid = 0;
-                                break;
-                            }
-                        }
-                        if (!valid) {
-                            if (!connect_card()) {
-                                card_present = 0;
-                                continue;
-                            }
-                            print_ui("Error: PIN must be 4 digits\n\nPlease remove your card.", version, (char *)card_id, user_name);
-                            card_present = 1;
                             continue;
                         }
 
@@ -139,17 +181,9 @@ int main()
 
                         char pin[SIZE_PIN + 1];
                         printf("PIN: ");
-                        if (scanf("%4s", pin) != 1 || strlen(pin) != SIZE_PIN) {
-                            if (!connect_card()) {
-                                card_present = 0;
-                                continue;
-                            }
-                            print_ui("Error: Invalid PIN format\n\nPlease remove your card.", version, (char *)card_id, user_name);
-                            card_present = 1;
-                            continue;
-                        }
+                        fflush(stdout);
 
-                        if (!connect_card()) {
+                        if (!read_pin_with_timeout(pin, 10)) {
                             card_present = 0;
                             continue;
                         }
