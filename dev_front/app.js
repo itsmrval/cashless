@@ -25,6 +25,14 @@ document.getElementById('save-url').addEventListener('click', () => {
     alert('URL sauvegardée');
 });
 
+// Error display
+function showError(message) {
+    const errorDiv = document.getElementById('error-message');
+    errorDiv.textContent = message;
+    errorDiv.classList.add('show');
+    setTimeout(() => errorDiv.classList.remove('show'), 5000);
+}
+
 // API Helper
 async function apiCall(endpoint, method = 'GET', body = null) {
     const options = {
@@ -36,10 +44,13 @@ async function apiCall(endpoint, method = 'GET', body = null) {
     try {
         const response = await fetch(`${API_URL}${endpoint}`, options);
         if (response.status === 204) return null;
-        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        if (!response.ok) {
+            const errorData = await response.json().catch(() => ({}));
+            throw new Error(errorData.error || `HTTP ${response.status}`);
+        }
         return await response.json();
     } catch (error) {
-        alert(`Erreur: ${error.message}`);
+        showError(`Erreur: ${error.message}`);
         throw error;
     }
 }
