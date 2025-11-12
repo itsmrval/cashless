@@ -22,7 +22,9 @@ cashless/
 docker-compose up
 ```
 
-l'api est disponible sur `http://localhost:3000`
+Services disponibles:
+- API: `http://localhost:3000`
+- Frontend dev: `http://localhost:3001`
 
 ### Configuration Ansible
 

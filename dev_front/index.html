@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cashless - Admin</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <h1>Cashless - Administration</h1>
+
+        <div class="tabs">
+            <button class="tab-btn active" data-tab="users">Users</button>
+            <button class="tab-btn" data-tab="cards">Cards</button>
+        </div>
+
+        <!-- Users Tab -->
+        <div id="users-tab" class="tab-content active">
+            <h2>Users</h2>
+
+            <div class="form-section">
+                <h3>Créer un utilisateur</h3>
+                <form id="create-user-form">
+                    <input type="text" id="user-name" placeholder="Nom" required>
+                    <button type="submit">Créer</button>
+                </form>
+            </div>
+
+            <div class="list-section">
+                <h3>Liste des utilisateurs</h3>
+                <button id="refresh-users">Actualiser</button>
+                <table id="users-table">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Nom</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Cards Tab -->
+        <div id="cards-tab" class="tab-content">
+            <h2>Cards</h2>
+
+            <div class="list-section">
+                <h3>Liste des cartes</h3>
+                <button id="refresh-cards">Actualiser</button>
+                <table id="cards-table">
+                    <thead>
+                        <tr>
+                            <th>Card ID</th>
+                            <th>Commentaire</th>
+                            <th>Status</th>
+                            <th>User assigné</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Settings -->
+    <div class="settings">
+        <label for="api-url">API URL:</label>
+        <input type="text" id="api-url" value="http://localhost:3000">
+        <button id="save-url">Save</button>
+    </div>
+
+    <!-- Modal for assigning card -->
+    <div id="assign-modal" class="modal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <h3>Assigner la carte</h3>
+            <select id="assign-user-select"></select>
+            <button id="assign-confirm">Assigner</button>
+        </div>
+    </div>
+
+    <!-- Modal for edit comment -->
+    <div id="comment-modal" class="modal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <h3>Modifier le commentaire</h3>
+            <input type="text" id="comment-input" placeholder="Commentaire">
+            <button id="comment-confirm">Enregistrer</button>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>
