@@ -147,8 +147,6 @@ int write_pin_to_card(const char *pin)
                       NULL, response, &responseLen);
     if (rv != SCARD_S_SUCCESS) {
         printf("DEBUG: WRITE_PIN SCardTransmit failed with code: 0x%lX\n", rv);
-        printf("DEBUG: This means the card firmware does NOT support PIN commands!\n");
-        printf("DEBUG: You need to rebuild the card firmware with: make card CARD_ID=...\n");
         return 0;
     }
     if (responseLen < 2) {
