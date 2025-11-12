@@ -46,7 +46,20 @@ int reconnect_card()
                        SCARD_PROTOCOL_T0 | SCARD_PROTOCOL_T1,
                        SCARD_LEAVE_CARD, &dwActiveProtocol);
 
-    return (rv == SCARD_S_SUCCESS);
+    if (rv != SCARD_S_SUCCESS) {
+        printf("DEBUG: SCardReconnect failed with code: 0x%lX\n", rv);
+        disconnect_card();
+        rv = SCardConnect(hContext, readers, SCARD_SHARE_SHARED,
+                         SCARD_PROTOCOL_T0 | SCARD_PROTOCOL_T1,
+                         &hCard, &dwActiveProtocol);
+        if (rv != SCARD_S_SUCCESS) {
+            printf("DEBUG: SCardConnect also failed with code: 0x%lX\n", rv);
+            return 0;
+        }
+        printf("DEBUG: Successfully reconnected using SCardConnect\n");
+    }
+
+    return 1;
 }
 
 int read_data(BYTE *card_id, BYTE *version)
