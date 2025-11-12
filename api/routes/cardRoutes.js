@@ -6,8 +6,8 @@ router.get('/', cardController.getAllCards);
 router.post('/', cardController.createCard);
 router.get('/:card_id', cardController.getCardByCardId);
 router.patch('/:card_id', cardController.updateCard);
-router.put('/:card_id/assign', cardController.assignCard);
-router.put('/:card_id/unassign', cardController.unassignCard);
+router.post('/:card_id/assign', cardController.assignCard);
+router.delete('/:card_id/assign', cardController.unassignCard);
 router.delete('/:card_id', cardController.deleteCard);
 
 module.exports = router;
