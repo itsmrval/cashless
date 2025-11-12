@@ -14,12 +14,12 @@ CFLAGS = -DCARD_ID=\"$(CARD_ID)\"
 
 all: prog
 
-prog: check_card_id $(NAME).elf
-
 check_card_id:
 ifndef CARD_ID
 	$(error CARD_ID is not set. Use: make CARD_ID=<24_char_id>)
 endif
+
+prog: check_card_id $(NAME).elf
 	avr-objcopy -R .eeprom -R .eesafe -R .fuse -R .lock -R .signature -O ihex $(NAME).elf $(PROGNAME)
 	avr-objcopy --no-change-warnings -j .eeprom --change-section-lma .eeprom=0 -O ihex $(NAME).elf $(EENAME)
 	avrdude -c avrisp -p m328p -P /dev/ttyACM0 -b 19200 -U flash:w:"./$(PROGNAME)":a -U eeprom:w:"./$(EENAME)":a
