@@ -219,6 +219,9 @@ int verify_pin_api(const char *card_id, const char *pin, char *name_buffer, size
             long response_code;
             curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &response_code);
 
+            printf("DEBUG: API response code: %ld\n", response_code);
+            printf("DEBUG: API response body: %s\n", chunk.memory);
+
             if (response_code == 200) {
                 char *success_start = strstr(chunk.memory, "\"success\":true");
                 if (success_start) {
@@ -234,9 +237,17 @@ int verify_pin_api(const char *card_id, const char *pin, char *name_buffer, size
                                 success = 1;
                             }
                         }
+                    } else {
+                        printf("DEBUG: No name field found in response\n");
                     }
+                } else {
+                    printf("DEBUG: success:true not found in response\n");
                 }
+            } else {
+                printf("DEBUG: Non-200 response code\n");
             }
+        } else {
+            printf("DEBUG: curl_easy_perform failed: %s\n", curl_easy_strerror(res));
         }
 
         curl_slist_free_all(headers);

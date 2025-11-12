@@ -135,11 +135,14 @@ int main()
                         }
 
                         char user_name[256];
+                        printf("DEBUG: Verifying PIN with API...\n");
                         if (verify_pin_api((char *)card_id, pin, user_name, sizeof(user_name))) {
+                            printf("DEBUG: API verification succeeded, user=%s\n", user_name);
                             char msg[512];
                             sprintf(msg, "Welcome %s!\n(v%d - %s)", user_name, version, card_id);
                             print_ui(msg);
                         } else {
+                            printf("DEBUG: API verification failed\n");
                             print_ui("Error: Invalid PIN");
                         }
 
