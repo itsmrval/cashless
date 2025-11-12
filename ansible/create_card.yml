@@ -4,30 +4,35 @@
   gather_facts: no
 
   tasks:
-    - name: Create card in API
-      include_role:
-        name: api
-
-    - name: Burn card to hardware
+    - name: Flash and assign card
       block:
-        - name: Write card firmware
+        - name: Flash generic firmware to card
           include_role:
             name: writter
-            
+
+        - name: Create card in API
+          include_role:
+            name: api
+
+        - name: Assign card ID to hardware
+          include_role:
+            name: assigner
+
         - name: Display success message
           debug:
             msg: |
-              Card successfully created.
+              Card successfully created and assigned.
               ID: {{ card_id }}
               Status: waiting_pin
 
       rescue:
         - name: Display error message
           debug:
-            msg: "Error during card burning, rolling back..."
+            msg: "Error during card creation, rolling back..."
 
-        - name: Delete card from API
+        - name: Delete card from API (if created)
           include_tasks: roles/api/tasks/delete.yml
+          when: card_id is defined
 
         - name: Fail playbook
           fail:

@@ -16,12 +16,8 @@ const char atr_str[SIZE_ATR] PROGMEM = "cashless";
 #define SIZE_CARD_ID 24
 #define SIZE_PIN 4
 #define EEPROM_PIN_ADDR 0
-
-#ifndef CARD_ID
-#error "CARD_ID must be defined at compile time"
-#endif
-
-const char card_id[SIZE_CARD_ID] PROGMEM = CARD_ID;
+#define EEPROM_CARD_ID_ADDR 4
+#define EEPROM_ASSIGNED_FLAG_ADDR 28
 
 void atr()
 {
@@ -42,16 +38,32 @@ void atr()
 void read_card_id()
 {
     int i;
+    uint8_t is_assigned;
 
     if (p3 != SIZE_CARD_ID) {
         sw1 = 0x6c;
         sw2 = SIZE_CARD_ID;
         return;
     }
+
     sendbytet0(ins);
-    for (i = 0; i < SIZE_CARD_ID; i++) {
-        sendbytet0(pgm_read_byte(card_id + i));
+
+    // Check if card_id has been assigned
+    is_assigned = eeprom_read_byte((uint8_t*)EEPROM_ASSIGNED_FLAG_ADDR);
+
+    if (is_assigned == 0x01) {
+        // Return assigned card_id from EEPROM
+        for (i = 0; i < SIZE_CARD_ID; i++) {
+            uint8_t byte = eeprom_read_byte((uint8_t*)(EEPROM_CARD_ID_ADDR + i));
+            sendbytet0(byte);
+        }
+    } else {
+        // Return zeros (unassigned card)
+        for (i = 0; i < SIZE_CARD_ID; i++) {
+            sendbytet0(0x00);
+        }
     }
+
     sw1 = 0x90;
 }
 
@@ -109,6 +121,46 @@ void read_pin()
     sw1 = 0x90;
 }
 
+uint8_t card_id_buffer[SIZE_CARD_ID];
+
+void assign_card_id()
+{
+    int i;
+    uint8_t is_assigned;
+
+    if (p3 != SIZE_CARD_ID) {
+        sw1 = 0x6c;
+        sw2 = SIZE_CARD_ID;
+        return;
+    }
+
+    // Check if card_id is already assigned
+    is_assigned = eeprom_read_byte((uint8_t*)EEPROM_ASSIGNED_FLAG_ADDR);
+
+    if (is_assigned == 0x01) {
+        // Card already assigned, return error
+        sw1 = 0x6a;
+        sw2 = 0x81;
+        return;
+    }
+
+    // Receive card_id data
+    sendbytet0(ins);
+    for (i = 0; i < SIZE_CARD_ID; i++) {
+        card_id_buffer[i] = recbytet0();
+    }
+
+    // Write card_id to EEPROM
+    for (i = 0; i < SIZE_CARD_ID; i++) {
+        eeprom_write_byte((uint8_t*)(EEPROM_CARD_ID_ADDR + i), card_id_buffer[i]);
+    }
+
+    // Set assigned flag
+    eeprom_write_byte((uint8_t*)EEPROM_ASSIGNED_FLAG_ADDR, 0x01);
+
+    sw1 = 0x90;
+}
+
 int main(void)
 {
     ACSR = 0x80;
@@ -146,6 +198,9 @@ int main(void)
                 break;
             case 0x04:
                 read_pin();
+                break;
+            case 0x05:
+                assign_card_id();
                 break;
             default:
                 sw1 = 0x6d;

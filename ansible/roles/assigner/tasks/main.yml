@@ -1,0 +1,29 @@
+---
+- name: Verify card_id is defined
+  fail:
+    msg: "card_id must be defined before assignment"
+  when: card_id is not defined
+
+- name: Build assignator software
+  make:
+    chdir: "{{ assign_folder }}"
+  register: build_result
+
+- name: Assign card ID to hardware
+  command:
+    cmd: "./assign {{ card_id }}"
+    chdir: "{{ assign_folder }}"
+  register: assign_result
+
+- name: Display assignment output
+  debug:
+    msg: "{{ assign_result.stdout_lines }}"
+
+- name: Verify assignment succeeded
+  fail:
+    msg: "Card ID assignment failed"
+  when: assign_result.rc != 0
+
+- name: Display assignment result
+  debug:
+    msg: "Card ID {{ card_id }} successfully assigned to hardware"

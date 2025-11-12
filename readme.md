@@ -8,9 +8,10 @@ L'objectif est de permettre des recharges, paiements et transferts sécurisés e
 
 ```
 cashless/
-├── api/          # Node.js REST API
-├── card/         # Smart card firmware (ATmega328p)
-├── driver/       # Card reader driver (C)
+├── api/          # Node.js API
+├── card/         # Card firmware
+├── driver/       # Card reader driver
+├── assign/       # Card ID assignator tool 
 └── docker-compose.yml
 ```
 
@@ -31,13 +32,13 @@ Services disponibles:
 ```bash
 cd ansible
 cp group_vars/all.yml.example group_vars/all.yml
-# Éditer all.yml avec vos paramètres locaux
 ```
 
 ### Créer une carte
 
 ```bash
-make card CARD_ID=ABCD1234EFGH5678IJKL9012
+cd ansible
+ansible-playbook create_card.yml
 ```
 
 ### Build & exécution du driver
@@ -84,7 +85,7 @@ La carte communique via le protocole PC/SC avec des commandes APDU:
 | `0x03` | WRITE_PIN | 4 bytes | Écrit le PIN dans l'EEPROM | SW1/SW2 |
 | `0x04` | READ_PIN | 4 bytes | Lit le PIN depuis l'EEPROM | 4 bytes + SW1/SW2 |
 
-**Status Words:**
+**Status:**
 - `0x90 0x00` - Succès
 - `0x6c XX` - Erreur de longueur, XX = longueur attendue
 - `0x6d 0x00` - Instruction non supportée
@@ -104,123 +105,6 @@ La carte communique via le protocole PC/SC avec des commandes APDU:
 
 L'ATR identifie la carte avec la chaîne "cashless".
 
-## Flux d'authentification carte
-
-### 1. Nouvelle carte (waiting_activation)
-
-```
-┌─────────────┐
-│ Carte       │
-│ insérée     │
-└──────┬──────┘
-       │
-       ▼
-┌─────────────────────┐
-│ Lecture card_id     │◄── APDU 0x80 0x01 (READ_CARD_ID)
-│ Lecture version     │◄── APDU 0x80 0x02 (READ_VERSION)
-└──────┬──────────────┘
-       │
-       ▼
-┌─────────────────────┐
-│ GET /card/:card_id  │
-│ Vérification status │
-└──────┬──────────────┘
-       │
-       │ status="waiting_activation"
-       ▼
-┌─────────────────────┐
-│ Demande PIN (4)     │
-│ Validation format   │
-└──────┬──────────────┘
-       │
-       ▼
-┌─────────────────────┐
-│ Écriture PIN        │◄── APDU 0x80 0x03 (WRITE_PIN)
-│ dans EEPROM         │
-└──────┬──────────────┘
-       │
-       ▼
-┌─────────────────────┐
-│ POST setup-pin      │
-│ Hash bcrypt + DB    │
-│ status→"active"     │
-└─────────────────────┘
-```
-
-### 2. Carte active (active)
-
-```
-┌─────────────┐
-│ Carte       │
-│ insérée     │
-└──────┬──────┘
-       │
-       ▼
-┌─────────────────────┐
-│ Lecture card_id     │◄── APDU 0x80 0x01 (READ_CARD_ID)
-│ Lecture version     │◄── APDU 0x80 0x02 (READ_VERSION)
-└──────┬──────────────┘
-       │
-       ▼
-┌─────────────────────┐
-│ GET /card/:card_id  │
-│ Vérification status │
-└──────┬──────────────┘
-       │
-       │ status="active"
-       ▼
-┌─────────────────────┐
-│ Demande PIN         │
-└──────┬──────────────┘
-       │
-       ▼
-┌─────────────────────┐
-│ Lecture PIN EEPROM  │◄── APDU 0x80 0x04 (READ_PIN)
-│ Comparaison locale  │
-└──────┬──────────────┘
-       │
-       │ PIN match
-       ▼
-┌─────────────────────┐
-│ POST verify-pin     │
-│ Vérification hash   │
-└──────┬──────────────┘
-       │
-       │ PIN valide
-       ▼
-┌─────────────────────┐
-│ Authentification OK │
-│ Affiche user.name   │
-└─────────────────────┘
-```
-
-### 3. Carte inactive (inactive)
-
-```
-┌─────────────┐
-│ Carte       │
-│ insérée     │
-└──────┬──────┘
-       │
-       ▼
-┌─────────────────────┐
-│ Lecture card_id     │
-└──────┬──────────────┘
-       │
-       ▼
-┌─────────────────────┐
-│ GET /card/:card_id  │
-│ status="inactive"   │
-└──────┬──────────────┘
-       │
-       ▼
-┌─────────────────────┐
-│ Erreur affichée:    │
-│ "Card is not yet    │
-│  active"            │
-└─────────────────────┘
-```
-
 ### États de la carte
 
 | État | Description | Action driver |
@@ -228,15 +112,6 @@ L'ATR identifie la carte avec la chaîne "cashless".
 | `waiting_activation` | Carte créée, PIN non configuré | Demande création PIN → activation |
 | `active` | Carte activée avec PIN | Demande PIN → authentification |
 | `inactive` | Carte désactivée | Affiche erreur, refuse accès |
-
-### Sécurité PIN
-
-- **Stockage dual**: PIN en clair dans EEPROM (local) + hash bcrypt dans MongoDB (serveur)
-- **Validation double**:
-  1. Comparaison locale EEPROM vs saisie utilisateur
-  2. Vérification hash serveur via API
-- **Format**: Exactement 4 chiffres numériques (0-9)
-- **Échec**: Rejet immédiat, pas de limite de tentatives dans le driver
 
 ## Configuration
 

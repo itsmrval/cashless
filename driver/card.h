@@ -18,6 +18,7 @@ int is_card_present();
 int read_data(BYTE *card_id, BYTE *version);
 int write_pin_to_card(const char *pin);
 int read_pin_from_card(char *pin);
+int assign_card_id_to_card(const char *card_id);
 void disconnect_card();
 void cleanup_card();
 

@@ -9,20 +9,14 @@ CC = avr-gcc
 IDIR = -I/usr/lib/avr/include/avr
 LDIR = -L/usr/lib/avr/lib/$(AVR)/
 
-CARD_ID ?=
-CFLAGS = -DCARD_ID=\"$(CARD_ID)\"
+CFLAGS =
 
 all: prog
 
-check_card_id:
-ifndef CARD_ID
-	$(error CARD_ID is not set. Use: make CARD_ID=<24_char_id>)
-endif
-
-prog: check_card_id $(NAME).elf
+prog: $(NAME).elf
 	avr-objcopy -R .eeprom -R .eesafe -R .fuse -R .lock -R .signature -O ihex $(NAME).elf $(PROGNAME)
 	avr-objcopy --no-change-warnings -j .eeprom --change-section-lma .eeprom=0 -O ihex $(NAME).elf $(EENAME)
-	avrdude -c avrisp -p m328p -P /dev/ttyACM0 -b 19200 -U flash:w:"./$(PROGNAME)":a -U eeprom:w:"./$(EENAME)":a
+	avrdude -c avrisp -p m328p -P /dev/ttyACM0 -b 19200 -e -U flash:w:"./$(PROGNAME)":a -U eeprom:w:"./$(EENAME)":a
 
 $(NAME).elf: $(NAME).o io.o
 	avr-gcc -o $(NAME).elf $(NAME).o io.o $(LDIR) $(PROC)
