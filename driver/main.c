@@ -41,7 +41,7 @@ int main()
                     int has_user = fetch_user_by_card((char *)card_id, user_name, sizeof(user_name));
 
                     if (!has_user) {
-                        print_ui("Unable to authenticate your card.", version, (char *)card_id, NULL);
+                        print_ui("Unable to authenticate your card.\nPlease remove it.", version, (char *)card_id, NULL);
                         card_present = 1;
                         continue;
                     }
@@ -93,7 +93,7 @@ int main()
                         card_present = 1;
 
                     } else if (strcmp(card_status, "inactive") == 0) {
-                        print_ui("Please remove your card.", version, (char *)card_id, user_name);
+                        print_ui("Unable to authenticate your card.\nPlease remove it.", version, (char *)card_id, user_name);
                         card_present = 1;
 
                     } else if (strcmp(card_status, "active") == 0) {

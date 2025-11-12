@@ -15,7 +15,7 @@ void print_ui(const char *status, unsigned char version, const char *card_id, co
     printf("cashless - v%s\n", VERSION);
 
     if (user_name && strlen(user_name) > 0) {
-        printf("\nWelcome on your terminal, %s\n", user_name);
+        printf("\nWelcome, %s\n", user_name);
     } else {
         printf("\n");
     }
