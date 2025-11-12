@@ -1,5 +1,6 @@
 #include "card.h"
 #include <string.h>
+#include <stdio.h>
 
 static SCARDCONTEXT hContext;
 static SCARDHANDLE hCard;
