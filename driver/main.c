@@ -30,8 +30,6 @@ int main()
                 if (read_data(card_id, &version)) {
                     card_id[SIZE_CARD_ID] = '\0';
 
-                    print_ui("Checking card status...");
-
                     char card_status[64];
                     if (!get_card_status((char *)card_id, card_status, sizeof(card_status))) {
                         char msg[256];
@@ -42,8 +40,8 @@ int main()
                     }
 
                     if (strcmp(card_status, "waiting_activation") == 0) {
-                        char msg[256];
-                        sprintf(msg, "Card activation required\nPlease enter a 4-digit PIN:");
+                        char msg[512];
+                        sprintf(msg, "Card activation required\n(v%d - %s)\n\nPlease enter a 4-digit PIN:", version, card_id);
                         print_ui(msg);
 
                         char pin[SIZE_PIN + 1];
@@ -99,7 +97,9 @@ int main()
                         card_present = 1;
 
                     } else if (strcmp(card_status, "active") == 0) {
-                        print_ui("Enter your PIN:");
+                        char msg[256];
+                        sprintf(msg, "Card found\n(v%d - %s)\n\nEnter your PIN:", version, card_id);
+                        print_ui(msg);
 
                         char pin[SIZE_PIN + 1];
                         printf("PIN: ");

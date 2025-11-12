@@ -12,7 +12,7 @@ uint8_t sw1, sw2;
 #define SIZE_ATR 8
 const char atr_str[SIZE_ATR] PROGMEM = "cashless";
 
-#define CARD_VERSION 2
+#define CARD_VERSION 3
 #define SIZE_CARD_ID 24
 #define SIZE_PIN 4
 #define EEPROM_PIN_ADDR 0
@@ -77,7 +77,7 @@ void write_pin()
         return;
     }
 
-    sendbytet0(ins);
+    sendbytet0(~ins);
     for (i = 0; i < SIZE_PIN; i++) {
         uint8_t digit = recbytet0();
         eeprom_write_byte((uint8_t*)(EEPROM_PIN_ADDR + i), digit);
