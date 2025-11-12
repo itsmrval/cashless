@@ -123,7 +123,6 @@ int main()
                         fflush(stdout);
 
                         if (!read_pin_with_timeout(pin, 10)) {
-                            card_present = 0;
                             continue;
                         }
 
@@ -186,7 +185,6 @@ int main()
                         fflush(stdout);
 
                         if (!read_pin_with_timeout(pin, 10)) {
-                            card_present = 0;
                             continue;
                         }
 
