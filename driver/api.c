@@ -222,7 +222,6 @@ int verify_pin_api(const char *card_id, const char *pin, char *name_buffer, size
             if (response_code == 200) {
                 char *success_start = strstr(chunk.memory, "\"success\":true");
                 if (success_start) {
-                    // Extract username
                     char *name_start = strstr(chunk.memory, "\"name\":\"");
                     if (name_start) {
                         name_start += 8;

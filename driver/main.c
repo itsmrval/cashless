@@ -32,7 +32,6 @@ int main()
 
                     print_ui("Checking card status...");
 
-                    // Get card status from API
                     char card_status[64];
                     if (!get_card_status((char *)card_id, card_status, sizeof(card_status))) {
                         char msg[256];
@@ -42,14 +41,11 @@ int main()
                         continue;
                     }
 
-                    // Handle different card states
                     if (strcmp(card_status, "waiting_activation") == 0) {
-                        // Card needs PIN setup
                         char msg[256];
                         sprintf(msg, "Card activation required\nPlease enter a 4-digit PIN:");
                         print_ui(msg);
 
-                        // Get PIN input from user
                         char pin[SIZE_PIN + 1];
                         printf("Enter PIN: ");
                         if (scanf("%4s", pin) != 1 || strlen(pin) != SIZE_PIN) {
@@ -58,7 +54,6 @@ int main()
                             continue;
                         }
 
-                        // Validate PIN is numeric
                         int valid = 1;
                         for (int i = 0; i < SIZE_PIN; i++) {
                             if (pin[i] < '0' || pin[i] > '9') {
@@ -74,14 +69,12 @@ int main()
 
                         print_ui("Setting up PIN...");
 
-                        // Write PIN to card EEPROM
                         if (!write_pin_to_card(pin)) {
                             print_ui("Error: Failed to write PIN to card");
                             card_present = 1;
                             continue;
                         }
 
-                        // Send PIN to API for hashing and storage
                         if (setup_pin_api((char *)card_id, pin)) {
                             sprintf(msg, "PIN setup successful!\nCard activated\n(v%d - %s)", version, card_id);
                             print_ui(msg);
@@ -92,14 +85,12 @@ int main()
                         card_present = 1;
 
                     } else if (strcmp(card_status, "inactive") == 0) {
-                        // Card is not active
                         char msg[256];
                         sprintf(msg, "Error: Card is not yet active\n(v%d - %s)", version, card_id);
                         print_ui(msg);
                         card_present = 1;
 
                     } else if (strcmp(card_status, "active") == 0) {
-                        // Card is active, request PIN
                         print_ui("Enter your PIN:");
 
                         char pin[SIZE_PIN + 1];
@@ -112,7 +103,6 @@ int main()
 
                         print_ui("Verifying PIN...");
 
-                        // Read PIN from card
                         char card_pin[SIZE_PIN + 1];
                         if (!read_pin_from_card(card_pin)) {
                             print_ui("Error: Failed to read PIN from card");
@@ -120,14 +110,12 @@ int main()
                             continue;
                         }
 
-                        // Validate PIN matches card
                         if (strcmp(pin, card_pin) != 0) {
                             print_ui("Error: Invalid PIN (card mismatch)");
                             card_present = 1;
                             continue;
                         }
 
-                        // Verify PIN with API
                         char user_name[256];
                         if (verify_pin_api((char *)card_id, pin, user_name, sizeof(user_name))) {
                             char msg[512];
@@ -140,7 +128,6 @@ int main()
                         card_present = 1;
 
                     } else {
-                        // Unknown status
                         char msg[256];
                         sprintf(msg, "Error: Unknown card status: %s\n(v%d - %s)", card_status, version, card_id);
                         print_ui(msg);

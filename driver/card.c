@@ -83,9 +83,8 @@ int write_pin_to_card(const char *pin)
     SCARD_IO_REQUEST pioSendPci;
     int i;
 
-    // Copy PIN digits to command
     for (i = 0; i < SIZE_PIN; i++) {
-        cmd_write_pin[5 + i] = pin[i] - '0'; // Convert ASCII to numeric
+        cmd_write_pin[5 + i] = pin[i] - '0';
     }
 
     pioSendPci.dwProtocol = dwActiveProtocol;
@@ -126,7 +125,6 @@ int read_pin_from_card(char *pin)
         return 0;
     }
 
-    // Convert numeric to ASCII
     for (i = 0; i < SIZE_PIN; i++) {
         pin[i] = response[i] + '0';
     }

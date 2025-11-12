@@ -13,16 +13,7 @@
         - name: Write card firmware
           include_role:
             name: writter
-
-        - name: Update card status to active
-          uri:
-            url: "{{ api_url }}/v1/card/{{ card_id }}"
-            method: PATCH
-            body_format: json
-            body:
-              status: "active"
-            status_code: 200
-
+            
         - name: Display success message
           debug:
             msg: |
