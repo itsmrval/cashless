@@ -22,7 +22,7 @@ int main()
         return 1;
     }
 
-    print_ui("Waiting for a card");
+    print_ui("Waiting for a card", 0, NULL);
 
     while (1) {
         if (connect_card()) {
@@ -32,22 +32,27 @@ int main()
 
                     char card_status[64];
                     if (!get_card_status((char *)card_id, card_status, sizeof(card_status))) {
-                        char msg[512];
-                        sprintf(msg, "Error: Cannot retrieve card status\n(v%d - %s)\n\nPlease remove the card and try again", version, card_id);
-                        print_ui(msg);
+                        print_ui("Error: Cannot retrieve card status\n\nPlease remove your card.", version, (char *)card_id);
                         card_present = 1;
                         continue;
                     }
 
+                    char user_name[256];
+                    int has_user = fetch_user_by_card((char *)card_id, user_name, sizeof(user_name));
+
                     if (strcmp(card_status, "waiting_activation") == 0) {
-                        char msg[512];
-                        sprintf(msg, "Card activation required\n(v%d - %s)\n\nPlease enter a 4-digit PIN:", version, card_id);
-                        print_ui(msg);
+                        char msg[256];
+                        if (has_user) {
+                            sprintf(msg, "Welcome, %s\n\nCard activation required\n\nPlease enter a 4-digit PIN:", user_name);
+                        } else {
+                            sprintf(msg, "Card activation required\n\nPlease enter a 4-digit PIN:");
+                        }
+                        print_ui(msg, version, (char *)card_id);
 
                         char pin[SIZE_PIN + 1];
                         printf("Enter PIN: ");
                         if (scanf("%4s", pin) != 1 || strlen(pin) != SIZE_PIN) {
-                            print_ui("Error: Invalid PIN format\nPlease remove the card and try again");
+                            print_ui("Error: Invalid PIN format\n\nPlease remove your card.", version, (char *)card_id);
                             card_present = 1;
                             continue;
                         }
@@ -60,89 +65,96 @@ int main()
                             }
                         }
                         if (!valid) {
-                            print_ui("Error: PIN must be 4 digits\nPlease remove the card and try again");
+                            print_ui("Error: PIN must be 4 digits\n\nPlease remove your card.", version, (char *)card_id);
                             card_present = 1;
                             continue;
                         }
 
-                        print_ui("Setting up PIN...");
+                        print_ui("Setting up PIN...", version, (char *)card_id);
 
                         if (!reconnect_card()) {
-                            print_ui("Error: Failed to reconnect to card\nPlease remove the card and try again");
+                            print_ui("Error: Failed to reconnect to card\n\nPlease remove your card.", version, (char *)card_id);
                             card_present = 1;
                             continue;
                         }
 
                         if (!write_pin_to_card(pin)) {
-                            print_ui("Error: Failed to write PIN to card\nPlease remove the card and try again");
+                            print_ui("Error: Failed to write PIN to card\n\nPlease remove your card.", version, (char *)card_id);
                             card_present = 1;
                             continue;
                         }
 
                         if (setup_pin_api((char *)card_id, pin)) {
-                            sprintf(msg, "PIN setup successful!\nCard activated\n(v%d - %s)", version, card_id);
-                            print_ui(msg);
+                            print_ui("PIN setup successful!\n\nCard activated", version, (char *)card_id);
                         } else {
-                            print_ui("Error: Failed to setup PIN on server\nPlease remove the card and try again");
+                            print_ui("Error: Failed to setup PIN on server\n\nPlease remove your card.", version, (char *)card_id);
                         }
 
                         card_present = 1;
 
                     } else if (strcmp(card_status, "inactive") == 0) {
                         char msg[256];
-                        sprintf(msg, "Card is inactive\n(v%d - %s)", version, card_id);
-                        print_ui(msg);
+                        if (has_user) {
+                            sprintf(msg, "Welcome, %s\n\nPlease remove your card.", user_name);
+                        } else {
+                            sprintf(msg, "Please remove your card.");
+                        }
+                        print_ui(msg, version, (char *)card_id);
                         card_present = 1;
 
                     } else if (strcmp(card_status, "active") == 0) {
                         char msg[256];
-                        sprintf(msg, "Card found\n(v%d - %s)\n\nEnter your PIN:", version, card_id);
-                        print_ui(msg);
+                        if (has_user) {
+                            sprintf(msg, "Welcome, %s\n\nEnter your PIN:", user_name);
+                        } else {
+                            sprintf(msg, "Enter your PIN:");
+                        }
+                        print_ui(msg, version, (char *)card_id);
 
                         char pin[SIZE_PIN + 1];
                         printf("PIN: ");
                         if (scanf("%4s", pin) != 1 || strlen(pin) != SIZE_PIN) {
-                            print_ui("Error: Invalid PIN format\nPlease remove the card and try again");
+                            print_ui("Error: Invalid PIN format\n\nPlease remove your card.", version, (char *)card_id);
                             card_present = 1;
                             continue;
                         }
 
-                        print_ui("Verifying PIN...");
+                        print_ui("Verifying PIN...", version, (char *)card_id);
 
                         if (!reconnect_card()) {
-                            print_ui("Error: Failed to reconnect to card\nPlease remove the card and try again");
+                            print_ui("Error: Failed to reconnect to card\n\nPlease remove your card.", version, (char *)card_id);
                             card_present = 1;
                             continue;
                         }
 
                         char card_pin[SIZE_PIN + 1];
                         if (!read_pin_from_card(card_pin)) {
-                            print_ui("Error: Failed to read PIN from card\nPlease remove the card and try again");
+                            print_ui("Error: Failed to read PIN from card\n\nPlease remove your card.", version, (char *)card_id);
                             card_present = 1;
                             continue;
                         }
 
                         if (strcmp(pin, card_pin) != 0) {
-                            print_ui("Error: Invalid PIN\nPlease remove the card and try again");
+                            print_ui("Error: Invalid PIN\n\nPlease remove your card.", version, (char *)card_id);
                             card_present = 1;
                             continue;
                         }
 
-                        char user_name[256];
-                        if (verify_pin_api((char *)card_id, pin, user_name, sizeof(user_name))) {
-                            char msg[512];
-                            sprintf(msg, "Welcome %s!\n(v%d - %s)", user_name, version, card_id);
-                            print_ui(msg);
+                        char verified_user_name[256];
+                        if (verify_pin_api((char *)card_id, pin, verified_user_name, sizeof(verified_user_name))) {
+                            char msg[256];
+                            sprintf(msg, "Welcome, %s!", verified_user_name);
+                            print_ui(msg, version, (char *)card_id);
                         } else {
-                            print_ui("Error: Invalid PIN\nPlease remove the card and try again");
+                            print_ui("Error: Invalid PIN\n\nPlease remove your card.", version, (char *)card_id);
                         }
 
                         card_present = 1;
 
                     } else {
                         char msg[256];
-                        sprintf(msg, "Error: Unknown card status: %s\n(v%d - %s)", card_status, version, card_id);
-                        print_ui(msg);
+                        sprintf(msg, "Error: Unknown card status: %s\n\nPlease remove your card.", card_status);
+                        print_ui(msg, version, (char *)card_id);
                         card_present = 1;
                     }
                 } else {
@@ -151,7 +163,7 @@ int main()
             }
         } else {
             if (card_present) {
-                print_ui("Waiting for a card");
+                print_ui("Waiting for a card", 0, NULL);
                 card_present = 0;
             }
             disconnect_card();
