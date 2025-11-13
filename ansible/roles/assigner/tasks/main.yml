@@ -28,15 +28,21 @@
   set_fact:
     card_puk: "{{ assign_result.stdout | regex_search('Generated PUK: (\\d{4})', '\\1') | first }}"
 
-- name: Update card with PUK in API
+- name: Extract public key from output
+  set_fact:
+    card_public_key: "{{ assign_result.stdout | regex_search('-----BEGIN PUBLIC KEY-----[\\s\\S]*?-----END PUBLIC KEY-----', multiline=True) }}"
+
+- name: Update card with PUK and public key in API
   uri:
     url: "{{ api_url }}/v1/card/{{ card_id }}"
     method: PATCH
     headers:
       Content-Type: "application/json"
+      Authorization: "Bearer {{ api_token }}"
     body_format: json
     body:
       puk: "{{ card_puk }}"
+      public_key: "{{ card_public_key }}"
     status_code: 200
   register: update_result
 

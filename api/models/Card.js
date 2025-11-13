@@ -18,6 +18,12 @@ const cardSchema = new mongoose.Schema({
   puk: {
     type: String,
     default: null
+  },
+  public_key: {
+    type: String,
+    unique: true,
+    sparse: true,
+    default: null
   }
 }, {
   timestamps: true

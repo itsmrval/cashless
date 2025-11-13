@@ -16,12 +16,15 @@ const char atr_str[SIZE_ATR] PROGMEM = "cashless";
 #define SIZE_CARD_ID 24
 #define SIZE_PIN 4
 #define SIZE_PUK 4
+#define SIZE_PRIVATE_KEY_CHUNK 64
 #define EEPROM_PIN_ADDR 0
 #define EEPROM_CARD_ID_ADDR 4
 #define EEPROM_ASSIGNED_FLAG_ADDR 28
 #define EEPROM_PIN_ATTEMPTS_ADDR 29
 #define EEPROM_PUK_ATTEMPTS_ADDR 30
 #define EEPROM_PUK_ADDR 31
+#define EEPROM_PRIVATE_KEY_SIZE_ADDR 35
+#define EEPROM_PRIVATE_KEY_DATA_ADDR 37
 #define MAX_PIN_ATTEMPTS 3
 #define MAX_PUK_ATTEMPTS 3
 
@@ -236,6 +239,7 @@ void verify_puk()
 }
 
 uint8_t card_id_buffer[SIZE_CARD_ID];
+uint8_t private_key_chunk_buffer[SIZE_PRIVATE_KEY_CHUNK];
 
 void assign_card()
 {
@@ -273,6 +277,40 @@ void assign_card()
 
     eeprom_write_byte((uint8_t*)EEPROM_PUK_ATTEMPTS_ADDR, MAX_PUK_ATTEMPTS);
     eeprom_write_byte((uint8_t*)EEPROM_ASSIGNED_FLAG_ADDR, 0x00);
+
+    sw1 = 0x90;
+}
+
+void write_private_key_chunk()
+{
+    int i;
+    uint8_t chunk_index;
+    uint16_t offset;
+
+    if (p3 < 1 || p3 > SIZE_PRIVATE_KEY_CHUNK + 1) {
+        sw1 = 0x6c;
+        sw2 = SIZE_PRIVATE_KEY_CHUNK + 1;
+        return;
+    }
+
+    sendbytet0(ins);
+    chunk_index = recbytet0();
+
+    for (i = 0; i < p3 - 1; i++) {
+        private_key_chunk_buffer[i] = recbytet0();
+    }
+
+    offset = EEPROM_PRIVATE_KEY_DATA_ADDR + (chunk_index * SIZE_PRIVATE_KEY_CHUNK);
+
+    for (i = 0; i < p3 - 1; i++) {
+        eeprom_write_byte((uint8_t*)(offset + i), private_key_chunk_buffer[i]);
+    }
+
+    if (chunk_index == 0) {
+        uint16_t total_size = (uint16_t)(p3 - 1);
+        eeprom_write_byte((uint8_t*)EEPROM_PRIVATE_KEY_SIZE_ADDR, (uint8_t)(total_size >> 8));
+        eeprom_write_byte((uint8_t*)(EEPROM_PRIVATE_KEY_SIZE_ADDR + 1), (uint8_t)(total_size & 0xFF));
+    }
 
     sw1 = 0x90;
 }
@@ -323,6 +361,9 @@ int main(void)
                 break;
             case 0x09:
                 write_pin_only();
+                break;
+            case 0x0A:
+                write_private_key_chunk();
                 break;
             default:
                 sw1 = 0x6d;

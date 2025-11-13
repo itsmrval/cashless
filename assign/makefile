@@ -3,11 +3,11 @@ NAME = assign
 CC = gcc
 
 CFLAGS = -Wall $(shell pkg-config --cflags libpcsclite 2>/dev/null || echo "-I/usr/include/PCSC")
-LDFLAGS = $(shell pkg-config --libs libpcsclite 2>/dev/null || echo "-lpcsclite")
+LDFLAGS = $(shell pkg-config --libs libpcsclite 2>/dev/null || echo "-lpcsclite") -lssl -lcrypto
 
 UNAME_S := $(shell uname -s)
 ifeq ($(UNAME_S),Darwin)
-    LDFLAGS = -framework PCSC
+    LDFLAGS = -framework PCSC -lssl -lcrypto
 endif
 
 all: check-deps $(NAME)

@@ -132,6 +132,50 @@ int assign_card(const char *card_id, const char *puk)
     return 0;
 }
 
+int write_private_key(const unsigned char *private_key_der, size_t key_len)
+{
+    LONG rv;
+    SCARD_IO_REQUEST pioSendPci;
+    BYTE response[258];
+    DWORD responseLen;
+    size_t offset = 0;
+    uint8_t chunk_index = 0;
+
+    pioSendPci.dwProtocol = dwActiveProtocol;
+    pioSendPci.cbPciLength = sizeof(SCARD_IO_REQUEST);
+
+    while (offset < key_len) {
+        size_t chunk_size = (key_len - offset) > SIZE_PRIVATE_KEY_CHUNK ? SIZE_PRIVATE_KEY_CHUNK : (key_len - offset);
+        BYTE cmd[5 + 1 + SIZE_PRIVATE_KEY_CHUNK];
+        size_t cmd_len = 5 + 1 + chunk_size;
+
+        cmd[0] = 0x80;
+        cmd[1] = 0x0A;
+        cmd[2] = 0x00;
+        cmd[3] = 0x00;
+        cmd[4] = 1 + chunk_size;
+        cmd[5] = chunk_index;
+
+        memcpy(cmd + 6, private_key_der + offset, chunk_size);
+
+        responseLen = sizeof(response);
+        rv = SCardTransmit(hCard, &pioSendPci, cmd, cmd_len, NULL, response, &responseLen);
+
+        if (rv != SCARD_S_SUCCESS || responseLen < 2) {
+            return 0;
+        }
+
+        if (response[responseLen - 2] != 0x90 || response[responseLen - 1] != 0x00) {
+            return 0;
+        }
+
+        offset += chunk_size;
+        chunk_index++;
+    }
+
+    return 1;
+}
+
 void disconnect_card()
 {
     if (hCard) {
