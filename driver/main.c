@@ -205,7 +205,6 @@ int main()
                             }
                         }
 
-check_blocked:
                         print_ui("Enter your PIN:", version, (char *)card_id, user_name);
 
                         char pin[SIZE_PIN + 1];
