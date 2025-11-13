@@ -66,17 +66,26 @@ int read_puk(char *puk)
     return read_digits(puk, SIZE_PUK);
 }
 
-int main()
+int main(int argc, char *argv[])
 {
     unsigned char card_id[SIZE_CARD_ID + 1];
     unsigned char version;
     int card_present = 0;
     Config config;
     char auth_token[512];
+    const char *config_path;
 
-    if (!load_config("driver.conf", &config)) {
-        printf("Error: Failed to load driver.conf\n");
-        printf("Please create driver.conf with username and password\n");
+    if (argc != 2) {
+        printf("Usage: %s <config_file>\n", argv[0]);
+        printf("Example: %s driver.conf\n", argv[0]);
+        return 1;
+    }
+
+    config_path = argv[1];
+
+    if (!load_config(config_path, &config)) {
+        printf("Error: Failed to load %s\n", config_path);
+        printf("Please create config file with username and password\n");
         return 1;
     }
 
