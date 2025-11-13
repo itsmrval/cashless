@@ -54,6 +54,13 @@ exports.updateCard = async (req, res) => {
       updates.status = req.body.status;
     }
 
+    if (req.body.puk !== undefined) {
+      if (typeof req.body.puk !== 'string') {
+        return res.status(400).json({ error: 'puk must be a string' });
+      }
+      updates.puk = req.body.puk;
+    }
+
     if (Object.keys(updates).length === 0) {
       return res.status(400).json({ error: 'No valid fields to update' });
     }
