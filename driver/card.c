@@ -115,10 +115,10 @@ int read_data(BYTE *card_id, BYTE *version)
     return 1;
 }
 
-int write_pin_to_card(const char *pin)
+int write_pin_and_puk_to_card(const char *pin, const char *puk)
 {
     LONG rv;
-    BYTE cmd_write_pin[5 + SIZE_PIN] = {0x80, 0x03, 0x00, 0x00, SIZE_PIN};
+    BYTE cmd_write_pin[5 + SIZE_PIN + SIZE_PUK] = {0x80, 0x03, 0x00, 0x00, SIZE_PIN + SIZE_PUK};
     BYTE response[258];
     DWORD responseLen;
     SCARD_IO_REQUEST pioSendPci;
@@ -129,6 +129,9 @@ int write_pin_to_card(const char *pin)
 
     for (i = 0; i < SIZE_PIN; i++) {
         cmd_write_pin[5 + i] = pin[i] - '0';
+    }
+    for (i = 0; i < SIZE_PUK; i++) {
+        cmd_write_pin[5 + SIZE_PIN + i] = puk[i] - '0';
     }
 
     responseLen = sizeof(response);
@@ -146,10 +149,10 @@ int write_pin_to_card(const char *pin)
     return 1;
 }
 
-int read_pin_from_card(char *pin)
+int verify_pin_on_card(const char *pin, BYTE *remaining_attempts)
 {
     LONG rv;
-    BYTE cmd_read_pin[] = {0x80, 0x04, 0x00, 0x00, SIZE_PIN};
+    BYTE cmd_verify_pin[5 + SIZE_PIN] = {0x80, 0x06, 0x00, 0x00, SIZE_PIN};
     BYTE response[258];
     DWORD responseLen;
     SCARD_IO_REQUEST pioSendPci;
@@ -158,22 +161,79 @@ int read_pin_from_card(char *pin)
     pioSendPci.dwProtocol = dwActiveProtocol;
     pioSendPci.cbPciLength = sizeof(SCARD_IO_REQUEST);
 
-    responseLen = sizeof(response);
-    rv = SCardTransmit(hCard, &pioSendPci, cmd_read_pin, sizeof(cmd_read_pin),
-                      NULL, response, &responseLen);
-    if (rv != SCARD_S_SUCCESS || responseLen < SIZE_PIN + 2) {
-        return 0;
-    }
-    if (response[responseLen - 2] != 0x90 || response[responseLen - 1] != 0x00) {
-        return 0;
-    }
-
     for (i = 0; i < SIZE_PIN; i++) {
-        pin[i] = response[i] + '0';
+        cmd_verify_pin[5 + i] = pin[i] - '0';
     }
-    pin[SIZE_PIN] = '\0';
 
-    return 1;
+    responseLen = sizeof(response);
+    rv = SCardTransmit(hCard, &pioSendPci, cmd_verify_pin, sizeof(cmd_verify_pin),
+                      NULL, response, &responseLen);
+
+    if (rv != SCARD_S_SUCCESS || responseLen < 2) {
+        return 0;
+    }
+
+    if (response[responseLen - 2] == 0x90 && response[responseLen - 1] == 0x00) {
+        *remaining_attempts = 3;
+        return 1;
+    }
+
+    if (response[responseLen - 2] == 0x63 && (response[responseLen - 1] & 0xF0) == 0xC0) {
+        *remaining_attempts = response[responseLen - 1] & 0x0F;
+        return 0;
+    }
+
+    if (response[responseLen - 2] == 0x69 && response[responseLen - 1] == 0x83) {
+        *remaining_attempts = 0;
+        return 0;
+    }
+
+    return 0;
+}
+
+int verify_puk_on_card(const char *puk, const char *new_pin, BYTE *remaining_attempts)
+{
+    LONG rv;
+    BYTE cmd_verify_puk[5 + SIZE_PUK + SIZE_PIN] = {0x80, 0x07, 0x00, 0x00, SIZE_PUK + SIZE_PIN};
+    BYTE response[258];
+    DWORD responseLen;
+    SCARD_IO_REQUEST pioSendPci;
+    int i;
+
+    pioSendPci.dwProtocol = dwActiveProtocol;
+    pioSendPci.cbPciLength = sizeof(SCARD_IO_REQUEST);
+
+    for (i = 0; i < SIZE_PUK; i++) {
+        cmd_verify_puk[5 + i] = puk[i] - '0';
+    }
+    for (i = 0; i < SIZE_PIN; i++) {
+        cmd_verify_puk[5 + SIZE_PUK + i] = new_pin[i] - '0';
+    }
+
+    responseLen = sizeof(response);
+    rv = SCardTransmit(hCard, &pioSendPci, cmd_verify_puk, sizeof(cmd_verify_puk),
+                      NULL, response, &responseLen);
+
+    if (rv != SCARD_S_SUCCESS || responseLen < 2) {
+        return 0;
+    }
+
+    if (response[responseLen - 2] == 0x90 && response[responseLen - 1] == 0x00) {
+        *remaining_attempts = 3;
+        return 1;
+    }
+
+    if (response[responseLen - 2] == 0x63 && (response[responseLen - 1] & 0xF0) == 0xC0) {
+        *remaining_attempts = response[responseLen - 1] & 0x0F;
+        return 0;
+    }
+
+    if (response[responseLen - 2] == 0x69 && response[responseLen - 1] == 0x84) {
+        *remaining_attempts = 0;
+        return 0;
+    }
+
+    return 0;
 }
 
 int assign_card_id_to_card(const char *card_id)

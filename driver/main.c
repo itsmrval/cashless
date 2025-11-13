@@ -9,7 +9,7 @@
 
 // Read PIN with card presence checking
 // Returns: 1 if PIN read successfully, 0 if card removed
-int read_pin(char *pin)
+int read_digits(char *buffer, int size)
 {
     struct termios old_tio, new_tio;
     fd_set readfds;
@@ -21,7 +21,7 @@ int read_pin(char *pin)
     new_tio.c_lflag &= ~(ICANON | ECHO);
     tcsetattr(STDIN_FILENO, TCSANOW, &new_tio);
 
-    while (pos < SIZE_PIN) {
+    while (pos < size) {
         if (!is_card_present()) {
             printf("\n");
             tcsetattr(STDIN_FILENO, TCSANOW, &old_tio);
@@ -37,7 +37,7 @@ int read_pin(char *pin)
             char c;
             if (read(STDIN_FILENO, &c, 1) == 1) {
                 if (c >= '0' && c <= '9') {
-                    pin[pos++] = c;
+                    buffer[pos++] = c;
                     printf("*");
                     fflush(stdout);
                 } else if ((c == 127 || c == 8) && pos > 0) {
@@ -49,10 +49,20 @@ int read_pin(char *pin)
         }
     }
 
-    pin[SIZE_PIN] = '\0';
+    buffer[size] = '\0';
     printf("\n");
     tcsetattr(STDIN_FILENO, TCSANOW, &old_tio);
     return 1;
+}
+
+int read_pin(char *pin)
+{
+    return read_digits(pin, SIZE_PIN);
+}
+
+int read_puk(char *puk)
+{
+    return read_digits(puk, SIZE_PUK);
 }
 
 int main()
@@ -124,7 +134,20 @@ int main()
                             continue;
                         }
 
-                        print_ui("Setting up PIN...", version, (char *)card_id, user_name);
+                        print_ui("Please enter a 4-digit PUK\n(PIN Unblocking Key):", version, (char *)card_id, user_name);
+
+                        char puk[SIZE_PUK + 1];
+                        printf("Enter PUK: ");
+                        fflush(stdout);
+
+                        if (!read_puk(puk)) {
+                            disconnect_card();
+                            card_present = 0;
+                            print_ui("Waiting for a card", 0, NULL, NULL);
+                            continue;
+                        }
+
+                        print_ui("Setting up PIN and PUK...", version, (char *)card_id, user_name);
 
                         if (!reconnect_card()) {
                             if (!connect_card()) {
@@ -136,12 +159,12 @@ int main()
                             continue;
                         }
 
-                        if (!write_pin_to_card(pin)) {
+                        if (!write_pin_and_puk_to_card(pin, puk)) {
                             if (!connect_card()) {
                                 card_present = 0;
                                 continue;
                             }
-                            print_ui("Error: Failed to write PIN to card\n\nPlease remove your card.", version, (char *)card_id, user_name);
+                            print_ui("Error: Failed to write PIN and PUK to card\n\nPlease remove your card.", version, (char *)card_id, user_name);
                             card_present = 1;
                             continue;
                         }
@@ -175,6 +198,14 @@ int main()
                         card_present = 1;
 
                     } else if (strcmp(card_status, "active") == 0) {
+                        if (!reconnect_card()) {
+                            if (!connect_card()) {
+                                card_present = 0;
+                                continue;
+                            }
+                        }
+
+check_blocked:
                         print_ui("Enter your PIN:", version, (char *)card_id, user_name);
 
                         char pin[SIZE_PIN + 1];
@@ -200,34 +231,86 @@ int main()
                             continue;
                         }
 
-                        char card_pin[SIZE_PIN + 1];
-                        if (!read_pin_from_card(card_pin)) {
-                            if (!connect_card()) {
-                                card_present = 0;
-                                continue;
-                            }
-                            print_ui("Error: Failed to read PIN from card\n\nPlease remove your card.", version, (char *)card_id, user_name);
-                            card_present = 1;
-                            continue;
-                        }
-
-                        if (strcmp(pin, card_pin) != 0) {
-                            if (!connect_card()) {
-                                card_present = 0;
-                                continue;
-                            }
-                            print_ui("Error: Invalid PIN\n\nPlease remove your card.", version, (char *)card_id, user_name);
-                            card_present = 1;
-                            continue;
-                        }
+                        BYTE remaining_attempts;
+                        int verify_result = verify_pin_on_card(pin, &remaining_attempts);
 
                         if (!connect_card()) {
                             card_present = 0;
                             continue;
                         }
-                        print_ui("Authentication successful!", version, (char *)card_id, user_name);
 
-                        card_present = 1;
+                        if (remaining_attempts == 0 && !verify_result) {
+                            print_ui("Card is blocked!\n\nEnter PUK to unblock:", version, (char *)card_id, user_name);
+
+                            char puk[SIZE_PUK + 1];
+                            printf("PUK: ");
+                            fflush(stdout);
+
+                            if (!read_puk(puk)) {
+                                disconnect_card();
+                                card_present = 0;
+                                print_ui("Waiting for a card", 0, NULL, NULL);
+                                continue;
+                            }
+
+                            print_ui("Enter new PIN:", version, (char *)card_id, user_name);
+
+                            char new_pin[SIZE_PIN + 1];
+                            printf("New PIN: ");
+                            fflush(stdout);
+
+                            if (!read_pin(new_pin)) {
+                                disconnect_card();
+                                card_present = 0;
+                                print_ui("Waiting for a card", 0, NULL, NULL);
+                                continue;
+                            }
+
+                            print_ui("Verifying PUK...", version, (char *)card_id, user_name);
+
+                            if (!reconnect_card()) {
+                                if (!connect_card()) {
+                                    card_present = 0;
+                                    continue;
+                                }
+                                print_ui("Error: Failed to reconnect to card\n\nPlease remove your card.", version, (char *)card_id, user_name);
+                                card_present = 1;
+                                continue;
+                            }
+
+                            BYTE puk_remaining;
+                            if (verify_puk_on_card(puk, new_pin, &puk_remaining)) {
+                                if (!connect_card()) {
+                                    card_present = 0;
+                                    continue;
+                                }
+                                print_ui("Card unblocked! PIN reset successful.\n\nPlease remove your card.", version, (char *)card_id, user_name);
+                                card_present = 1;
+                                continue;
+                            } else {
+                                if (!connect_card()) {
+                                    card_present = 0;
+                                    continue;
+                                }
+                                if (puk_remaining == 0) {
+                                    print_ui("Card permanently locked!\n\nPUK attempts exhausted. Reflash required.\n\nPlease remove your card.", version, (char *)card_id, user_name);
+                                } else {
+                                    char error_msg[128];
+                                    sprintf(error_msg, "Invalid PUK!\n\n%d attempts remaining.\n\nPlease remove your card.", puk_remaining);
+                                    print_ui(error_msg, version, (char *)card_id, user_name);
+                                }
+                                card_present = 1;
+                                continue;
+                            }
+                        } else if (verify_result) {
+                            print_ui("Authentication successful!", version, (char *)card_id, user_name);
+                            card_present = 1;
+                        } else {
+                            char error_msg[128];
+                            sprintf(error_msg, "Invalid PIN!\n\n%d attempts remaining.\n\nPlease remove your card.", remaining_attempts);
+                            print_ui(error_msg, version, (char *)card_id, user_name);
+                            card_present = 1;
+                        }
 
                     } else {
                         char msg[512];
