@@ -106,6 +106,7 @@ function renderCards() {
                 <span class="status-badge status-${card.status}">${card.status}</span>
             </td>
             <td>${card.user_id ? card.user_id.name : '-'}</td>
+            <td><strong>${card.puk || '-'}</strong></td>
             <td>
                 <button onclick="editStatus('${card._id}', '${card.status}')">Statut</button>
                 <button onclick="editComment('${card._id}', '${card.comment || ''}')">Commentaire</button>
