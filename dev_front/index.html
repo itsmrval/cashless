@@ -25,6 +25,8 @@
                 <h3>Créer un utilisateur</h3>
                 <form id="create-user-form">
                     <input type="text" id="user-name" placeholder="Nom" required>
+                    <input type="text" id="user-username" placeholder="Nom d'utilisateur" required>
+                    <input type="password" id="user-password" placeholder="Mot de passe" required>
                     <button type="submit">Créer</button>
                 </form>
             </div>
@@ -48,6 +50,15 @@
         <!-- Cards Tab -->
         <div id="cards-tab" class="tab-content">
             <h2>Cards</h2>
+
+            <div class="form-section">
+                <h3>Créer une carte</h3>
+                <form id="create-card-form">
+                    <input type="text" id="card-comment" placeholder="Commentaire (optionnel)">
+                    <input type="text" id="card-puk" placeholder="Code PUK" required>
+                    <button type="submit">Créer</button>
+                </form>
+            </div>
 
             <div class="list-section">
                 <h3>Liste des cartes</h3>

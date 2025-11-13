@@ -24,7 +24,8 @@ exports.getCardByCardId = async (req, res) => {
 exports.createCard = async (req, res) => {
   try {
     const card = new Card({
-      comment: req.body?.comment || ''
+      comment: req.body?.comment || '',
+      puk: req.body?.puk || null
     });
     await card.save();
     res.status(201).json(card);

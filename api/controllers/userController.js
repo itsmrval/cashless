@@ -1,6 +1,30 @@
 const User = require('../models/User');
 const Card = require('../models/Card');
 
+exports.login = async (req, res) => {
+  try {
+    const { username, password } = req.body;
+    
+    if (!username || !password) {
+      return res.status(400).json({ error: 'Username and password required' });
+    }
+
+    const user = await User.findOne({ username, password });
+    if (!user) {
+      return res.status(401).json({ error: 'Invalid credentials' });
+    }
+
+    // Trouver la carte de l'utilisateur
+    const card = await Card.findOne({ user_id: user._id });
+    if (card && card.status === 'blocked') {
+      return res.status(403).json({ error: 'Carte bloquée, connexion impossible.' });
+    }
+    res.json({ user, card });
+  } catch (error) {
+    res.status(400).json({ error: error.message });
+  }
+};
+
 exports.getAllUsers = async (req, res) => {
   try {
     // Check if card_id query parameter is provided
@@ -44,10 +68,19 @@ exports.getUser = async (req, res) => {
 
 exports.createUser = async (req, res) => {
   try {
-    const user = new User({ name: req.body.name });
+    const { name, username, password } = req.body;
+    
+    if (!name || !username || !password) {
+      return res.status(400).json({ error: 'Name, username and password are required' });
+    }
+
+    const user = new User({ name, username, password });
     await user.save();
     res.status(201).json(user);
   } catch (error) {
+    if (error.code === 11000) {
+      return res.status(400).json({ error: 'Username already exists' });
+    }
     res.status(400).json({ error: error.message });
   }
 };

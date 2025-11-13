@@ -12,7 +12,7 @@ const cardSchema = new mongoose.Schema({
   },
   status: {
     type: String,
-    enum: ['waiting_activation', 'active', 'inactive'],
+    enum: ['waiting_activation', 'active', 'inactive', 'blocked'],
     default: 'inactive'
   },
   puk: {
