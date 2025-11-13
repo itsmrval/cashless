@@ -1,0 +1,56 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+body {
+  margin: 0;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
+    sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  background-color: #f5f5f5;
+}
+
+code {
+  font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
+    monospace;
+}
+
+/* Animations personnalisées */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.fade-in {
+  animation: fadeIn 0.3s ease-out;
+}
+
+/* Styles pour le clavier numérique */
+.keypad-button {
+  @apply bg-white hover:bg-gray-100 active:bg-gray-200 text-gray-800 font-semibold py-4 rounded-lg shadow-md transition-all duration-150 text-xl;
+}
+
+.keypad-button:active {
+  transform: scale(0.95);
+}
+
+/* Styles pour les produits */
+.product-card {
+  @apply bg-white rounded-xl shadow-md hover:shadow-lg transition-all duration-200 cursor-pointer;
+}
+
+.product-card:hover {
+  transform: translateY(-2px);
+}
+
+.product-card:active {
+  transform: translateY(0);
+}
