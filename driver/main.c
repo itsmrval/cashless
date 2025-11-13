@@ -132,30 +132,20 @@ int main()
                             continue;
                         }
 
-                        if (setup_pin_api((char *)card_id, pin)) {
-                            print_ui("PIN setup successful!", version, (char *)card_id, user_name);
+                        print_ui("PIN setup successful!", version, (char *)card_id, user_name);
 
-                            for (int countdown = 4; countdown >= 1; countdown--) {
-                                sleep(1);
-                                if (!connect_card()) {
-                                    card_present = 0;
-                                    break;
-                                }
-                                char redirect_msg[64];
-                                sprintf(redirect_msg, "PIN setup successful!\nRedirecting... (%d seconds..)", countdown);
-                                print_ui(redirect_msg, version, (char *)card_id, user_name);
-                            }
-
-                            // Card is now active, reset to process it again
-                            card_present = 0;
-                        } else {
+                        for (int countdown = 4; countdown >= 1; countdown--) {
+                            sleep(1);
                             if (!connect_card()) {
                                 card_present = 0;
-                                continue;
+                                break;
                             }
-                            print_ui("Error: Failed to setup PIN on server\n\nPlease remove your card.", version, (char *)card_id, user_name);
-                            card_present = 1;
+                            char redirect_msg[64];
+                            sprintf(redirect_msg, "PIN setup successful!\nRedirecting... (%d seconds..)", countdown);
+                            print_ui(redirect_msg, version, (char *)card_id, user_name);
                         }
+
+                        card_present = 0;
 
                     } else if (strcmp(card_status, "inactive") == 0) {
                         print_ui("Unable to authenticate your card.\nPlease remove it.", version, (char *)card_id, user_name);
@@ -208,20 +198,11 @@ int main()
                             continue;
                         }
 
-                        char verified_user_name[256];
-                        if (verify_pin_api((char *)card_id, pin, verified_user_name, sizeof(verified_user_name))) {
-                            if (!connect_card()) {
-                                card_present = 0;
-                                continue;
-                            }
-                            print_ui("Authentication successful!", version, (char *)card_id, verified_user_name);
-                        } else {
-                            if (!connect_card()) {
-                                card_present = 0;
-                                continue;
-                            }
-                            print_ui("Error: Invalid PIN\n\nPlease remove your card.", version, (char *)card_id, user_name);
+                        if (!connect_card()) {
+                            card_present = 0;
+                            continue;
                         }
+                        print_ui("Authentication successful!", version, (char *)card_id, user_name);
 
                         card_present = 1;
 

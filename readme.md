@@ -77,8 +77,6 @@ make API_BASE_URL=http://localhost:3000/v1
 - `PATCH /v1/card/:card_id` - Met à jour `{comment: "...", status: "active|inactive|waiting_activation"}`
 - `POST /v1/card/:card_id/assign` - Assigne une carte à un user `{user_id: "..."}`
 - `DELETE /v1/card/:card_id/assign` - Désassigne une carte
-- `POST /v1/card/:card_id/setup-pin` - Configure le PIN lors de l'activation `{pin: "1234"}`
-- `POST /v1/card/:card_id/verify-pin` - Vérifie le PIN `{pin: "1234"}`
 - `DELETE /v1/card/:card_id` - Supprime une carte
 
 ## Protocole carte à puce (APDU)
