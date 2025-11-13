@@ -1,5 +1,7 @@
 ---
-api_url: "http://localhost:3000"
+api_url: "http://127.0.0.1:2223"
+api_username: "admin"
+api_password: "admin"
 card_folder: "../card"
 assign_folder: "../assign"
 card_comment: ""

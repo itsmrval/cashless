@@ -3,6 +3,8 @@
   uri:
     url: "{{ api_url }}/v1/card/{{ card_id }}"
     method: DELETE
+    headers:
+      Authorization: "Bearer {{ api_token }}"
     status_code: 204
 
 - name: Display card deletion result

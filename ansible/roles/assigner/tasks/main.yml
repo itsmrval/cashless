@@ -38,6 +38,7 @@
     method: PATCH
     headers:
       Content-Type: "application/json"
+      Authorization: "Bearer {{ api_token }}"
     body_format: json
     body:
       puk: "{{ card_puk }}"
