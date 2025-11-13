@@ -106,6 +106,11 @@ int main(int argc, char *argv[])
     long pub_len = BIO_get_mem_data(bio_pub, &public_key_pem);
 
     printf("Assigning card ID: %s\n", argv[1]);
+    printf("Card ID bytes (hex): ");
+    for (i = 0; i < SIZE_CARD_ID; i++) {
+        printf("%02X ", (unsigned char)argv[1][i]);
+    }
+    printf("\n");
     printf("Generated PUK: %s\n", puk);
 
     if (!reconnect_card()) {
@@ -170,6 +175,11 @@ int main(int argc, char *argv[])
     printf("New card ID: ");
     for (i = 0; i < SIZE_CARD_ID; i++) {
         printf("%c", current_card_id[i]);
+    }
+    printf("\n");
+    printf("New card ID bytes (hex): ");
+    for (i = 0; i < SIZE_CARD_ID; i++) {
+        printf("%02X ", current_card_id[i]);
     }
     printf("\n");
 
