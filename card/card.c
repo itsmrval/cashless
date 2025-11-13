@@ -48,17 +48,14 @@ void read_card_id()
 
     sendbytet0(ins);
 
-    // Check if card_id has been assigned
     is_assigned = eeprom_read_byte((uint8_t*)EEPROM_ASSIGNED_FLAG_ADDR);
 
     if (is_assigned == 0x01) {
-        // Return assigned card_id from EEPROM
         for (i = 0; i < SIZE_CARD_ID; i++) {
             uint8_t byte = eeprom_read_byte((uint8_t*)(EEPROM_CARD_ID_ADDR + i));
             sendbytet0(byte);
         }
     } else {
-        // Return zeros (unassigned card)
         for (i = 0; i < SIZE_CARD_ID; i++) {
             sendbytet0(0x00);
         }
@@ -134,29 +131,24 @@ void assign_card_id()
         return;
     }
 
-    // Check if card_id is already assigned
     is_assigned = eeprom_read_byte((uint8_t*)EEPROM_ASSIGNED_FLAG_ADDR);
 
-    if (is_assigned == 0x01) {
-        // Card already assigned, return error
+    if (is_assigned == 0xFF) {
         sw1 = 0x6a;
         sw2 = 0x81;
         return;
     }
 
-    // Receive card_id data
     sendbytet0(ins);
     for (i = 0; i < SIZE_CARD_ID; i++) {
         card_id_buffer[i] = recbytet0();
     }
 
-    // Write card_id to EEPROM
     for (i = 0; i < SIZE_CARD_ID; i++) {
         eeprom_write_byte((uint8_t*)(EEPROM_CARD_ID_ADDR + i), card_id_buffer[i]);
     }
 
-    // Set assigned flag
-    eeprom_write_byte((uint8_t*)EEPROM_ASSIGNED_FLAG_ADDR, 0x01);
+    eeprom_write_byte((uint8_t*)EEPROM_ASSIGNED_FLAG_ADDR, 0xFF);
 
     sw1 = 0x90;
 }

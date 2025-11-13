@@ -1,5 +1,5 @@
 ---
-- name: Create card in API and assign to hardware
+- name: Create card in API and assign to card
   hosts: localhost
   gather_facts: no
 
@@ -10,7 +10,7 @@
           include_role:
             name: api
 
-        - name: Assign card ID to hardware
+        - name: Assign card ID to card
           include_role:
             name: assigner
 
@@ -26,7 +26,7 @@
           debug:
             msg: "Error during card assignment, rolling back..."
 
-        - name: Delete card from API (if created)
+        - name: Delete card from API if created
           include_tasks: roles/api/tasks/delete.yml
           when: card_id is defined
 

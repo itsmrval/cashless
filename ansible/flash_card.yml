@@ -12,7 +12,7 @@
 
         - name: Display success message
           debug:
-            msg: "Generic firmware successfully flashed. Card is ready for assignment."
+            msg: "Firmware successfully flashed."
 
       rescue:
         - name: Display error message
