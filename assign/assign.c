@@ -161,6 +161,8 @@ int main(int argc, char *argv[])
     }
     printf("\n");
 
+    usleep(1000000);  // Wait 1 second for EEPROM to fully settle
+
     if (!reconnect_card()) {
         printf("Error: Failed to reconnect for private key write\n");
         BIO_free(bio_pub);

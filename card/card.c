@@ -309,12 +309,20 @@ void write_private_key_chunk()
     sendbytet0(ins);
     chunk_index = recbytet0();
 
+    // Validate chunk index (max ~30 chunks for a 2048-bit RSA key)
+    if (chunk_index > 30) {
+        sw1 = 0x6a;
+        sw2 = 0x84;
+        return;
+    }
+
     for (i = 0; i < p3 - 1; i++) {
         private_key_chunk_buffer[i] = recbytet0();
     }
 
-    offset = EEPROM_PRIVATE_KEY_DATA_ADDR + (chunk_index * SIZE_PRIVATE_KEY_CHUNK);
+    offset = EEPROM_PRIVATE_KEY_DATA_ADDR + ((uint16_t)chunk_index * (uint16_t)SIZE_PRIVATE_KEY_CHUNK);
 
+    // Ensure offset is valid and doesn't overlap with card data (bytes 0-36)
     if (offset < EEPROM_PRIVATE_KEY_DATA_ADDR) {
         sw1 = 0x6a;
         sw2 = 0x82;
