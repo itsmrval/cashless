@@ -261,7 +261,6 @@ int assign_card_id_to_card(const char *card_id)
         return 0;
     }
 
-    // Success if status is 90 00
     if (response[responseLen - 2] == 0x90 && response[responseLen - 1] == 0x00) {
         return 1;
     }
