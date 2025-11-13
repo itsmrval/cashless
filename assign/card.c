@@ -158,9 +158,6 @@ int write_private_key(const unsigned char *private_key_der, size_t key_len)
 
         memcpy(cmd + 6, private_key_der + offset, chunk_size);
 
-        printf("Writing chunk %d: size=%zu, offset=%zu, EEPROM_addr=%u\n",
-               chunk_index, chunk_size, offset, 37 + (chunk_index * 64));
-
         responseLen = sizeof(response);
         rv = SCardTransmit(hCard, &pioSendPci, cmd, cmd_len, NULL, response, &responseLen);
 
@@ -169,8 +166,6 @@ int write_private_key(const unsigned char *private_key_der, size_t key_len)
         }
 
         if (response[responseLen - 2] != 0x90 || response[responseLen - 1] != 0x00) {
-            printf("Private key write failed at chunk %d: SW1=%02X SW2=%02X\n",
-                   chunk_index, response[responseLen - 2], response[responseLen - 1]);
             return 0;
         }
 

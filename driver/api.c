@@ -8,6 +8,8 @@ struct memory_struct {
     size_t size;
 };
 
+static char api_base_url[256] = "";
+
 static size_t write_callback(void *contents, size_t size, size_t nmemb, void *userp)
 {
     size_t realsize = size * nmemb;
@@ -26,15 +28,75 @@ static size_t write_callback(void *contents, size_t size, size_t nmemb, void *us
     return realsize;
 }
 
-int api_init()
+int api_init(const char *api_url)
 {
     curl_global_init(CURL_GLOBAL_DEFAULT);
+    strncpy(api_base_url, api_url, sizeof(api_base_url) - 1);
+    api_base_url[sizeof(api_base_url) - 1] = '\0';
     return 1;
 }
 
 void api_cleanup()
 {
     curl_global_cleanup();
+}
+
+int api_login(const char *username, const char *password, char *token_buffer, size_t buffer_size)
+{
+    CURL *curl;
+    CURLcode res;
+    char url[512];
+    char postdata[256];
+    struct memory_struct chunk;
+    int success = 0;
+
+    chunk.memory = malloc(1);
+    chunk.size = 0;
+
+    snprintf(url, sizeof(url), "%s/auth/login", api_base_url);
+    snprintf(postdata, sizeof(postdata), "{\"username\":\"%s\",\"password\":\"%s\"}", username, password);
+
+    curl = curl_easy_init();
+    if (curl) {
+        struct curl_slist *headers = NULL;
+        headers = curl_slist_append(headers, "Content-Type: application/json");
+
+        curl_easy_setopt(curl, CURLOPT_URL, url);
+        curl_easy_setopt(curl, CURLOPT_POSTFIELDS, postdata);
+        curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headers);
+        curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, write_callback);
+        curl_easy_setopt(curl, CURLOPT_WRITEDATA, (void *)&chunk);
+        curl_easy_setopt(curl, CURLOPT_TIMEOUT, 5L);
+
+        res = curl_easy_perform(curl);
+
+        if (res == CURLE_OK) {
+            long response_code;
+            curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &response_code);
+
+            if (response_code == 200) {
+                char *token_start = strstr(chunk.memory, "\"token\":\"");
+                if (token_start) {
+                    token_start += 9;
+                    char *token_end = strchr(token_start, '"');
+                    if (token_end) {
+                        size_t token_len = token_end - token_start;
+                        if (token_len < buffer_size) {
+                            strncpy(token_buffer, token_start, token_len);
+                            token_buffer[token_len] = '\0';
+                            success = 1;
+                        }
+                    }
+                }
+            }
+        }
+
+        curl_slist_free_all(headers);
+        curl_easy_cleanup(curl);
+    }
+
+    free(chunk.memory);
+    return success;
 }
 
 int fetch_user_by_card(const char *card_id, char *name_buffer, size_t buffer_size)
@@ -48,7 +110,7 @@ int fetch_user_by_card(const char *card_id, char *name_buffer, size_t buffer_siz
     chunk.memory = malloc(1);
     chunk.size = 0;
 
-    snprintf(url, sizeof(url), "%s/user?card_id=%s", API_BASE_URL, card_id);
+    snprintf(url, sizeof(url), "%s/user?card_id=%s", api_base_url, card_id);
 
     curl = curl_easy_init();
     if (curl) {
@@ -98,7 +160,7 @@ int get_card_status(const char *card_id, char *status_buffer, size_t buffer_size
     chunk.memory = malloc(1);
     chunk.size = 0;
 
-    snprintf(url, sizeof(url), "%s/card/%s", API_BASE_URL, card_id);
+    snprintf(url, sizeof(url), "%s/card/%s", api_base_url, card_id);
 
     curl = curl_easy_init();
     if (curl) {
@@ -149,7 +211,7 @@ int update_card_status(const char *card_id, const char *status)
     chunk.memory = malloc(1);
     chunk.size = 0;
 
-    snprintf(url, sizeof(url), "%s/card/%s", API_BASE_URL, card_id);
+    snprintf(url, sizeof(url), "%s/card/%s", api_base_url, card_id);
     snprintf(postdata, sizeof(postdata), "{\"status\":\"%s\"}", status);
 
     curl = curl_easy_init();
@@ -196,7 +258,7 @@ int fetch_transactions(const char *card_id, const char *token, int *balance, Tra
     chunk.memory = malloc(1);
     chunk.size = 0;
 
-    snprintf(url, sizeof(url), "%s/transactions", API_BASE_URL);
+    snprintf(url, sizeof(url), "%s/transactions", api_base_url);
     snprintf(auth_header, sizeof(auth_header), "Authorization: Bearer %s", token);
 
     curl = curl_easy_init();

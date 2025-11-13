@@ -1,0 +1,18 @@
+# Configuration files with credentials
+driver/driver.conf
+
+# Compiled binaries
+driver/driver
+assign/assign
+card/card.elf
+card/card.hex
+card/card.eep
+
+# Object files
+*.o
+
+# Editor files
+.vscode/
+.idea/
+*.swp
+*~

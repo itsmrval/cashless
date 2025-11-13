@@ -106,11 +106,6 @@ int main(int argc, char *argv[])
     long pub_len = BIO_get_mem_data(bio_pub, &public_key_pem);
 
     printf("Assigning card ID: %s\n", argv[1]);
-    printf("Card ID bytes (hex): ");
-    for (i = 0; i < SIZE_CARD_ID; i++) {
-        printf("%02X ", (unsigned char)argv[1][i]);
-    }
-    printf("\n");
     printf("Generated PUK: %s\n", puk);
 
     if (!reconnect_card()) {
@@ -133,47 +128,16 @@ int main(int argc, char *argv[])
         return 1;
     }
 
-    if (!connect_card()) {
-        printf("Error: Failed to reconnect after assignment\n");
-        BIO_free(bio_pub);
-        OPENSSL_free(private_key_der);
-        EVP_PKEY_free(pkey);
-        cleanup_card();
-        return 1;
-    }
-
-    printf("Verifying assignment immediately...\n");
-    BYTE verify_card_id[SIZE_CARD_ID];
-    BYTE verify_version;
-    if (!read_data(verify_card_id, &verify_version)) {
-        printf("Error: Failed to read card after assignment\n");
-        BIO_free(bio_pub);
-        OPENSSL_free(private_key_der);
-        EVP_PKEY_free(pkey);
-        disconnect_card();
-        cleanup_card();
-        return 1;
-    }
-
-    printf("Immediate verification - card ID bytes (hex): ");
-    for (i = 0; i < SIZE_CARD_ID; i++) {
-        printf("%02X ", verify_card_id[i]);
-    }
-    printf("\n");
-
-    usleep(1000000);  // Wait 1 second for EEPROM to fully settle
-
-    if (!reconnect_card()) {
-        printf("Error: Failed to reconnect for private key write\n");
-        BIO_free(bio_pub);
-        OPENSSL_free(private_key_der);
-        EVP_PKEY_free(pkey);
-        disconnect_card();
-        cleanup_card();
-        return 1;
-    }
-
     printf("Writing private key to card...\n");
+    if (!reconnect_card()) {
+        printf("Error: Failed to reconnect to card\n");
+        BIO_free(bio_pub);
+        OPENSSL_free(private_key_der);
+        EVP_PKEY_free(pkey);
+        disconnect_card();
+        cleanup_card();
+        return 1;
+    }
     if (!write_private_key(private_key_der, private_key_len)) {
         printf("Error: Failed to write private key to card\n");
         BIO_free(bio_pub);
@@ -212,14 +176,9 @@ int main(int argc, char *argv[])
         return 1;
     }
 
-    printf("New card ID: ");
+    printf("Card ID verified: ");
     for (i = 0; i < SIZE_CARD_ID; i++) {
         printf("%c", current_card_id[i]);
-    }
-    printf("\n");
-    printf("New card ID bytes (hex): ");
-    for (i = 0; i < SIZE_CARD_ID; i++) {
-        printf("%02X ", current_card_id[i]);
     }
     printf("\n");
 

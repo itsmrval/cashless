@@ -1,7 +1,7 @@
 NOM=driver
 API_BASE_URL=http://localhost:3000/v1
 
-SRCS=main.c card.c api.c ui.c
+SRCS=main.c card.c api.c ui.c config.c
 OBJS=$(SRCS:.c=.o)
 
 CPPFLAGS=$(shell pkg-config --cflags libpcsclite libcurl 2>/dev/null || echo "-I/usr/include/PCSC")

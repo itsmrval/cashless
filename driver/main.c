@@ -6,6 +6,7 @@
 #include "card.h"
 #include "api.h"
 #include "ui.h"
+#include "config.h"
 
 // Read PIN with card presence checking
 // Returns: 1 if PIN read successfully, 0 if card removed
@@ -70,9 +71,25 @@ int main()
     unsigned char card_id[SIZE_CARD_ID + 1];
     unsigned char version;
     int card_present = 0;
+    Config config;
+    char auth_token[512];
 
-    if (!api_init()) {
+    if (!load_config("driver.conf", &config)) {
+        printf("Error: Failed to load driver.conf\n");
+        printf("Please create driver.conf with username and password\n");
+        return 1;
+    }
+
+    if (!api_init(config.api_url)) {
         printf("Error: Failed to initialize API client\n");
+        return 1;
+    }
+
+    printf("Authenticating...\n");
+    if (!api_login(config.username, config.password, auth_token, sizeof(auth_token))) {
+        printf("Error: Authentication failed\n");
+        printf("Please check your username and password in driver.conf\n");
+        api_cleanup();
         return 1;
     }
 
@@ -306,7 +323,7 @@ int main()
                             Transaction transactions[10];
                             int transaction_count = 0;
 
-                            if (fetch_transactions((char *)card_id, "", &balance, transactions, 10, &transaction_count)) {
+                            if (fetch_transactions((char *)card_id, auth_token, &balance, transactions, 10, &transaction_count)) {
                                 char display[1024];
                                 sprintf(display, "Balance: %.2f€\n\nTransactions:\n", balance / 100.0);
 
