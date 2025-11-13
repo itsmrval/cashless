@@ -329,8 +329,8 @@ void write_private_key_chunk()
     uint16_t chunk_offset = (uint16_t)chunk_index * (uint16_t)SIZE_PRIVATE_KEY_CHUNK;
     offset = EEPROM_PRIVATE_KEY_DATA_ADDR + chunk_offset;
 
-    // Safety checks to prevent corruption
-    if (offset < EEPROM_PRIVATE_KEY_DATA_ADDR || offset > 1000) {
+    // Safety check: ensure offset didn't wrap around (overflow check)
+    if (offset < EEPROM_PRIVATE_KEY_DATA_ADDR) {
         sw1 = 0x6a;
         sw2 = 0x82;
         return;
