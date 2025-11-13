@@ -247,7 +247,12 @@ int get_card_status(const char *card_id, char *status_buffer, size_t buffer_size
                         }
                     }
                 }
+            } else {
+                fprintf(stderr, "API Error: GET %s returned HTTP %ld\n", url, response_code);
+                fprintf(stderr, "Response: %s\n", chunk.memory);
             }
+        } else {
+            fprintf(stderr, "CURL Error: %s\n", curl_easy_strerror(res));
         }
 
         curl_easy_cleanup(curl);
