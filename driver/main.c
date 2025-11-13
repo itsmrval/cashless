@@ -80,6 +80,20 @@ int main()
                 if (read_data(card_id, &version)) {
                     card_id[SIZE_CARD_ID] = '\0';
 
+                    int is_zero = 1;
+                    for (int i = 0; i < SIZE_CARD_ID; i++) {
+                        if (card_id[i] != 0x00) {
+                            is_zero = 0;
+                            break;
+                        }
+                    }
+
+                    if (is_zero) {
+                        print_ui("Error: Card is not assigned\n\nPlease assign a card ID first using the assign tool.\n\nPlease remove your card.", version, "UNASSIGNED", NULL);
+                        card_present = 1;
+                        continue;
+                    }
+
                     char card_status[64];
                     if (!get_card_status((char *)card_id, card_status, sizeof(card_status))) {
                         print_ui("Error: Cannot retrieve card status\n\nPlease remove your card.", version, (char *)card_id, NULL);
