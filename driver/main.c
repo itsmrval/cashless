@@ -89,7 +89,7 @@ int main()
                     }
 
                     if (is_zero) {
-                        print_ui("Error: Card is not assigned\n\nPlease assign a card ID first using the assign tool.\n\nPlease remove your card.", version, "UNASSIGNED", NULL);
+                        print_ui("Error: An error occured while reading your card.\n\nPlease remove your card.", version, "?", NULL);
                         card_present = 1;
                         continue;
                     }
