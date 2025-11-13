@@ -36,10 +36,19 @@ cp group_vars/all.yml.example group_vars/all.yml
 
 ### Créer une carte
 
+**1. Flash uniquement (préparer plusieurs cartes):**
 ```bash
 cd ansible
-ansible-playbook create_card.yml
+ansible-playbook flash_card.yml
 ```
+Flashe le firmware de la carte
+
+**2. Assign (créer et assigner à une carte déjà flashée):**
+```bash
+cd ansible
+ansible-playbook assign_card.yml
+```
+Crée la carte dans l'API puis assigne le card_id à la carte physique.
 
 ### Build & exécution du driver
 

@@ -1,15 +1,11 @@
 ---
-- name: Create and burn card
+- name: Create card in API and assign to hardware
   hosts: localhost
   gather_facts: no
 
   tasks:
-    - name: Flash and assign card
+    - name: Create and assign card
       block:
-        - name: Flash generic firmware to card
-          include_role:
-            name: writter
-
         - name: Create card in API
           include_role:
             name: api
@@ -28,7 +24,7 @@
       rescue:
         - name: Display error message
           debug:
-            msg: "Error during card creation, rolling back..."
+            msg: "Error during card assignment, rolling back..."
 
         - name: Delete card from API (if created)
           include_tasks: roles/api/tasks/delete.yml
@@ -36,4 +32,4 @@
 
         - name: Fail playbook
           fail:
-            msg: "Card creation failed and was rolled back"
+            msg: "Card assignment failed and was rolled back"

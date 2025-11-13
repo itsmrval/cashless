@@ -1,0 +1,24 @@
+---
+- name: Flash generic card firmware
+  hosts: localhost
+  gather_facts: no
+
+  tasks:
+    - name: Flash firmware
+      block:
+        - name: Flash generic firmware to card
+          include_role:
+            name: writter
+
+        - name: Display success message
+          debug:
+            msg: "Generic firmware successfully flashed. Card is ready for assignment."
+
+      rescue:
+        - name: Display error message
+          debug:
+            msg: "Error during firmware flashing"
+
+        - name: Fail playbook
+          fail:
+            msg: "Firmware flashing failed"
