@@ -136,3 +136,50 @@ int get_card_status(const char *card_id, char *status_buffer, size_t buffer_size
     free(chunk.memory);
     return success;
 }
+
+int update_card_status(const char *card_id, const char *status)
+{
+    CURL *curl;
+    CURLcode res;
+    char url[512];
+    char postdata[128];
+    struct memory_struct chunk;
+    int success = 0;
+
+    chunk.memory = malloc(1);
+    chunk.size = 0;
+
+    snprintf(url, sizeof(url), "%s/card/%s", API_BASE_URL, card_id);
+    snprintf(postdata, sizeof(postdata), "{\"status\":\"%s\"}", status);
+
+    curl = curl_easy_init();
+    if (curl) {
+        struct curl_slist *headers = NULL;
+        headers = curl_slist_append(headers, "Content-Type: application/json");
+
+        curl_easy_setopt(curl, CURLOPT_URL, url);
+        curl_easy_setopt(curl, CURLOPT_CUSTOMREQUEST, "PATCH");
+        curl_easy_setopt(curl, CURLOPT_POSTFIELDS, postdata);
+        curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headers);
+        curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, write_callback);
+        curl_easy_setopt(curl, CURLOPT_WRITEDATA, (void *)&chunk);
+        curl_easy_setopt(curl, CURLOPT_TIMEOUT, 5L);
+
+        res = curl_easy_perform(curl);
+
+        if (res == CURLE_OK) {
+            long response_code;
+            curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &response_code);
+
+            if (response_code == 200) {
+                success = 1;
+            }
+        }
+
+        curl_slist_free_all(headers);
+        curl_easy_cleanup(curl);
+    }
+
+    free(chunk.memory);
+    return success;
+}

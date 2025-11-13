@@ -132,6 +132,16 @@ int main()
                             continue;
                         }
 
+                        if (!update_card_status((char *)card_id, "active")) {
+                            if (!connect_card()) {
+                                card_present = 0;
+                                continue;
+                            }
+                            print_ui("Error: Failed to activate card in system\n\nPlease remove your card.", version, (char *)card_id, user_name);
+                            card_present = 1;
+                            continue;
+                        }
+
                         print_ui("PIN setup successful!", version, (char *)card_id, user_name);
 
                         for (int countdown = 4; countdown >= 1; countdown--) {

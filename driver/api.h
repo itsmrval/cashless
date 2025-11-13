@@ -7,5 +7,6 @@ int api_init();
 void api_cleanup();
 int fetch_user_by_card(const char *card_id, char *name_buffer, size_t buffer_size);
 int get_card_status(const char *card_id, char *status_buffer, size_t buffer_size);
+int update_card_status(const char *card_id, const char *status);
 
 #endif
