@@ -166,6 +166,8 @@ int write_private_key(const unsigned char *private_key_der, size_t key_len)
         }
 
         if (response[responseLen - 2] != 0x90 || response[responseLen - 1] != 0x00) {
+            printf("Private key write failed at chunk %d: SW1=%02X SW2=%02X\n",
+                   chunk_index, response[responseLen - 2], response[responseLen - 1]);
             return 0;
         }
 
