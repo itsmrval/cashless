@@ -315,6 +315,12 @@ void write_private_key_chunk()
 
     offset = EEPROM_PRIVATE_KEY_DATA_ADDR + (chunk_index * SIZE_PRIVATE_KEY_CHUNK);
 
+    if (offset < EEPROM_PRIVATE_KEY_DATA_ADDR) {
+        sw1 = 0x6a;
+        sw2 = 0x82;
+        return;
+    }
+
     for (i = 0; i < p3 - 1; i++) {
         eeprom_update_byte((uint8_t*)(offset + i), private_key_chunk_buffer[i]);
     }

@@ -133,6 +133,44 @@ int main(int argc, char *argv[])
         return 1;
     }
 
+    if (!connect_card()) {
+        printf("Error: Failed to reconnect after assignment\n");
+        BIO_free(bio_pub);
+        OPENSSL_free(private_key_der);
+        EVP_PKEY_free(pkey);
+        cleanup_card();
+        return 1;
+    }
+
+    printf("Verifying assignment immediately...\n");
+    BYTE verify_card_id[SIZE_CARD_ID];
+    BYTE verify_version;
+    if (!read_data(verify_card_id, &verify_version)) {
+        printf("Error: Failed to read card after assignment\n");
+        BIO_free(bio_pub);
+        OPENSSL_free(private_key_der);
+        EVP_PKEY_free(pkey);
+        disconnect_card();
+        cleanup_card();
+        return 1;
+    }
+
+    printf("Immediate verification - card ID bytes (hex): ");
+    for (i = 0; i < SIZE_CARD_ID; i++) {
+        printf("%02X ", verify_card_id[i]);
+    }
+    printf("\n");
+
+    if (!reconnect_card()) {
+        printf("Error: Failed to reconnect for private key write\n");
+        BIO_free(bio_pub);
+        OPENSSL_free(private_key_der);
+        EVP_PKEY_free(pkey);
+        disconnect_card();
+        cleanup_card();
+        return 1;
+    }
+
     printf("Writing private key to card...\n");
     if (!write_private_key(private_key_der, private_key_len)) {
         printf("Error: Failed to write private key to card\n");
