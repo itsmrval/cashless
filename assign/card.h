@@ -1,6 +1,9 @@
 #ifndef CARD_H
 #define CARD_H
 
+#include <stddef.h>
+#include <stdint.h>
+
 #ifdef __APPLE__
 #include <PCSC/winscard.h>
 #else
