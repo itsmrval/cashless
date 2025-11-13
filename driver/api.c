@@ -99,12 +99,69 @@ int api_login(const char *username, const char *password, char *token_buffer, si
     return success;
 }
 
-int fetch_user_by_card(const char *card_id, const char *token, char *name_buffer, size_t buffer_size)
+int api_card_login(const char *card_id, const char *pin, char *token_buffer, size_t buffer_size)
 {
     CURL *curl;
     CURLcode res;
     char url[512];
-    char auth_header[600];
+    char postdata[256];
+    struct memory_struct chunk;
+    int success = 0;
+
+    chunk.memory = malloc(1);
+    chunk.size = 0;
+
+    snprintf(url, sizeof(url), "%s/auth/card", api_base_url);
+    snprintf(postdata, sizeof(postdata), "{\"card_id\":\"%s\",\"pin\":\"%s\"}", card_id, pin);
+
+    curl = curl_easy_init();
+    if (curl) {
+        struct curl_slist *headers = NULL;
+        headers = curl_slist_append(headers, "Content-Type: application/json");
+
+        curl_easy_setopt(curl, CURLOPT_URL, url);
+        curl_easy_setopt(curl, CURLOPT_POSTFIELDS, postdata);
+        curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headers);
+        curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, write_callback);
+        curl_easy_setopt(curl, CURLOPT_WRITEDATA, (void *)&chunk);
+        curl_easy_setopt(curl, CURLOPT_TIMEOUT, 5L);
+
+        res = curl_easy_perform(curl);
+
+        if (res == CURLE_OK) {
+            long response_code;
+            curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &response_code);
+
+            if (response_code == 200) {
+                char *token_start = strstr(chunk.memory, "\"token\":\"");
+                if (token_start) {
+                    token_start += 9;
+                    char *token_end = strchr(token_start, '"');
+                    if (token_end) {
+                        size_t token_len = token_end - token_start;
+                        if (token_len < buffer_size) {
+                            strncpy(token_buffer, token_start, token_len);
+                            token_buffer[token_len] = '\0';
+                            success = 1;
+                        }
+                    }
+                }
+            }
+        }
+
+        curl_slist_free_all(headers);
+        curl_easy_cleanup(curl);
+    }
+
+    free(chunk.memory);
+    return success;
+}
+
+int fetch_user_by_card(const char *card_id, char *name_buffer, size_t buffer_size)
+{
+    CURL *curl;
+    CURLcode res;
+    char url[512];
     struct memory_struct chunk;
     int success = 0;
 
@@ -112,15 +169,10 @@ int fetch_user_by_card(const char *card_id, const char *token, char *name_buffer
     chunk.size = 0;
 
     snprintf(url, sizeof(url), "%s/user?card_id=%s", api_base_url, card_id);
-    snprintf(auth_header, sizeof(auth_header), "Authorization: Bearer %s", token);
 
     curl = curl_easy_init();
     if (curl) {
-        struct curl_slist *headers = NULL;
-        headers = curl_slist_append(headers, auth_header);
-
         curl_easy_setopt(curl, CURLOPT_URL, url);
-        curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headers);
         curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, write_callback);
         curl_easy_setopt(curl, CURLOPT_WRITEDATA, (void *)&chunk);
         curl_easy_setopt(curl, CURLOPT_TIMEOUT, 5L);
@@ -148,7 +200,6 @@ int fetch_user_by_card(const char *card_id, const char *token, char *name_buffer
             }
         }
 
-        curl_slist_free_all(headers);
         curl_easy_cleanup(curl);
     }
 
@@ -156,12 +207,11 @@ int fetch_user_by_card(const char *card_id, const char *token, char *name_buffer
     return success;
 }
 
-int get_card_status(const char *card_id, const char *token, char *status_buffer, size_t buffer_size)
+int get_card_status(const char *card_id, char *status_buffer, size_t buffer_size)
 {
     CURL *curl;
     CURLcode res;
     char url[512];
-    char auth_header[600];
     struct memory_struct chunk;
     int success = 0;
 
@@ -169,15 +219,10 @@ int get_card_status(const char *card_id, const char *token, char *status_buffer,
     chunk.size = 0;
 
     snprintf(url, sizeof(url), "%s/card/%s", api_base_url, card_id);
-    snprintf(auth_header, sizeof(auth_header), "Authorization: Bearer %s", token);
 
     curl = curl_easy_init();
     if (curl) {
-        struct curl_slist *headers = NULL;
-        headers = curl_slist_append(headers, auth_header);
-
         curl_easy_setopt(curl, CURLOPT_URL, url);
-        curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headers);
         curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, write_callback);
         curl_easy_setopt(curl, CURLOPT_WRITEDATA, (void *)&chunk);
         curl_easy_setopt(curl, CURLOPT_TIMEOUT, 5L);
@@ -205,7 +250,6 @@ int get_card_status(const char *card_id, const char *token, char *status_buffer,
             }
         }
 
-        curl_slist_free_all(headers);
         curl_easy_cleanup(curl);
     }
 
@@ -213,7 +257,7 @@ int get_card_status(const char *card_id, const char *token, char *status_buffer,
     return success;
 }
 
-int update_card_status(const char *card_id, const char *token, const char *status)
+int update_card_status(const char *card_id, const char *admin_token, const char *status)
 {
     CURL *curl;
     CURLcode res;
@@ -228,7 +272,7 @@ int update_card_status(const char *card_id, const char *token, const char *statu
 
     snprintf(url, sizeof(url), "%s/card/%s", api_base_url, card_id);
     snprintf(postdata, sizeof(postdata), "{\"status\":\"%s\"}", status);
-    snprintf(auth_header, sizeof(auth_header), "Authorization: Bearer %s", token);
+    snprintf(auth_header, sizeof(auth_header), "Authorization: Bearer %s", admin_token);
 
     curl = curl_easy_init();
     if (curl) {
