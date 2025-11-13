@@ -156,17 +156,16 @@ int main()
                             continue;
                         }
 
-                        print_ui("PIN setup successful!", version, (char *)card_id, user_name);
+                        for (int countdown = 3; countdown >= 1; countdown--) {
+                            char redirect_msg[64];
+                            sprintf(redirect_msg, "PIN setup successful!\nRedirecting... (%d seconds..)", countdown);
+                            print_ui(redirect_msg, version, (char *)card_id, user_name);
 
-                        for (int countdown = 4; countdown >= 1; countdown--) {
                             sleep(1);
                             if (!connect_card()) {
                                 card_present = 0;
                                 break;
                             }
-                            char redirect_msg[64];
-                            sprintf(redirect_msg, "PIN setup successful!\nRedirecting... (%d seconds..)", countdown);
-                            print_ui(redirect_msg, version, (char *)card_id, user_name);
                         }
 
                         card_present = 0;
