@@ -146,7 +146,12 @@ int api_card_login(const char *card_id, const char *pin, char *token_buffer, siz
                         }
                     }
                 }
+            } else {
+                fprintf(stderr, "Card login failed: POST %s returned HTTP %ld\n", url, response_code);
+                fprintf(stderr, "Response: %s\n", chunk.memory);
             }
+        } else {
+            fprintf(stderr, "Card login CURL error: %s\n", curl_easy_strerror(res));
         }
 
         curl_slist_free_all(headers);
