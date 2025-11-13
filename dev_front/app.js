@@ -1,11 +1,64 @@
 // Configuration
 let API_URL = localStorage.getItem('api_url') || 'http://localhost:3000';
-document.getElementById('api-url').value = API_URL;
+let AUTH_TOKEN = localStorage.getItem('auth_token');
 
 // State
 let users = [];
 let cards = [];
 let currentCardId = null;
+
+// Check if logged in
+if (AUTH_TOKEN) {
+    document.getElementById('login-screen').style.display = 'none';
+    document.getElementById('app-container').style.display = 'block';
+    document.getElementById('api-url').value = API_URL;
+}
+
+// Login
+document.getElementById('login-form').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const username = document.getElementById('login-username').value;
+    const password = document.getElementById('login-password').value;
+
+    try {
+        const response = await fetch(`${API_URL}/v1/auth/login`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ username, password })
+        });
+
+        if (!response.ok) {
+            const error = await response.json();
+            throw new Error(error.error || 'Login failed');
+        }
+
+        const data = await response.json();
+        AUTH_TOKEN = data.token;
+        localStorage.setItem('auth_token', AUTH_TOKEN);
+
+        document.getElementById('login-screen').style.display = 'none';
+        document.getElementById('app-container').style.display = 'block';
+        document.getElementById('api-url').value = API_URL;
+
+        loadUsers();
+        loadCards();
+    } catch (error) {
+        const errorDiv = document.getElementById('login-error');
+        errorDiv.textContent = error.message;
+        errorDiv.classList.add('show');
+        setTimeout(() => errorDiv.classList.remove('show'), 5000);
+    }
+});
+
+// Logout
+document.getElementById('logout-btn').addEventListener('click', () => {
+    AUTH_TOKEN = null;
+    localStorage.removeItem('auth_token');
+    document.getElementById('login-screen').style.display = 'flex';
+    document.getElementById('app-container').style.display = 'none';
+    document.getElementById('login-username').value = '';
+    document.getElementById('login-password').value = '';
+});
 
 // Tabs
 document.querySelectorAll('.tab-btn').forEach(btn => {
@@ -37,13 +90,23 @@ function showError(message) {
 async function apiCall(endpoint, method = 'GET', body = null) {
     const options = {
         method,
-        headers: { 'Content-Type': 'application/json' }
+        headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${AUTH_TOKEN}`
+        }
     };
     if (body) options.body = JSON.stringify(body);
 
     try {
         const response = await fetch(`${API_URL}${endpoint}`, options);
         if (response.status === 204) return null;
+        if (response.status === 401) {
+            AUTH_TOKEN = null;
+            localStorage.removeItem('auth_token');
+            document.getElementById('login-screen').style.display = 'flex';
+            document.getElementById('app-container').style.display = 'none';
+            throw new Error('Session expirée, veuillez vous reconnecter');
+        }
         if (!response.ok) {
             const errorData = await response.json().catch(() => ({}));
             throw new Error(errorData.error || `HTTP ${response.status}`);
@@ -107,11 +170,13 @@ function renderCards() {
             </td>
             <td>${card.user_id ? card.user_id.name : '-'}</td>
             <td><strong>${card.puk || '-'}</strong></td>
+            <td>${card.public_key ? '<span class="badge">✓</span>' : '-'}</td>
             <td>
                 <button onclick="editStatus('${card._id}', '${card.status}')">Statut</button>
                 <button onclick="editComment('${card._id}', '${card.comment || ''}')">Commentaire</button>
                 <button class="secondary" onclick="assignCard('${card._id}')">Assigner</button>
                 ${card.user_id ? `<button class="secondary" onclick="unassignCard('${card._id}')">Désassigner</button>` : ''}
+                ${card.public_key ? `<button onclick="viewPublicKey('${card._id}')">Clé publique</button>` : ''}
                 <button class="danger" onclick="deleteCard('${card._id}')">Supprimer</button>
             </td>
         </tr>
@@ -173,6 +238,14 @@ document.getElementById('status-confirm').addEventListener('click', async () => 
     loadCards();
 });
 
+function viewPublicKey(cardId) {
+    const card = cards.find(c => c._id === cardId);
+    if (card && card.public_key) {
+        document.getElementById('public-key-display').textContent = card.public_key;
+        document.getElementById('public-key-modal').classList.add('active');
+    }
+}
+
 document.getElementById('refresh-cards').addEventListener('click', loadCards);
 
 // Modal close
@@ -183,5 +256,7 @@ document.querySelectorAll('.close').forEach(btn => {
 });
 
 // Init
-loadUsers();
-loadCards();
+if (AUTH_TOKEN) {
+    loadUsers();
+    loadCards();
+}
