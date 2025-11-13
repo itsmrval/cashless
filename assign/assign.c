@@ -66,8 +66,23 @@ int main(int argc, char *argv[])
     }
 
     printf("Assigning card ID: %s\n", argv[1]);
-    if (!assign_card_id_to_card(argv[1])) {
+
+    if (!reconnect_card()) {
+        printf("Error: Failed to reconnect to card\n");
         disconnect_card();
+        cleanup_card();
+        return 1;
+    }
+
+    if (!assign_card_id_to_card(argv[1])) {
+        printf("Error: Failed to assign card ID\n");
+        disconnect_card();
+        cleanup_card();
+        return 1;
+    }
+
+    if (!connect_card()) {
+        printf("Error: Failed to reconnect after assignment\n");
         cleanup_card();
         return 1;
     }
