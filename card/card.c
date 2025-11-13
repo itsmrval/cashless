@@ -278,17 +278,18 @@ void assign_card()
 
     for (i = 0; i < SIZE_CARD_ID; i++) {
         eeprom_update_byte((uint8_t*)(EEPROM_CARD_ID_ADDR + i), card_id_buffer[i]);
+        eeprom_busy_wait();
     }
-    eeprom_busy_wait();
 
     for (i = 0; i < SIZE_PUK; i++) {
         eeprom_update_byte((uint8_t*)(EEPROM_PUK_ADDR + i), puk_buffer[i]);
+        eeprom_busy_wait();
     }
-    eeprom_busy_wait();
 
     eeprom_update_byte((uint8_t*)EEPROM_PUK_ATTEMPTS_ADDR, MAX_PUK_ATTEMPTS);
-    eeprom_update_byte((uint8_t*)EEPROM_ASSIGNED_FLAG_ADDR, 0x00);
+    eeprom_busy_wait();
 
+    eeprom_update_byte((uint8_t*)EEPROM_ASSIGNED_FLAG_ADDR, 0x00);
     eeprom_busy_wait();
 
     sw1 = 0x90;
@@ -299,6 +300,7 @@ void write_private_key_chunk()
     int i;
     uint8_t chunk_index;
     uint16_t offset;
+    uint8_t chunk_size;
 
     if (p3 < 1 || p3 > SIZE_PRIVATE_KEY_CHUNK + 1) {
         sw1 = 0x6c;
@@ -309,37 +311,51 @@ void write_private_key_chunk()
     sendbytet0(ins);
     chunk_index = recbytet0();
 
-    // Validate chunk index (max ~30 chunks for a 2048-bit RSA key)
+    // Validate chunk index (max 30 chunks for a 2048-bit RSA key)
     if (chunk_index > 30) {
         sw1 = 0x6a;
         sw2 = 0x84;
         return;
     }
 
-    for (i = 0; i < p3 - 1; i++) {
+    chunk_size = p3 - 1;
+
+    for (i = 0; i < chunk_size; i++) {
         private_key_chunk_buffer[i] = recbytet0();
     }
 
-    offset = EEPROM_PRIVATE_KEY_DATA_ADDR + ((uint16_t)chunk_index * (uint16_t)SIZE_PRIVATE_KEY_CHUNK);
+    // Calculate offset: each chunk is exactly SIZE_PRIVATE_KEY_CHUNK bytes
+    // We use explicit cast to uint16_t and check for overflow
+    uint16_t chunk_offset = (uint16_t)chunk_index * (uint16_t)SIZE_PRIVATE_KEY_CHUNK;
+    offset = EEPROM_PRIVATE_KEY_DATA_ADDR + chunk_offset;
 
-    // Ensure offset is valid and doesn't overlap with card data (bytes 0-36)
-    if (offset < EEPROM_PRIVATE_KEY_DATA_ADDR) {
+    // Safety checks to prevent corruption
+    if (offset < EEPROM_PRIVATE_KEY_DATA_ADDR || offset > 1000) {
         sw1 = 0x6a;
         sw2 = 0x82;
         return;
     }
 
-    for (i = 0; i < p3 - 1; i++) {
-        eeprom_update_byte((uint8_t*)(offset + i), private_key_chunk_buffer[i]);
-    }
-
-    if (chunk_index == 0) {
-        uint16_t total_size = (uint16_t)(p3 - 1);
-        eeprom_update_byte((uint8_t*)EEPROM_PRIVATE_KEY_SIZE_ADDR, (uint8_t)(total_size >> 8));
-        eeprom_update_byte((uint8_t*)(EEPROM_PRIVATE_KEY_SIZE_ADDR + 1), (uint8_t)(total_size & 0xFF));
+    // Write chunk data to EEPROM
+    for (i = 0; i < chunk_size; i++) {
+        uint16_t addr = offset + i;
+        if (addr < EEPROM_PRIVATE_KEY_DATA_ADDR) {
+            sw1 = 0x6a;
+            sw2 = 0x85;
+            return;
+        }
+        eeprom_update_byte((uint8_t*)addr, private_key_chunk_buffer[i]);
     }
 
     eeprom_busy_wait();
+
+    // Store total size on first chunk
+    if (chunk_index == 0) {
+        uint16_t total_size = (uint16_t)chunk_size;
+        eeprom_update_byte((uint8_t*)EEPROM_PRIVATE_KEY_SIZE_ADDR, (uint8_t)(total_size >> 8));
+        eeprom_update_byte((uint8_t*)(EEPROM_PRIVATE_KEY_SIZE_ADDR + 1), (uint8_t)(total_size & 0xFF));
+        eeprom_busy_wait();
+    }
 
     sw1 = 0x90;
 }
