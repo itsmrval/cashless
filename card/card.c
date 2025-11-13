@@ -59,7 +59,7 @@ void read_card_id()
 
     is_assigned = eeprom_read_byte((uint8_t*)EEPROM_ASSIGNED_FLAG_ADDR);
 
-    if (is_assigned == 0x00) {
+    if (is_assigned != 0xFF) {
         for (i = 0; i < SIZE_CARD_ID; i++) {
             uint8_t byte = eeprom_read_byte((uint8_t*)(EEPROM_CARD_ID_ADDR + i));
             sendbytet0(byte);
@@ -262,7 +262,7 @@ void assign_card()
 
     is_assigned = eeprom_read_byte((uint8_t*)EEPROM_ASSIGNED_FLAG_ADDR);
 
-    if (is_assigned == 0x00) {
+    if (is_assigned != 0xFF) {
         sw1 = 0x6a;
         sw2 = 0x81;
         return;
