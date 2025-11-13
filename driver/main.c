@@ -134,20 +134,7 @@ int main()
                             continue;
                         }
 
-                        print_ui("Please enter a 4-digit PUK\n(PIN Unblocking Key):", version, (char *)card_id, user_name);
-
-                        char puk[SIZE_PUK + 1];
-                        printf("Enter PUK: ");
-                        fflush(stdout);
-
-                        if (!read_puk(puk)) {
-                            disconnect_card();
-                            card_present = 0;
-                            print_ui("Waiting for a card", 0, NULL, NULL);
-                            continue;
-                        }
-
-                        print_ui("Setting up PIN and PUK...", version, (char *)card_id, user_name);
+                        print_ui("Setting up PIN...", version, (char *)card_id, user_name);
 
                         if (!reconnect_card()) {
                             if (!connect_card()) {
@@ -159,12 +146,12 @@ int main()
                             continue;
                         }
 
-                        if (!write_pin_and_puk_to_card(pin, puk)) {
+                        if (!write_pin_to_card(pin)) {
                             if (!connect_card()) {
                                 card_present = 0;
                                 continue;
                             }
-                            print_ui("Error: Failed to write PIN and PUK to card\n\nPlease remove your card.", version, (char *)card_id, user_name);
+                            print_ui("Error: Failed to write PIN to card\n\nPlease remove your card.", version, (char *)card_id, user_name);
                             card_present = 1;
                             continue;
                         }

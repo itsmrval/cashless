@@ -1,7 +1,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include "../driver/card.h"
+#include <time.h>
+#include "card.h"
 
 int main(int argc, char *argv[])
 {
@@ -65,7 +66,15 @@ int main(int argc, char *argv[])
         printf("Card is ready (unassigned)\n");
     }
 
+    srand(time(NULL));
+    char puk[SIZE_PUK + 1];
+    for (i = 0; i < SIZE_PUK; i++) {
+        puk[i] = '0' + (rand() % 10);
+    }
+    puk[SIZE_PUK] = '\0';
+
     printf("Assigning card ID: %s\n", argv[1]);
+    printf("Generated PUK: %s\n", puk);
 
     if (!reconnect_card()) {
         printf("Error: Failed to reconnect to card\n");
@@ -74,8 +83,8 @@ int main(int argc, char *argv[])
         return 1;
     }
 
-    if (!assign_card_id_to_card(argv[1])) {
-        printf("Error: Failed to assign card ID\n");
+    if (!assign_card(argv[1], puk)) {
+        printf("Error: Failed to assign card\n");
         disconnect_card();
         cleanup_card();
         return 1;

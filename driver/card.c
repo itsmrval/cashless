@@ -115,6 +115,37 @@ int read_data(BYTE *card_id, BYTE *version)
     return 1;
 }
 
+int write_pin_to_card(const char *pin)
+{
+    LONG rv;
+    BYTE cmd_write_pin[5 + SIZE_PIN] = {0x80, 0x09, 0x00, 0x00, SIZE_PIN};
+    BYTE response[258];
+    DWORD responseLen;
+    SCARD_IO_REQUEST pioSendPci;
+    int i;
+
+    pioSendPci.dwProtocol = dwActiveProtocol;
+    pioSendPci.cbPciLength = sizeof(SCARD_IO_REQUEST);
+
+    for (i = 0; i < SIZE_PIN; i++) {
+        cmd_write_pin[5 + i] = pin[i] - '0';
+    }
+
+    responseLen = sizeof(response);
+    rv = SCardTransmit(hCard, &pioSendPci, cmd_write_pin, sizeof(cmd_write_pin),
+                      NULL, response, &responseLen);
+
+    if (rv != SCARD_S_SUCCESS || responseLen < 2) {
+        return 0;
+    }
+
+    if (response[responseLen - 2] != 0x90 || response[responseLen - 1] != 0x00) {
+        return 0;
+    }
+
+    return 1;
+}
+
 int write_pin_and_puk_to_card(const char *pin, const char *puk)
 {
     LONG rv;
@@ -231,38 +262,6 @@ int verify_puk_on_card(const char *puk, const char *new_pin, BYTE *remaining_att
     if (response[responseLen - 2] == 0x69 && response[responseLen - 1] == 0x84) {
         *remaining_attempts = 0;
         return 0;
-    }
-
-    return 0;
-}
-
-int assign_card_id_to_card(const char *card_id)
-{
-    LONG rv;
-    BYTE cmd_assign[5 + SIZE_CARD_ID] = {0x80, 0x05, 0x00, 0x00, SIZE_CARD_ID};
-    BYTE response[258];
-    DWORD responseLen;
-    SCARD_IO_REQUEST pioSendPci;
-    int i;
-
-    pioSendPci.dwProtocol = dwActiveProtocol;
-    pioSendPci.cbPciLength = sizeof(SCARD_IO_REQUEST);
-
-    // Copy card_id into command
-    for (i = 0; i < SIZE_CARD_ID; i++) {
-        cmd_assign[5 + i] = card_id[i];
-    }
-
-    responseLen = sizeof(response);
-    rv = SCardTransmit(hCard, &pioSendPci, cmd_assign, sizeof(cmd_assign),
-                      NULL, response, &responseLen);
-
-    if (rv != SCARD_S_SUCCESS || responseLen < 2) {
-        return 0;
-    }
-
-    if (response[responseLen - 2] == 0x90 && response[responseLen - 1] == 0x00) {
-        return 1;
     }
 
     return 0;

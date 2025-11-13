@@ -85,6 +85,30 @@ void read_version()
 uint8_t pin_buffer[SIZE_PIN];
 uint8_t puk_buffer[SIZE_PUK];
 
+void write_pin_only()
+{
+    int i;
+
+    if (p3 != SIZE_PIN) {
+        sw1 = 0x6c;
+        sw2 = SIZE_PIN;
+        return;
+    }
+
+    sendbytet0(ins);
+    for (i = 0; i < SIZE_PIN; i++) {
+        pin_buffer[i] = recbytet0();
+    }
+
+    for (i = 0; i < SIZE_PIN; i++) {
+        eeprom_write_byte((uint8_t*)(EEPROM_PIN_ADDR + i), pin_buffer[i]);
+    }
+
+    eeprom_write_byte((uint8_t*)EEPROM_PIN_ATTEMPTS_ADDR, MAX_PIN_ATTEMPTS);
+
+    sw1 = 0x90;
+}
+
 void write_pin()
 {
     int i;
@@ -213,14 +237,14 @@ void verify_puk()
 
 uint8_t card_id_buffer[SIZE_CARD_ID];
 
-void assign_card_id()
+void assign_card()
 {
     int i;
     uint8_t is_assigned;
 
-    if (p3 != SIZE_CARD_ID) {
+    if (p3 != SIZE_CARD_ID + SIZE_PUK) {
         sw1 = 0x6c;
-        sw2 = SIZE_CARD_ID;
+        sw2 = SIZE_CARD_ID + SIZE_PUK;
         return;
     }
 
@@ -236,11 +260,18 @@ void assign_card_id()
     for (i = 0; i < SIZE_CARD_ID; i++) {
         card_id_buffer[i] = recbytet0();
     }
+    for (i = 0; i < SIZE_PUK; i++) {
+        puk_buffer[i] = recbytet0();
+    }
 
     for (i = 0; i < SIZE_CARD_ID; i++) {
         eeprom_write_byte((uint8_t*)(EEPROM_CARD_ID_ADDR + i), card_id_buffer[i]);
     }
+    for (i = 0; i < SIZE_PUK; i++) {
+        eeprom_write_byte((uint8_t*)(EEPROM_PUK_ADDR + i), puk_buffer[i]);
+    }
 
+    eeprom_write_byte((uint8_t*)EEPROM_PUK_ATTEMPTS_ADDR, MAX_PUK_ATTEMPTS);
     eeprom_write_byte((uint8_t*)EEPROM_ASSIGNED_FLAG_ADDR, 0x00);
 
     sw1 = 0x90;
@@ -281,14 +312,17 @@ int main(void)
             case 0x03:
                 write_pin();
                 break;
-            case 0x05:
-                assign_card_id();
-                break;
             case 0x06:
                 verify_pin();
                 break;
             case 0x07:
                 verify_puk();
+                break;
+            case 0x08:
+                assign_card();
+                break;
+            case 0x09:
+                write_pin_only();
                 break;
             default:
                 sw1 = 0x6d;
