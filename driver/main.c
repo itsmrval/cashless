@@ -192,40 +192,16 @@ int main()
                             }
                         }
 
-                        print_ui("Enter your PIN:", version, (char *)card_id, user_name);
-
-                        char pin[SIZE_PIN + 1];
-                        printf("PIN: ");
-                        fflush(stdout);
-
-                        if (!read_pin(pin)) {
-                            disconnect_card();
-                            card_present = 0;
-                            print_ui("Waiting for a card", 0, NULL, NULL);
-                            continue;
-                        }
-
-                        print_ui("Verifying PIN...", version, (char *)card_id, user_name);
-
-                        if (!reconnect_card()) {
-                            if (!connect_card()) {
-                                card_present = 0;
-                                continue;
-                            }
-                            print_ui("Error: Failed to reconnect to card\n\nPlease remove your card.", version, (char *)card_id, user_name);
-                            card_present = 1;
-                            continue;
-                        }
-
-                        BYTE remaining_attempts;
-                        int verify_result = verify_pin_on_card(pin, &remaining_attempts);
+                        char dummy_pin[SIZE_PIN + 1] = "0000";
+                        BYTE check_attempts;
+                        verify_pin_on_card(dummy_pin, &check_attempts);
 
                         if (!connect_card()) {
                             card_present = 0;
                             continue;
                         }
 
-                        if (remaining_attempts == 0 && !verify_result) {
+                        if (check_attempts == 0) {
                             print_ui("Card is blocked!\n\nEnter PUK to unblock:", version, (char *)card_id, user_name);
 
                             char puk[SIZE_PUK + 1];
@@ -288,7 +264,42 @@ int main()
                                 card_present = 1;
                                 continue;
                             }
-                        } else if (verify_result) {
+                        }
+
+                        print_ui("Enter your PIN:", version, (char *)card_id, user_name);
+
+                        char pin[SIZE_PIN + 1];
+                        printf("PIN: ");
+                        fflush(stdout);
+
+                        if (!read_pin(pin)) {
+                            disconnect_card();
+                            card_present = 0;
+                            print_ui("Waiting for a card", 0, NULL, NULL);
+                            continue;
+                        }
+
+                        print_ui("Verifying PIN...", version, (char *)card_id, user_name);
+
+                        if (!reconnect_card()) {
+                            if (!connect_card()) {
+                                card_present = 0;
+                                continue;
+                            }
+                            print_ui("Error: Failed to reconnect to card\n\nPlease remove your card.", version, (char *)card_id, user_name);
+                            card_present = 1;
+                            continue;
+                        }
+
+                        BYTE remaining_attempts;
+                        int verify_result = verify_pin_on_card(pin, &remaining_attempts);
+
+                        if (!connect_card()) {
+                            card_present = 0;
+                            continue;
+                        }
+
+                        if (verify_result) {
                             print_ui("Authentication successful!", version, (char *)card_id, user_name);
                             card_present = 1;
                         } else {
