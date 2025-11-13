@@ -14,6 +14,10 @@ const cardSchema = new mongoose.Schema({
     type: String,
     enum: ['waiting_activation', 'active', 'inactive'],
     default: 'inactive'
+  },
+  puk: {
+    type: String,
+    default: null
   }
 }, {
   timestamps: true

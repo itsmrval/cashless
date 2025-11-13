@@ -24,6 +24,22 @@
     msg: "Card ID assignment failed"
   when: assign_result.rc != 0
 
+- name: Extract PUK from output
+  set_fact:
+    card_puk: "{{ assign_result.stdout | regex_search('Generated PUK: (\\d{4})', '\\1') | first }}"
+
+- name: Update card with PUK in API
+  uri:
+    url: "{{ api_url }}/cards/{{ card_id }}"
+    method: PATCH
+    headers:
+      Content-Type: "application/json"
+    body_format: json
+    body:
+      puk: "{{ card_puk }}"
+    status_code: 200
+  register: update_result
+
 - name: Display assignment result
   debug:
-    msg: "Card ID {{ card_id }} successfully assigned to hardware"
+    msg: "Card ID {{ card_id }} successfully assigned to hardware with PUK: {{ card_puk }}"
