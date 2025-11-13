@@ -89,7 +89,7 @@ int main()
                     }
 
                     if (is_zero) {
-                        print_ui("Error: An error occured while reading your card.\n\nPlease remove your card.", version, "?", NULL);
+                        print_ui("Error: An error occured while reading your card.\n\nPlease remove your card.", version, "not found", NULL);
                         card_present = 1;
                         continue;
                     }
