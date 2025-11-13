@@ -80,7 +80,7 @@ int main(int argc, char *argv[])
     printf("Generating RSA keypair...\n");
     EVP_PKEY *pkey = EVP_PKEY_new();
     EVP_PKEY_CTX *ctx = EVP_PKEY_CTX_new_id(EVP_PKEY_RSA, NULL);
-    if (!ctx || EVP_PKEY_keygen_init(ctx) <= 0 || EVP_PKEY_CTX_set_rsa_keygen_bits(ctx, 2048) <= 0 || EVP_PKEY_keygen(ctx, &pkey) <= 0) {
+    if (!ctx || EVP_PKEY_keygen_init(ctx) <= 0 || EVP_PKEY_CTX_set_rsa_keygen_bits(ctx, 1024) <= 0 || EVP_PKEY_keygen(ctx, &pkey) <= 0) {
         printf("Error: Failed to generate RSA keypair\n");
         if (ctx) EVP_PKEY_CTX_free(ctx);
         if (pkey) EVP_PKEY_free(pkey);

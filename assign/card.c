@@ -158,6 +158,9 @@ int write_private_key(const unsigned char *private_key_der, size_t key_len)
 
         memcpy(cmd + 6, private_key_der + offset, chunk_size);
 
+        printf("Writing chunk %d: size=%zu, offset=%zu, EEPROM_addr=%u\n",
+               chunk_index, chunk_size, offset, 37 + (chunk_index * 64));
+
         responseLen = sizeof(response);
         rv = SCardTransmit(hCard, &pioSendPci, cmd, cmd_len, NULL, response, &responseLen);
 

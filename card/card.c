@@ -278,18 +278,15 @@ void assign_card()
 
     for (i = 0; i < SIZE_CARD_ID; i++) {
         eeprom_update_byte((uint8_t*)(EEPROM_CARD_ID_ADDR + i), card_id_buffer[i]);
-        eeprom_busy_wait();
     }
 
     for (i = 0; i < SIZE_PUK; i++) {
         eeprom_update_byte((uint8_t*)(EEPROM_PUK_ADDR + i), puk_buffer[i]);
-        eeprom_busy_wait();
     }
 
     eeprom_update_byte((uint8_t*)EEPROM_PUK_ATTEMPTS_ADDR, MAX_PUK_ATTEMPTS);
-    eeprom_busy_wait();
-
     eeprom_update_byte((uint8_t*)EEPROM_ASSIGNED_FLAG_ADDR, 0x00);
+
     eeprom_busy_wait();
 
     sw1 = 0x90;
