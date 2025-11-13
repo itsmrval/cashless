@@ -86,7 +86,30 @@ const createTransaction = async (req, res) => {
   }
 };
 
+const getAllTransactions = async (req, res) => {
+  try {
+    const transactions = await Transaction.find()
+      .populate('source_user_id', 'name')
+      .populate('destination_user_id', 'name')
+      .sort({ date: -1 })
+      .limit(100);
+
+    res.json(transactions.map(t => ({
+      _id: t._id,
+      operation: t.operation,
+      source_user_name: t.source_user_id ? t.source_user_id.name : null,
+      destination_user_name: t.destination_user_id ? t.destination_user_id.name : null,
+      source_card_id: t.source_card_id,
+      date: t.date
+    })));
+  } catch (error) {
+    console.error('Transaction error:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+};
+
 module.exports = {
   getTransactions,
-  createTransaction
+  createTransaction,
+  getAllTransactions
 };

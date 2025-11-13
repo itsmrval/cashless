@@ -5,6 +5,7 @@ let AUTH_TOKEN = localStorage.getItem('auth_token');
 // State
 let users = [];
 let cards = [];
+let transactions = [];
 let currentCardId = null;
 
 // Check if logged in
@@ -42,6 +43,7 @@ document.getElementById('login-form').addEventListener('submit', async (e) => {
 
         loadUsers();
         loadCards();
+        loadTransactions();
     } catch (error) {
         const errorDiv = document.getElementById('login-error');
         errorDiv.textContent = error.message;
@@ -122,6 +124,7 @@ async function apiCall(endpoint, method = 'GET', body = null) {
 async function loadUsers() {
     users = await apiCall('/v1/user');
     renderUsers();
+    populateUserSelects();
 }
 
 function renderUsers() {
@@ -135,6 +138,19 @@ function renderUsers() {
             </td>
         </tr>
     `).join('');
+}
+
+function populateUserSelects() {
+    const sourceSelect = document.getElementById('transaction-source');
+    const destSelect = document.getElementById('transaction-destination');
+
+    sourceSelect.innerHTML = '<option value="">Source (User)</option>' + users.map(user =>
+        `<option value="${user._id}">${user.name}</option>`
+    ).join('');
+
+    destSelect.innerHTML = '<option value="">Destination (User)</option>' + users.map(user =>
+        `<option value="${user._id}">${user.name}</option>`
+    ).join('');
 }
 
 document.getElementById('create-user-form').addEventListener('submit', async (e) => {
@@ -248,6 +264,58 @@ function viewPublicKey(cardId) {
 
 document.getElementById('refresh-cards').addEventListener('click', loadCards);
 
+// Transactions
+async function loadTransactions() {
+    try {
+        const response = await fetch(`${API_URL}/v1/transactions/all`, {
+            headers: {
+                'Authorization': `Bearer ${AUTH_TOKEN}`
+            }
+        });
+
+        if (response.ok) {
+            transactions = await response.json();
+        } else {
+            transactions = [];
+        }
+        renderTransactions();
+    } catch (error) {
+        transactions = [];
+        renderTransactions();
+    }
+}
+
+function renderTransactions() {
+    const tbody = document.querySelector('#transactions-table tbody');
+    tbody.innerHTML = transactions.map(trans => `
+        <tr>
+            <td>${new Date(trans.date).toLocaleString()}</td>
+            <td>${trans.source_user_name || '-'}</td>
+            <td>${trans.destination_user_name || '-'}</td>
+            <td>${(trans.operation / 100).toFixed(2)}€</td>
+            <td>${trans.source_card_id ? trans.source_card_id.substring(0, 8) + '...' : '-'}</td>
+        </tr>
+    `).join('');
+}
+
+document.getElementById('create-transaction-form').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const source = document.getElementById('transaction-source').value;
+    const destination = document.getElementById('transaction-destination').value;
+    const amount = parseInt(document.getElementById('transaction-amount').value);
+
+    await apiCall('/v1/transactions', 'POST', {
+        source_user_id: source,
+        destination_user_id: destination,
+        operation: amount
+    });
+
+    document.getElementById('transaction-amount').value = '';
+    loadTransactions();
+});
+
+document.getElementById('refresh-transactions').addEventListener('click', loadTransactions);
+
 // Modal close
 document.querySelectorAll('.close').forEach(btn => {
     btn.addEventListener('click', () => {
@@ -259,4 +327,5 @@ document.querySelectorAll('.close').forEach(btn => {
 if (AUTH_TOKEN) {
     loadUsers();
     loadCards();
+    loadTransactions();
 }

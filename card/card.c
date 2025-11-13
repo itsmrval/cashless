@@ -104,10 +104,12 @@ void write_pin_only()
     }
 
     for (i = 0; i < SIZE_PIN; i++) {
-        eeprom_write_byte((uint8_t*)(EEPROM_PIN_ADDR + i), pin_buffer[i]);
+        eeprom_update_byte((uint8_t*)(EEPROM_PIN_ADDR + i), pin_buffer[i]);
     }
 
-    eeprom_write_byte((uint8_t*)EEPROM_PIN_ATTEMPTS_ADDR, MAX_PIN_ATTEMPTS);
+    eeprom_update_byte((uint8_t*)EEPROM_PIN_ATTEMPTS_ADDR, MAX_PIN_ATTEMPTS);
+
+    eeprom_busy_wait();
 
     sw1 = 0x90;
 }
@@ -131,14 +133,16 @@ void write_pin()
     }
 
     for (i = 0; i < SIZE_PIN; i++) {
-        eeprom_write_byte((uint8_t*)(EEPROM_PIN_ADDR + i), pin_buffer[i]);
+        eeprom_update_byte((uint8_t*)(EEPROM_PIN_ADDR + i), pin_buffer[i]);
     }
     for (i = 0; i < SIZE_PUK; i++) {
-        eeprom_write_byte((uint8_t*)(EEPROM_PUK_ADDR + i), puk_buffer[i]);
+        eeprom_update_byte((uint8_t*)(EEPROM_PUK_ADDR + i), puk_buffer[i]);
     }
 
-    eeprom_write_byte((uint8_t*)EEPROM_PIN_ATTEMPTS_ADDR, MAX_PIN_ATTEMPTS);
-    eeprom_write_byte((uint8_t*)EEPROM_PUK_ATTEMPTS_ADDR, MAX_PUK_ATTEMPTS);
+    eeprom_update_byte((uint8_t*)EEPROM_PIN_ATTEMPTS_ADDR, MAX_PIN_ATTEMPTS);
+    eeprom_update_byte((uint8_t*)EEPROM_PUK_ATTEMPTS_ADDR, MAX_PUK_ATTEMPTS);
+
+    eeprom_busy_wait();
 
     sw1 = 0x90;
 }
@@ -177,11 +181,13 @@ void verify_pin()
     }
 
     if (match) {
-        eeprom_write_byte((uint8_t*)EEPROM_PIN_ATTEMPTS_ADDR, MAX_PIN_ATTEMPTS);
+        eeprom_update_byte((uint8_t*)EEPROM_PIN_ATTEMPTS_ADDR, MAX_PIN_ATTEMPTS);
+        eeprom_busy_wait();
         sw1 = 0x90;
     } else {
         pin_attempts--;
-        eeprom_write_byte((uint8_t*)EEPROM_PIN_ATTEMPTS_ADDR, pin_attempts);
+        eeprom_update_byte((uint8_t*)EEPROM_PIN_ATTEMPTS_ADDR, pin_attempts);
+        eeprom_busy_wait();
         sw1 = 0x63;
         sw2 = 0xC0 | pin_attempts;
     }
@@ -225,14 +231,16 @@ void verify_puk()
 
     if (match) {
         for (i = 0; i < SIZE_PIN; i++) {
-            eeprom_write_byte((uint8_t*)(EEPROM_PIN_ADDR + i), pin_buffer[i]);
+            eeprom_update_byte((uint8_t*)(EEPROM_PIN_ADDR + i), pin_buffer[i]);
         }
-        eeprom_write_byte((uint8_t*)EEPROM_PIN_ATTEMPTS_ADDR, MAX_PIN_ATTEMPTS);
-        eeprom_write_byte((uint8_t*)EEPROM_PUK_ATTEMPTS_ADDR, MAX_PUK_ATTEMPTS);
+        eeprom_update_byte((uint8_t*)EEPROM_PIN_ATTEMPTS_ADDR, MAX_PIN_ATTEMPTS);
+        eeprom_update_byte((uint8_t*)EEPROM_PUK_ATTEMPTS_ADDR, MAX_PUK_ATTEMPTS);
+        eeprom_busy_wait();
         sw1 = 0x90;
     } else {
         puk_attempts--;
-        eeprom_write_byte((uint8_t*)EEPROM_PUK_ATTEMPTS_ADDR, puk_attempts);
+        eeprom_update_byte((uint8_t*)EEPROM_PUK_ATTEMPTS_ADDR, puk_attempts);
+        eeprom_busy_wait();
         sw1 = 0x63;
         sw2 = 0xC0 | puk_attempts;
     }
@@ -269,14 +277,16 @@ void assign_card()
     }
 
     for (i = 0; i < SIZE_CARD_ID; i++) {
-        eeprom_write_byte((uint8_t*)(EEPROM_CARD_ID_ADDR + i), card_id_buffer[i]);
+        eeprom_update_byte((uint8_t*)(EEPROM_CARD_ID_ADDR + i), card_id_buffer[i]);
     }
     for (i = 0; i < SIZE_PUK; i++) {
-        eeprom_write_byte((uint8_t*)(EEPROM_PUK_ADDR + i), puk_buffer[i]);
+        eeprom_update_byte((uint8_t*)(EEPROM_PUK_ADDR + i), puk_buffer[i]);
     }
 
-    eeprom_write_byte((uint8_t*)EEPROM_PUK_ATTEMPTS_ADDR, MAX_PUK_ATTEMPTS);
-    eeprom_write_byte((uint8_t*)EEPROM_ASSIGNED_FLAG_ADDR, 0x00);
+    eeprom_update_byte((uint8_t*)EEPROM_PUK_ATTEMPTS_ADDR, MAX_PUK_ATTEMPTS);
+    eeprom_update_byte((uint8_t*)EEPROM_ASSIGNED_FLAG_ADDR, 0x00);
+
+    eeprom_busy_wait();
 
     sw1 = 0x90;
 }
@@ -303,14 +313,16 @@ void write_private_key_chunk()
     offset = EEPROM_PRIVATE_KEY_DATA_ADDR + (chunk_index * SIZE_PRIVATE_KEY_CHUNK);
 
     for (i = 0; i < p3 - 1; i++) {
-        eeprom_write_byte((uint8_t*)(offset + i), private_key_chunk_buffer[i]);
+        eeprom_update_byte((uint8_t*)(offset + i), private_key_chunk_buffer[i]);
     }
 
     if (chunk_index == 0) {
         uint16_t total_size = (uint16_t)(p3 - 1);
-        eeprom_write_byte((uint8_t*)EEPROM_PRIVATE_KEY_SIZE_ADDR, (uint8_t)(total_size >> 8));
-        eeprom_write_byte((uint8_t*)(EEPROM_PRIVATE_KEY_SIZE_ADDR + 1), (uint8_t)(total_size & 0xFF));
+        eeprom_update_byte((uint8_t*)EEPROM_PRIVATE_KEY_SIZE_ADDR, (uint8_t)(total_size >> 8));
+        eeprom_update_byte((uint8_t*)(EEPROM_PRIVATE_KEY_SIZE_ADDR + 1), (uint8_t)(total_size & 0xFF));
     }
+
+    eeprom_busy_wait();
 
     sw1 = 0x90;
 }
