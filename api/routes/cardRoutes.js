@@ -3,7 +3,6 @@ const router = express.Router();
 const cardController = require('../controllers/cardController');
 const { verifyJWT } = require('../middleware/auth');
 
-// All card routes require JWT authentication
 router.get('/', verifyJWT, cardController.getAllCards);
 router.post('/', verifyJWT, cardController.createCard);
 router.get('/:card_id', verifyJWT, cardController.getCardByCardId);

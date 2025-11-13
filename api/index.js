@@ -19,7 +19,6 @@ mongoose.connect(MONGO_URI)
   .then(async () => {
     console.log('MongoDB connected');
 
-    // Bootstrap: Create default admin user if no users exist
     const userCount = await User.countDocuments();
     if (userCount === 0) {
       const defaultPassword = 'admin';
@@ -33,14 +32,7 @@ mongoose.connect(MONGO_URI)
       });
 
       await adminUser.save();
-      console.log('');
-      console.log('=================================================');
-      console.log('Default admin user created:');
-      console.log('  Username: admin');
-      console.log('  Password: admin');
-      console.log('  Please change this password immediately!');
-      console.log('=================================================');
-      console.log('');
+      console.log('Default admin user created: admin/admin');
     }
   })
   .catch(err => console.error('MongoDB connection error:', err));

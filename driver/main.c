@@ -300,7 +300,31 @@ int main()
                         }
 
                         if (verify_result) {
-                            print_ui("Authentication successful!", version, (char *)card_id, user_name);
+                            print_ui("Authentication successful!\n\nFetching transactions...", version, (char *)card_id, user_name);
+
+                            int balance = 0;
+                            Transaction transactions[10];
+                            int transaction_count = 0;
+
+                            if (fetch_transactions((char *)card_id, "", &balance, transactions, 10, &transaction_count)) {
+                                char display[1024];
+                                sprintf(display, "Balance: %.2f€\n\nTransactions:\n", balance / 100.0);
+
+                                for (int i = 0; i < transaction_count; i++) {
+                                    char trans_line[256];
+                                    sprintf(trans_line, "%.2f€: %s -> %s\n",
+                                        transactions[i].operation / 100.0,
+                                        transactions[i].source_user_name,
+                                        transactions[i].destination_user_name);
+                                    strcat(display, trans_line);
+                                }
+
+                                strcat(display, "\nPlease remove your card.");
+                                print_ui(display, version, (char *)card_id, user_name);
+                            } else {
+                                print_ui("Authentication successful!\n\nPlease remove your card.", version, (char *)card_id, user_name);
+                            }
+
                             card_present = 1;
                         } else {
                             char error_msg[128];

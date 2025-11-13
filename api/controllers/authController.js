@@ -5,10 +5,6 @@ const User = require('../models/User');
 const Card = require('../models/Card');
 const { JWT_SECRET } = require('../middleware/auth');
 
-/**
- * Login with username and password
- * Returns JWT token for web UI authentication
- */
 const login = async (req, res) => {
   try {
     const { username, password } = req.body;
@@ -17,21 +13,18 @@ const login = async (req, res) => {
       return res.status(400).json({ error: 'Username and password are required' });
     }
 
-    // Find user by username
     const user = await User.findOne({ username });
 
     if (!user) {
       return res.status(401).json({ error: 'Invalid credentials' });
     }
 
-    // Verify password
     const isValidPassword = await bcrypt.compare(password, user.password);
 
     if (!isValidPassword) {
       return res.status(401).json({ error: 'Invalid credentials' });
     }
 
-    // Generate JWT token
     const token = jwt.sign(
       {
         userId: user._id,
@@ -57,9 +50,6 @@ const login = async (req, res) => {
   }
 };
 
-/**
- * Register new user (optional - can be restricted)
- */
 const register = async (req, res) => {
   try {
     const { username, password, name } = req.body;
@@ -68,16 +58,13 @@ const register = async (req, res) => {
       return res.status(400).json({ error: 'Username, password, and name are required' });
     }
 
-    // Check if user already exists
     const existingUser = await User.findOne({ username });
     if (existingUser) {
       return res.status(400).json({ error: 'Username already exists' });
     }
 
-    // Hash password
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    // Create user
     const user = new User({
       username,
       password: hashedPassword,
@@ -102,12 +89,6 @@ const register = async (req, res) => {
   }
 };
 
-/**
- * Card authentication using public/private key cryptography
- * Card sends: card_id + signature
- * Signature is created by signing a payload with the card's private key
- * API verifies signature using the stored public key
- */
 const cardAuth = async (req, res) => {
   try {
     const { card_id, signature, timestamp } = req.body;
@@ -118,7 +99,6 @@ const cardAuth = async (req, res) => {
       });
     }
 
-    // Check timestamp to prevent replay attacks (valid for 5 minutes)
     const now = Date.now();
     const requestTime = parseInt(timestamp);
     const timeDiff = Math.abs(now - requestTime);
@@ -127,7 +107,6 @@ const cardAuth = async (req, res) => {
       return res.status(401).json({ error: 'Request expired' });
     }
 
-    // Find card and get public key
     const card = await Card.findById(card_id);
 
     if (!card) {
@@ -142,7 +121,6 @@ const cardAuth = async (req, res) => {
       return res.status(403).json({ error: 'Card has no public key registered' });
     }
 
-    // Verify signature
     const payload = `${card_id}:${timestamp}`;
     const verify = crypto.createVerify('SHA256');
     verify.update(payload);
@@ -154,7 +132,6 @@ const cardAuth = async (req, res) => {
       return res.status(401).json({ error: 'Invalid signature' });
     }
 
-    // Generate a short-lived token for the card
     const token = jwt.sign(
       {
         cardId: card._id,
@@ -167,7 +144,7 @@ const cardAuth = async (req, res) => {
     res.json({
       token,
       card_id: card._id,
-      expires_in: 3600 // 1 hour in seconds
+      expires_in: 3600
     });
   } catch (error) {
     console.error('Card auth error:', error);
