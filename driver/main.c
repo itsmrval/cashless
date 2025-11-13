@@ -131,14 +131,14 @@ int main(int argc, char *argv[])
                     }
 
                     char card_status[64];
-                    if (!get_card_status((char *)card_id, card_status, sizeof(card_status))) {
+                    if (!get_card_status((char *)card_id, auth_token, card_status, sizeof(card_status))) {
                         print_ui("Error: Cannot retrieve card status\n\nPlease remove your card.", version, (char *)card_id, NULL);
                         card_present = 1;
                         continue;
                     }
 
                     char user_name[256];
-                    int has_user = fetch_user_by_card((char *)card_id, user_name, sizeof(user_name));
+                    int has_user = fetch_user_by_card((char *)card_id, auth_token, user_name, sizeof(user_name));
 
                     if (!has_user) {
                         print_ui("Unable to authenticate your card.\nPlease remove it.", version, (char *)card_id, NULL);
