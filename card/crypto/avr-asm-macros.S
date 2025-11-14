@@ -26,8 +26,8 @@
  *
  */
 
-//#ifndef AVR_ASM_MACROS__S__
-//#define AVR_ASM_MACROS__S__
+#ifndef AVR_ASM_MACROS__S__
+#define AVR_ASM_MACROS__S__
 .nolist
 #include <avr/io.h>
 .list
@@ -147,5 +147,5 @@
 *******************************************************************************/
 
 
-//#endif /* AVR_ASM_MACROS__S__ */
+#endif /* AVR_ASM_MACROS__S__ */
 
