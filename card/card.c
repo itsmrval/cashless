@@ -348,8 +348,8 @@ void sign_challenge()
 {
     int i;
     uint8_t challenge[32];
-    uint8_t hash[32];
-    sha256_hash_t sha_ctx;
+    sha256_hash_t hash;
+    sha256_ctx_t sha_ctx;
 
     if (p3 != 32) {
         sw1 = 0x6c;
@@ -364,7 +364,7 @@ void sign_challenge()
 
     sha256_init(&sha_ctx);
     sha256_lastBlock(&sha_ctx, challenge, 256);
-    sha256_ctx2hash(hash, &sha_ctx);
+    sha256_ctx2hash(&hash, &sha_ctx);
 
     uint16_t key_size = ((uint16_t)eeprom_read_byte((uint8_t*)EEPROM_PRIVATE_KEY_SIZE_ADDR) << 8) |
                         (uint16_t)eeprom_read_byte((uint8_t*)(EEPROM_PRIVATE_KEY_SIZE_ADDR + 1));

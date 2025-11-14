@@ -11,7 +11,7 @@ LDIR = -L/usr/lib/avr/lib/$(AVR)/
 
 CFLAGS = -Os
 
-CRYPTO_C_OBJS = crypto/bigint.o crypto/bigint_io.o crypto/rsa_basic.o crypto/sha256.o
+CRYPTO_C_OBJS = crypto/bigint.o crypto/rsa_basic.o crypto/sha256.o
 CRYPTO_ASM_OBJS = crypto/bigint_asm.o crypto/bigint_add_u.o crypto/bigint_adjust.o crypto/sha256-asm.o crypto/avr-asm-macros.o
 
 all: prog
