@@ -137,7 +137,7 @@ int main(int argc, char *argv[])
     if (!reconnect_card()) {
         printf("Error: Failed to reconnect to card\n");
         BIO_free(bio_pub);
-        OPENSSL_free(private_key_der);
+        RSA_free(rsa);
         EVP_PKEY_free(pkey);
         disconnect_card();
         cleanup_card();
@@ -147,7 +147,7 @@ int main(int argc, char *argv[])
     if (!assign_card(argv[1], puk)) {
         printf("Error: Failed to assign card\n");
         BIO_free(bio_pub);
-        OPENSSL_free(private_key_der);
+        RSA_free(rsa);
         EVP_PKEY_free(pkey);
         disconnect_card();
         cleanup_card();
@@ -158,7 +158,7 @@ int main(int argc, char *argv[])
     if (!reconnect_card()) {
         printf("Error: Failed to reconnect to card\n");
         BIO_free(bio_pub);
-        OPENSSL_free(private_key_der);
+        RSA_free(rsa);
         EVP_PKEY_free(pkey);
         disconnect_card();
         cleanup_card();
