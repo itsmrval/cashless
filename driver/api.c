@@ -99,6 +99,131 @@ int api_login(const char *username, const char *password, char *token_buffer, si
     return success;
 }
 
+int api_get_challenge(const char *card_id, char *challenge_buffer, size_t buffer_size)
+{
+    CURL *curl;
+    CURLcode res;
+    char url[512];
+    struct memory_struct chunk;
+    int success = 0;
+
+    chunk.memory = malloc(1);
+    chunk.size = 0;
+
+    snprintf(url, sizeof(url), "%s/auth/challenge?card_id=%s", api_base_url, card_id);
+
+    curl = curl_easy_init();
+    if (curl) {
+        curl_easy_setopt(curl, CURLOPT_URL, url);
+        curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, write_callback);
+        curl_easy_setopt(curl, CURLOPT_WRITEDATA, (void *)&chunk);
+        curl_easy_setopt(curl, CURLOPT_TIMEOUT, 5L);
+
+        res = curl_easy_perform(curl);
+
+        if (res == CURLE_OK) {
+            long response_code;
+            curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &response_code);
+
+            if (response_code == 200) {
+                char *challenge_start = strstr(chunk.memory, "\"challenge\":\"");
+                if (challenge_start) {
+                    challenge_start += 13;
+                    char *challenge_end = strchr(challenge_start, '"');
+                    if (challenge_end) {
+                        size_t challenge_len = challenge_end - challenge_start;
+                        if (challenge_len < buffer_size) {
+                            strncpy(challenge_buffer, challenge_start, challenge_len);
+                            challenge_buffer[challenge_len] = '\0';
+                            success = 1;
+                        }
+                    }
+                }
+            } else {
+                fprintf(stderr, "Challenge request failed: GET %s returned HTTP %ld\n", url, response_code);
+                fprintf(stderr, "Response: %s\n", chunk.memory);
+            }
+        } else {
+            fprintf(stderr, "Challenge request CURL error: %s\n", curl_easy_strerror(res));
+        }
+
+        curl_easy_cleanup(curl);
+    }
+
+    free(chunk.memory);
+    return success;
+}
+
+int api_card_auth_with_signature(const char *card_id, const char *challenge, const unsigned char *signature, size_t signature_len, char *token_buffer, size_t buffer_size)
+{
+    CURL *curl;
+    CURLcode res;
+    char url[512];
+    char postdata[2048];
+    struct memory_struct chunk;
+    int success = 0;
+
+    chunk.memory = malloc(1);
+    chunk.size = 0;
+
+    char signature_b64[512];
+    size_t b64_len = 0;
+    for (size_t i = 0; i < signature_len; i++) {
+        sprintf(signature_b64 + b64_len, "%02x", signature[i]);
+        b64_len += 2;
+    }
+
+    snprintf(url, sizeof(url), "%s/auth/card", api_base_url);
+    snprintf(postdata, sizeof(postdata), "{\"card_id\":\"%s\",\"challenge\":\"%s\",\"signature\":\"%s\"}", card_id, challenge, signature_b64);
+
+    curl = curl_easy_init();
+    if (curl) {
+        struct curl_slist *headers = NULL;
+        headers = curl_slist_append(headers, "Content-Type: application/json");
+
+        curl_easy_setopt(curl, CURLOPT_URL, url);
+        curl_easy_setopt(curl, CURLOPT_POSTFIELDS, postdata);
+        curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headers);
+        curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, write_callback);
+        curl_easy_setopt(curl, CURLOPT_WRITEDATA, (void *)&chunk);
+        curl_easy_setopt(curl, CURLOPT_TIMEOUT, 5L);
+
+        res = curl_easy_perform(curl);
+
+        if (res == CURLE_OK) {
+            long response_code;
+            curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &response_code);
+
+            if (response_code == 200) {
+                char *token_start = strstr(chunk.memory, "\"token\":\"");
+                if (token_start) {
+                    token_start += 9;
+                    char *token_end = strchr(token_start, '"');
+                    if (token_end) {
+                        size_t token_len = token_end - token_start;
+                        if (token_len < buffer_size) {
+                            strncpy(token_buffer, token_start, token_len);
+                            token_buffer[token_len] = '\0';
+                            success = 1;
+                        }
+                    }
+                }
+            } else {
+                fprintf(stderr, "Card auth failed: POST %s returned HTTP %ld\n", url, response_code);
+                fprintf(stderr, "Response: %s\n", chunk.memory);
+            }
+        } else {
+            fprintf(stderr, "Card auth CURL error: %s\n", curl_easy_strerror(res));
+        }
+
+        curl_slist_free_all(headers);
+        curl_easy_cleanup(curl);
+    }
+
+    free(chunk.memory);
+    return success;
+}
+
 int api_card_login(const char *card_id, const char *pin, char *token_buffer, size_t buffer_size)
 {
     CURL *curl;

@@ -267,6 +267,35 @@ int verify_puk_on_card(const char *puk, const char *new_pin, BYTE *remaining_att
     return 0;
 }
 
+int sign_challenge_on_card(const unsigned char *challenge, unsigned char *signature, size_t *signature_len)
+{
+    BYTE command[5 + 32] = {0x80, 0x0B, 0x00, 0x00, 0x20};
+    memcpy(command + 5, challenge, 32);
+
+    BYTE response[258];
+    DWORD responseLen = sizeof(response);
+
+    LONG rv = SCardTransmit(hCard, SCARD_PCI_T0, command, sizeof(command),
+                           NULL, response, &responseLen);
+
+    if (rv != SCARD_S_SUCCESS || responseLen < 2) {
+        return 0;
+    }
+
+    if (response[responseLen - 2] != 0x90) {
+        return 0;
+    }
+
+    int sig_len = response[responseLen - 1];
+    if (sig_len > 0 && sig_len <= 128 && (responseLen - 2) >= sig_len) {
+        memcpy(signature, response, sig_len);
+        *signature_len = sig_len;
+        return 1;
+    }
+
+    return 0;
+}
+
 void disconnect_card()
 {
     if (hCard) {

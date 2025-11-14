@@ -6,6 +6,7 @@
 #include <openssl/pem.h>
 #include <openssl/evp.h>
 #include <openssl/bio.h>
+#include <openssl/bn.h>
 #include "card.h"
 
 int main(int argc, char *argv[])
@@ -90,15 +91,40 @@ int main(int argc, char *argv[])
     }
     EVP_PKEY_CTX_free(ctx);
 
-    unsigned char *private_key_der = NULL;
-    int private_key_len = i2d_PrivateKey(pkey, &private_key_der);
-    if (private_key_len <= 0) {
-        printf("Error: Failed to encode private key\n");
+    RSA *rsa = EVP_PKEY_get1_RSA(pkey);
+    if (!rsa) {
+        printf("Error: Failed to get RSA key\n");
         EVP_PKEY_free(pkey);
         disconnect_card();
         cleanup_card();
         return 1;
     }
+
+    const BIGNUM *n, *e, *d;
+    RSA_get0_key(rsa, &n, &e, &d);
+
+    unsigned char modulus[128] = {0};
+    unsigned char priv_exp[128] = {0};
+
+    int n_len = BN_num_bytes(n);
+    int d_len = BN_num_bytes(d);
+
+    if (n_len > 128 || d_len > 128) {
+        printf("Error: Key components too large\n");
+        RSA_free(rsa);
+        EVP_PKEY_free(pkey);
+        disconnect_card();
+        cleanup_card();
+        return 1;
+    }
+
+    BN_bn2bin(n, modulus + (128 - n_len));
+    BN_bn2bin(d, priv_exp + (128 - d_len));
+
+    unsigned char private_key_raw[256];
+    memcpy(private_key_raw, modulus, 128);
+    memcpy(private_key_raw + 128, priv_exp, 128);
+    int private_key_len = 256;
 
     BIO *bio_pub = BIO_new(BIO_s_mem());
     PEM_write_bio_PUBKEY(bio_pub, pkey);
@@ -138,10 +164,10 @@ int main(int argc, char *argv[])
         cleanup_card();
         return 1;
     }
-    if (!write_private_key(private_key_der, private_key_len)) {
+    if (!write_private_key(private_key_raw, private_key_len)) {
         printf("Error: Failed to write private key to card\n");
         BIO_free(bio_pub);
-        OPENSSL_free(private_key_der);
+        RSA_free(rsa);
         EVP_PKEY_free(pkey);
         disconnect_card();
         cleanup_card();
@@ -159,7 +185,7 @@ int main(int argc, char *argv[])
     }
 
     BIO_free(bio_pub);
-    OPENSSL_free(private_key_der);
+    RSA_free(rsa);
     EVP_PKEY_free(pkey);
 
     if (!connect_card()) {
