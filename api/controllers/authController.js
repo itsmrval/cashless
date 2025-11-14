@@ -3,6 +3,7 @@ const jwt = require('jsonwebtoken');
 const crypto = require('crypto');
 const User = require('../models/User');
 const Card = require('../models/Card');
+const Challenge = require('../models/Challenge');
 const { JWT_SECRET } = require('../middleware/auth');
 
 const login = async (req, res) => {
@@ -89,22 +90,47 @@ const register = async (req, res) => {
   }
 };
 
-const cardAuth = async (req, res) => {
+const getChallenge = async (req, res) => {
   try {
-    const { card_id, signature, timestamp } = req.body;
+    const { card_id } = req.query;
 
-    if (!card_id || !signature || !timestamp) {
-      return res.status(400).json({
-        error: 'card_id, signature, and timestamp are required'
-      });
+    if (!card_id) {
+      return res.status(400).json({ error: 'card_id is required' });
     }
 
-    const now = Date.now();
-    const requestTime = parseInt(timestamp);
-    const timeDiff = Math.abs(now - requestTime);
+    const card = await Card.findById(card_id);
 
-    if (timeDiff > 5 * 60 * 1000) {
-      return res.status(401).json({ error: 'Request expired' });
+    if (!card) {
+      return res.status(404).json({ error: 'Card not found' });
+    }
+
+    if (card.status !== 'active') {
+      return res.status(403).json({ error: 'Card is not active' });
+    }
+
+    if (!card.public_key) {
+      return res.status(403).json({ error: 'Card has no public key registered' });
+    }
+
+    const challenge = crypto.randomBytes(32).toString('hex');
+
+    await Challenge.create({ challenge, card_id });
+
+    res.json({ challenge });
+  } catch (error) {
+    console.error('Challenge generation error:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+};
+
+const cardAuth = async (req, res) => {
+  try {
+    const { card_id, signature, challenge } = req.body;
+
+    if (!card_id || !signature || !challenge) {
+      return res.status(400).json({
+        error: 'card_id, signature, and challenge are required'
+      });
     }
 
     const card = await Card.findById(card_id);
@@ -121,9 +147,16 @@ const cardAuth = async (req, res) => {
       return res.status(403).json({ error: 'Card has no public key registered' });
     }
 
-    const payload = `${card_id}:${timestamp}`;
+    const challengeDoc = await Challenge.findOne({ challenge, card_id });
+
+    if (!challengeDoc) {
+      return res.status(401).json({ error: 'Invalid or expired challenge' });
+    }
+
+    await Challenge.deleteOne({ _id: challengeDoc._id });
+
     const verify = crypto.createVerify('SHA256');
-    verify.update(payload);
+    verify.update(challenge);
     verify.end();
 
     const isValid = verify.verify(card.public_key, signature, 'base64');
@@ -155,5 +188,6 @@ const cardAuth = async (req, res) => {
 module.exports = {
   login,
   register,
+  getChallenge,
   cardAuth
 };

@@ -6,6 +6,8 @@ router.post('/login', authController.login);
 
 router.post('/register', authController.register);
 
+router.get('/challenge', authController.getChallenge);
+
 router.post('/card', authController.cardAuth);
 
 module.exports = router;

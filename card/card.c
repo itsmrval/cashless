@@ -2,6 +2,10 @@
 #include <stdint.h>
 #include <avr/eeprom.h>
 #include <avr/pgmspace.h>
+#include <string.h>
+#include "crypto/bigint.h"
+#include "crypto/rsa_basic.h"
+#include "crypto/sha256.h"
 
 extern void sendbytet0(uint8_t b);
 extern uint8_t recbytet0(void);
@@ -340,6 +344,85 @@ void write_private_key_chunk()
     sw1 = 0x90;
 }
 
+void sign_challenge()
+{
+    int i;
+    uint8_t challenge[32];
+    uint8_t hash[32];
+    sha256_hash_t sha_ctx;
+
+    if (p3 != 32) {
+        sw1 = 0x6c;
+        sw2 = 32;
+        return;
+    }
+
+    sendbytet0(ins);
+    for (i = 0; i < 32; i++) {
+        challenge[i] = recbytet0();
+    }
+
+    sha256_init(&sha_ctx);
+    sha256_lastBlock(&sha_ctx, challenge, 256);
+    sha256_ctx2hash(hash, &sha_ctx);
+
+    uint16_t key_size = ((uint16_t)eeprom_read_byte((uint8_t*)EEPROM_PRIVATE_KEY_SIZE_ADDR) << 8) |
+                        (uint16_t)eeprom_read_byte((uint8_t*)(EEPROM_PRIVATE_KEY_SIZE_ADDR + 1));
+
+    if (key_size == 0 || key_size > 512) {
+        sw1 = 0x6a;
+        sw2 = 0x88;
+        return;
+    }
+
+    uint8_t key_buffer[512];
+    for (i = 0; i < key_size; i++) {
+        key_buffer[i] = eeprom_read_byte((uint8_t*)(EEPROM_PRIVATE_KEY_DATA_ADDR + i));
+    }
+
+    uint8_t modulus_buffer[128];
+    uint8_t exponent_buffer[128];
+    uint8_t signature[128];
+
+    memcpy(modulus_buffer, key_buffer, 128);
+    memcpy(exponent_buffer, key_buffer + 128, 128);
+
+    bigint_t modulus_bigint, exponent_bigint, message_bigint;
+
+    modulus_bigint.wordv = (bigint_word_t*)modulus_buffer;
+    modulus_bigint.length_W = 128 / sizeof(bigint_word_t);
+    modulus_bigint.info = 0;
+
+    exponent_bigint.wordv = (bigint_word_t*)exponent_buffer;
+    exponent_bigint.length_W = 128 / sizeof(bigint_word_t);
+    exponent_bigint.info = 0;
+
+    message_bigint.wordv = (bigint_word_t*)signature;
+    message_bigint.length_W = 128 / sizeof(bigint_word_t);
+    message_bigint.info = 0;
+
+    memset(signature, 0, 128);
+    memcpy(signature + (128 - 32), hash, 32);
+
+    rsa_privatekey_t privkey;
+    privkey.n = 1;
+    privkey.modulus = modulus_bigint;
+    privkey.components = &exponent_bigint;
+
+    if (rsa_dec(&message_bigint, &privkey) != 0) {
+        sw1 = 0x6f;
+        sw2 = 0x00;
+        return;
+    }
+
+    for (i = 0; i < 128; i++) {
+        sendbytet0(signature[i]);
+    }
+
+    sw1 = 0x90;
+    sw2 = 128;
+}
+
 int main(void)
 {
     ACSR = 0x80;
@@ -389,6 +472,9 @@ int main(void)
                 break;
             case 0x0A:
                 write_private_key_chunk();
+                break;
+            case 0x0B:
+                sign_challenge();
                 break;
             default:
                 sw1 = 0x6d;
