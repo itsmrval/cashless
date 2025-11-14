@@ -1,3 +1,5 @@
+#include "avr-asm-macros.S"
+
 /* bigint_add_u.S */
 /*
     This file is part of the AVR-Crypto-Lib.

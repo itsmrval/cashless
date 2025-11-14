@@ -1,3 +1,5 @@
+#include "avr-asm-macros.S"
+
 /* bigint_adjust.S */
 /*
     This file is part of the ARM-Crypto-Lib.
