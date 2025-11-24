@@ -322,6 +322,27 @@ int sign_challenge_on_card(const unsigned char *challenge, unsigned char *signat
     return 0;
 }
 
+int get_remaining_attempts_from_card(BYTE *pin_attempts, BYTE *puk_attempts)
+{
+    LONG rv;
+    BYTE cmd[] = {0x80, 0x0D, 0x00, 0x00, 0x02};
+    BYTE response[258];
+    DWORD responseLen = sizeof(response);
+    SCARD_IO_REQUEST pioSendPci;
+
+    pioSendPci.dwProtocol = dwActiveProtocol;
+    pioSendPci.cbPciLength = sizeof(SCARD_IO_REQUEST);
+
+    rv = SCardTransmit(hCard, &pioSendPci, cmd, sizeof(cmd), NULL, response, &responseLen);
+
+    if (rv != SCARD_S_SUCCESS || responseLen < 4) return 0;
+    if (response[responseLen - 2] != 0x90) return 0;
+
+    *pin_attempts = response[0];
+    *puk_attempts = response[1];
+    return 1;
+}
+
 void disconnect_card()
 {
     if (hCard) {

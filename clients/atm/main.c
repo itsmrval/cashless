@@ -218,16 +218,19 @@ int main(int argc, char *argv[])
                             }
                         }
 
-                        char dummy_pin[SIZE_PIN + 1] = "0000";
-                        BYTE check_attempts;
-                        verify_pin_on_card(dummy_pin, &check_attempts);
+                        BYTE pin_attempts, puk_attempts;
+                        if (!get_remaining_attempts_from_card(&pin_attempts, &puk_attempts)) {
+                            print_ui("Error: Failed to query card\n\nPlease remove your card.", version, (char *)card_id, user_name);
+                            card_present = 1;
+                            continue;
+                        }
 
                         if (!connect_card()) {
                             card_present = 0;
                             continue;
                         }
 
-                        if (check_attempts == 0) {
+                        if (pin_attempts == 0) {
                             print_ui("Card is blocked!\n\nEnter PUK to unblock:", version, (char *)card_id, user_name);
 
                             char puk[SIZE_PUK + 1];
