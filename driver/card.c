@@ -270,7 +270,8 @@ int verify_puk_on_card(const char *puk, const char *new_pin, BYTE *remaining_att
 int sign_challenge_on_card(const unsigned char *challenge, unsigned char *signature, size_t *signature_len)
 {
     LONG rv;
-    BYTE cmd_sign[5 + 4] = {0x80, 0x0B, 0x00, 0x00, 0x04};
+    BYTE cmd_set_challenge[5 + 4] = {0x80, 0x0C, 0x00, 0x00, 0x04};
+    BYTE cmd_get_signature[5] = {0x80, 0x0B, 0x00, 0x00, 0x04};
     BYTE response[258];
     DWORD responseLen;
     SCARD_IO_REQUEST pioSendPci;
@@ -280,16 +281,32 @@ int sign_challenge_on_card(const unsigned char *challenge, unsigned char *signat
     pioSendPci.cbPciLength = sizeof(SCARD_IO_REQUEST);
 
     for (i = 0; i < 4; i++) {
-        cmd_sign[5 + i] = challenge[i];
+        cmd_set_challenge[5 + i] = challenge[i];
     }
 
     responseLen = sizeof(response);
-    fprintf(stderr, "DEBUG: Transmitting sign command with 4-byte challenge data\n");
-    rv = SCardTransmit(hCard, &pioSendPci, cmd_sign, 9,
+    fprintf(stderr, "DEBUG: Step 1: Setting challenge\n");
+    rv = SCardTransmit(hCard, &pioSendPci, cmd_set_challenge, 9,
                       NULL, response, &responseLen);
 
     if (rv != SCARD_S_SUCCESS) {
-        fprintf(stderr, "DEBUG: SCardTransmit failed: 0x%08lX\n", rv);
+        fprintf(stderr, "DEBUG: Set challenge failed: 0x%08lX\n", rv);
+        return 0;
+    }
+
+    if (responseLen < 2 || response[responseLen - 2] != 0x90) {
+        fprintf(stderr, "DEBUG: Set challenge error SW1=0x%02X SW2=0x%02X\n",
+                response[responseLen - 2], response[responseLen - 1]);
+        return 0;
+    }
+
+    responseLen = sizeof(response);
+    fprintf(stderr, "DEBUG: Step 2: Getting signature\n");
+    rv = SCardTransmit(hCard, &pioSendPci, cmd_get_signature, 5,
+                      NULL, response, &responseLen);
+
+    if (rv != SCARD_S_SUCCESS) {
+        fprintf(stderr, "DEBUG: Get signature failed: 0x%08lX\n", rv);
         return 0;
     }
 
