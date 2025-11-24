@@ -373,7 +373,7 @@ int main(int argc, char *argv[])
                             Transaction transactions[10];
                             int transaction_count = 0;
 
-                            if (fetch_transactions((char *)card_id, user_token, &balance, transactions, 10, &transaction_count)) {
+                            if (fetch_transactions((char *)card_id, user_token, auth_token, &balance, transactions, 10, &transaction_count)) {
                                 char display[1024];
                                 sprintf(display, "Balance: %.2f€\n\n", balance / 100.0);
 

@@ -503,12 +503,13 @@ int update_card_status(const char *card_id, const char *admin_token, const char 
     return success;
 }
 
-int fetch_transactions(const char *card_id, const char *token, int *balance, Transaction *transactions, int max_transactions, int *transaction_count)
+int fetch_transactions(const char *card_id, const char *card_token, const char *driver_token, int *balance, Transaction *transactions, int max_transactions, int *transaction_count)
 {
     CURL *curl;
     CURLcode res;
     char url[512];
-    char auth_header[512];
+    char card_auth_header[512];
+    char driver_auth_header[512];
     struct memory_struct chunk;
     int success = 0;
 
@@ -516,12 +517,13 @@ int fetch_transactions(const char *card_id, const char *token, int *balance, Tra
     chunk.size = 0;
 
     snprintf(url, sizeof(url), "%s/transactions", api_base_url);
-    snprintf(auth_header, sizeof(auth_header), "Authorization: Bearer %s", token);
+    snprintf(card_auth_header, sizeof(card_auth_header), "Authorization: Bearer %s", card_token);
+    snprintf(driver_auth_header, sizeof(driver_auth_header), "Authorization: Bearer %s", driver_token);
 
     curl = curl_easy_init();
     if (curl) {
         struct curl_slist *headers = NULL;
-        headers = curl_slist_append(headers, auth_header);
+        headers = curl_slist_append(headers, card_auth_header);
 
         curl_easy_setopt(curl, CURLOPT_URL, url);
         curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headers);
@@ -627,7 +629,7 @@ int fetch_transactions(const char *card_id, const char *token, int *balance, Tra
     curl = curl_easy_init();
     if (curl) {
         struct curl_slist *headers = NULL;
-        headers = curl_slist_append(headers, auth_header);
+        headers = curl_slist_append(headers, driver_auth_header);
 
         curl_easy_setopt(curl, CURLOPT_URL, url);
         curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headers);
@@ -677,7 +679,7 @@ int fetch_transactions(const char *card_id, const char *token, int *balance, Tra
     curl = curl_easy_init();
     if (curl) {
         struct curl_slist *headers = NULL;
-        headers = curl_slist_append(headers, auth_header);
+        headers = curl_slist_append(headers, driver_auth_header);
 
         curl_easy_setopt(curl, CURLOPT_URL, url);
         curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headers);
