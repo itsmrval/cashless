@@ -272,7 +272,7 @@ int sign_challenge_on_card(const unsigned char *challenge, unsigned char *signat
 {
     // DEBUG TEST: Find exact size limit - try different sizes
     LONG rv;
-    int test_size = 16;  // Test with 16 bytes
+    int test_size = 24;  // Test with 24 bytes
     BYTE cmd_sign[5 + 32] = {0x80, 0x0B, 0x00, 0x00, 0};
     cmd_sign[4] = test_size;  // Set Lc
     fprintf(stderr, "DEBUG: TEST - trying INS 0x0B with %d bytes data\n", test_size);
