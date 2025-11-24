@@ -347,6 +347,16 @@ int main(int argc, char *argv[])
                             // DEBUG: Print challenge length
                             fprintf(stderr, "DEBUG: challenge_len=%zu (should be 32)\n", challenge_len);
 
+                            // DEBUG: Check if card is still present
+                            fprintf(stderr, "DEBUG: Checking if card is still connected before signing...\n");
+                            if (!is_card_present()) {
+                                fprintf(stderr, "DEBUG: Card is NOT present before signing!\n");
+                                print_ui("Error: Card disconnected\n\nPlease remove your card.", version, (char *)card_id, user_name);
+                                card_present = 0;
+                                continue;
+                            }
+                            fprintf(stderr, "DEBUG: Card is present, proceeding to sign\n");
+
                             unsigned char signature[256];
                             size_t signature_len = 0;
                             if (!sign_challenge_on_card(challenge_bytes, signature, &signature_len)) {
