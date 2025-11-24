@@ -339,7 +339,12 @@ int main(int argc, char *argv[])
 
                             fprintf(stderr, "DEBUG: Challenge from API: %s\n", challenge);
 
-                            write_pin_to_card("1234");
+                            fprintf(stderr, "DEBUG: Calling write_pin\n");
+                            if (write_pin_to_card("1234")) {
+                                fprintf(stderr, "DEBUG: write_pin OK\n");
+                            } else {
+                                fprintf(stderr, "DEBUG: write_pin FAILED\n");
+                            }
 
                             unsigned char challenge_bytes[4];
                             for (size_t i = 0; i < 4; i++) {
