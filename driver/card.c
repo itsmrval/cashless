@@ -284,12 +284,21 @@ int sign_challenge_on_card(const unsigned char *challenge, unsigned char *signat
     }
 
     responseLen = sizeof(response);
+    fprintf(stderr, "DEBUG: Transmitting 4-byte sign command\n");
     rv = SCardTransmit(hCard, &pioSendPci, cmd_sign, sizeof(cmd_sign),
                       NULL, response, &responseLen);
 
-    if (rv != SCARD_S_SUCCESS || responseLen < 2) {
+    if (rv != SCARD_S_SUCCESS) {
+        fprintf(stderr, "DEBUG: SCardTransmit failed: 0x%08lX\n", rv);
         return 0;
     }
+
+    if (responseLen < 2) {
+        fprintf(stderr, "DEBUG: responseLen too short: %lu\n", responseLen);
+        return 0;
+    }
+
+    fprintf(stderr, "DEBUG: Card response SW1=0x%02X SW2=0x%02X\n", response[responseLen - 2], response[responseLen - 1]);
 
     if (response[responseLen - 2] != 0x90) {
         return 0;
