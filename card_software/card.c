@@ -361,6 +361,16 @@ void write_private_key_chunk()
     sw1 = 0x90;
 }
 
+uint8_t check_pin_verified(void)
+{
+    if (!pin_verified) {
+        sw1 = 0x69;
+        sw2 = 0x82;
+        return 0;
+    }
+    return 1;
+}
+
 void set_challenge()
 {
     int i;
@@ -422,16 +432,6 @@ void sign_challenge()
     }
 
     sw1 = 0x90;
-}
-
-uint8_t check_pin_verified(void)
-{
-    if (!pin_verified) {
-        sw1 = 0x69;
-        sw2 = 0x82;
-        return 0;
-    }
-    return 1;
 }
 
 int main(void)
