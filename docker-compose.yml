@@ -15,9 +15,9 @@ services:
     container_name: cashless-api
     environment:
       MONGO_URI: mongodb://admin:admin@mongodb:27017/cashless?authSource=admin
-      PORT: 3000
+      PORT: 3002
     ports:
-      - "3000:3000"
+      - "3002:3002"
     volumes:
       - ./api:/app
       - /app/node_modules

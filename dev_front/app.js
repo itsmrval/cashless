@@ -1,5 +1,5 @@
 // Configuration
-let API_URL = localStorage.getItem('api_url') || 'http://localhost:3000';
+let API_URL = localStorage.getItem('api_url') || 'http://localhost:3002';
 let AUTH_TOKEN = localStorage.getItem('auth_token');
 
 // State

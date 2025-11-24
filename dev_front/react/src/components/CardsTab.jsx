@@ -9,7 +9,7 @@ function CardsTab() {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
 
-  const API_URL = localStorage.getItem('api_url') || 'http://localhost:3000';
+  const API_URL = localStorage.getItem('api_url') || 'http://localhost:3002';
 
   const fetchCards = async () => {
     setLoading(true);

@@ -6,7 +6,7 @@ function UsersTab() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
-  const API_URL = localStorage.getItem('api_url') || 'http://localhost:3000';
+  const API_URL = localStorage.getItem('api_url') || 'http://localhost:3002';
 
   const fetchUsers = async () => {
     setLoading(true);

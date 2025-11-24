@@ -54,7 +54,7 @@ cd front
 npm run dev
 ```
 
-L'application est servie par Webpack Dev Server (par défaut `http://localhost:3000`).
+L'application est servie par Webpack Dev Server (par défaut `http://localhost:3002`).
 
 --
 
@@ -173,7 +173,7 @@ cd front
 npm run dev
 ```
 
-2. Vérifier la page de login (`http://localhost:3000`) et tenter une connexion.
+2. Vérifier la page de login (`http://localhost:3001`) et tenter une connexion.
 3. Ouvrir la console du navigateur pour voir les requêtes réseau vers `API_BASE_URL`.
 
 --

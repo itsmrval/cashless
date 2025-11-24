@@ -24,7 +24,7 @@ docker-compose up
 ```
 
 Services disponibles:
-- API: `http://localhost:3000`
+- API: `http://localhost:3002`
 - Frontend dev: `http://localhost:3001`
 
 ### Configuration Ansible
@@ -54,7 +54,7 @@ Crée la carte dans l'API puis assigne le card_id à la carte physique.
 
 ```bash
 cd driver
-make API_BASE_URL=http://localhost:3000/v1
+make API_BASE_URL=http://localhost:3002/v1
 ./driver
 ```
 
@@ -128,5 +128,5 @@ L'ATR identifie la carte avec la chaîne "cashless".
 
 Modifie `driver/makefile` pour changer l'url de l'API
 ```makefile
-API_BASE_URL=http://localhost:3000/v1
+API_BASE_URL=http://localhost:3002/v1
 ```
