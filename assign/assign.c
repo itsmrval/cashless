@@ -113,7 +113,7 @@ int main(int argc, char *argv[])
         return 1;
     }
 
-    printf("Card key (hex):\n");
+    printf("Card key (hex): ");
     for (i = 0; i < 4; i++) {
         printf("%02x", key_raw[i]);
     }

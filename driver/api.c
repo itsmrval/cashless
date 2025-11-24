@@ -518,6 +518,9 @@ int fetch_transactions(const char *card_id, const char *token, int *balance, Tra
     snprintf(url, sizeof(url), "%s/transactions", api_base_url);
     snprintf(auth_header, sizeof(auth_header), "Authorization: Bearer %s", token);
 
+    fprintf(stderr, "DEBUG: Fetching transactions from %s\n", url);
+    fprintf(stderr, "DEBUG: Token: %.50s...\n", token);
+
     curl = curl_easy_init();
     if (curl) {
         struct curl_slist *headers = NULL;
@@ -535,65 +538,56 @@ int fetch_transactions(const char *card_id, const char *token, int *balance, Tra
             long response_code;
             curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &response_code);
 
-            if (response_code == 200) {
-                char *balance_start = strstr(chunk.memory, "\"balance\":");
-                if (balance_start) {
-                    *balance = atoi(balance_start + 10);
-                }
+            fprintf(stderr, "DEBUG: Transactions response (HTTP %ld): %s\n", response_code, chunk.memory);
 
+            if (response_code == 200) {
+                *balance = 0;
                 *transaction_count = 0;
-                char *trans_start = strstr(chunk.memory, "\"transactions\":[");
-                if (trans_start) {
-                    trans_start += 16;
+
+                char *trans_start = chunk.memory;
+                if (*trans_start == '[') {
+                    trans_start++;
 
                     while (*transaction_count < max_transactions) {
                         char *obj_start = strchr(trans_start, '{');
                         if (!obj_start) break;
+                        char *obj_end = strchr(obj_start, '}');
+                        if (!obj_end) break;
 
                         char *operation_str = strstr(obj_start, "\"operation\":");
-                        char *source_str = strstr(obj_start, "\"source_user_name\":\"");
-                        char *dest_str = strstr(obj_start, "\"destination_user_name\":\"");
-                        char *date_str = strstr(obj_start, "\"date\":\"");
+                        char *source_user_str = strstr(obj_start, "\"source_user\":");
+                        char *dest_user_str = strstr(obj_start, "\"destination_user\":");
 
-                        if (operation_str) {
-                            transactions[*transaction_count].operation = atoi(operation_str + 12);
+                        if (operation_str && operation_str < obj_end) {
+                            int op = atoi(operation_str + 12);
+                            transactions[*transaction_count].operation = op;
 
-                            if (source_str) {
-                                source_str += 20;
-                                char *source_end = strchr(source_str, '"');
-                                if (source_end) {
-                                    size_t len = source_end - source_str;
-                                    if (len < sizeof(transactions[*transaction_count].source_user_name)) {
-                                        strncpy(transactions[*transaction_count].source_user_name, source_str, len);
-                                        transactions[*transaction_count].source_user_name[len] = '\0';
+                            if (source_user_str && source_user_str < obj_end) {
+                                char *name_start = strstr(source_user_str, "\"name\":\"");
+                                if (name_start && name_start < obj_end) {
+                                    name_start += 8;
+                                    char *name_end = strchr(name_start, '"');
+                                    if (name_end) {
+                                        size_t len = name_end - name_start;
+                                        if (len < sizeof(transactions[*transaction_count].source_user_name)) {
+                                            strncpy(transactions[*transaction_count].source_user_name, name_start, len);
+                                            transactions[*transaction_count].source_user_name[len] = '\0';
+                                        }
                                     }
                                 }
-                            } else {
-                                transactions[*transaction_count].source_user_name[0] = '\0';
                             }
 
-                            if (dest_str) {
-                                dest_str += 25;
-                                char *dest_end = strchr(dest_str, '"');
-                                if (dest_end) {
-                                    size_t len = dest_end - dest_str;
-                                    if (len < sizeof(transactions[*transaction_count].destination_user_name)) {
-                                        strncpy(transactions[*transaction_count].destination_user_name, dest_str, len);
-                                        transactions[*transaction_count].destination_user_name[len] = '\0';
-                                    }
-                                }
-                            } else {
-                                transactions[*transaction_count].destination_user_name[0] = '\0';
-                            }
-
-                            if (date_str) {
-                                date_str += 8;
-                                char *date_end = strchr(date_str, '"');
-                                if (date_end) {
-                                    size_t len = date_end - date_str;
-                                    if (len < sizeof(transactions[*transaction_count].date)) {
-                                        strncpy(transactions[*transaction_count].date, date_str, len);
-                                        transactions[*transaction_count].date[len] = '\0';
+                            if (dest_user_str && dest_user_str < obj_end) {
+                                char *name_start = strstr(dest_user_str, "\"name\":\"");
+                                if (name_start && name_start < obj_end) {
+                                    name_start += 8;
+                                    char *name_end = strchr(name_start, '"');
+                                    if (name_end) {
+                                        size_t len = name_end - name_start;
+                                        if (len < sizeof(transactions[*transaction_count].destination_user_name)) {
+                                            strncpy(transactions[*transaction_count].destination_user_name, name_start, len);
+                                            transactions[*transaction_count].destination_user_name[len] = '\0';
+                                        }
                                     }
                                 }
                             }
@@ -601,9 +595,7 @@ int fetch_transactions(const char *card_id, const char *token, int *balance, Tra
                             (*transaction_count)++;
                         }
 
-                        trans_start = strchr(obj_start + 1, '}');
-                        if (!trans_start) break;
-                        trans_start++;
+                        trans_start = obj_end + 1;
                     }
 
                     success = 1;

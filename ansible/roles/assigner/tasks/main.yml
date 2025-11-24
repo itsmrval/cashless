@@ -30,7 +30,7 @@
 
 - name: Extract public key from output
   set_fact:
-    card_public_key: "{{ assign_result.stdout | regex_search('-----BEGIN PUBLIC KEY-----[\\s\\S]*?-----END PUBLIC KEY-----', multiline=True) }}"
+    card_public_key: "{{ assign_result.stdout | regex_search('Card key \\(hex\\): ([0-9a-fA-F]{8})', '\\1') | first }}"
 
 - name: Update card with PUK and public key in API
   uri:

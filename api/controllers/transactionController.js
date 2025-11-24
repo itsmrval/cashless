@@ -39,10 +39,30 @@ const getTransactions = async (req, res) => {
         { destination_user_id: targetUserId }
       ]
     })
+      .populate('source_user_id', 'name username')
+      .populate('destination_user_id', 'name username')
       .sort({ date: -1 })
-      .limit(50);
+      .limit(50)
+      .lean();
 
-    res.json(transactions);
+    const formattedTransactions = transactions.map(t => ({
+      _id: t._id,
+      source_user: t.source_user_id ? {
+        id: t.source_user_id._id,
+        name: t.source_user_id.name,
+        username: t.source_user_id.username
+      } : null,
+      destination_user: t.destination_user_id ? {
+        id: t.destination_user_id._id,
+        name: t.destination_user_id.name,
+        username: t.destination_user_id.username
+      } : null,
+      operation: t.operation,
+      date: t.date,
+      source_card_id: t.source_card_id
+    }));
+
+    res.json(formattedTransactions);
   } catch (error) {
     console.error('Transaction error:', error);
     res.status(500).json({ error: 'Internal server error' });

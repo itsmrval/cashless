@@ -3,9 +3,6 @@
 #include <avr/eeprom.h>
 #include <avr/pgmspace.h>
 #include <string.h>
-#include "crypto/bigint.h"
-#include "crypto/rsa_basic.h"
-#include "crypto/sha256.h"
 
 extern void sendbytet0(uint8_t b);
 extern uint8_t recbytet0(void);
@@ -91,6 +88,7 @@ void read_version()
 
 uint8_t pin_buffer[SIZE_PIN];
 uint8_t puk_buffer[SIZE_PUK];
+uint8_t challenge_buffer[4];
 
 void write_pin_only()
 {
@@ -344,12 +342,9 @@ void write_private_key_chunk()
     sw1 = 0x90;
 }
 
-void sign_challenge()
+void set_challenge()
 {
     int i;
-    uint8_t challenge[4];
-    uint8_t key[4];
-    uint8_t signature[4];
 
     if (p3 != 4) {
         sw1 = 0x6c;
@@ -359,7 +354,22 @@ void sign_challenge()
 
     sendbytet0(ins);
     for (i = 0; i < 4; i++) {
-        challenge[i] = recbytet0();
+        challenge_buffer[i] = recbytet0();
+    }
+
+    sw1 = 0x90;
+}
+
+void sign_challenge()
+{
+    int i;
+    uint8_t key[4];
+    uint8_t signature[4];
+
+    if (p3 != 4) {
+        sw1 = 0x6c;
+        sw2 = 4;
+        return;
     }
 
     uint16_t key_size = ((uint16_t)eeprom_read_byte((uint8_t*)EEPROM_PRIVATE_KEY_SIZE_ADDR) << 8) |
@@ -376,15 +386,15 @@ void sign_challenge()
     }
 
     for (i = 0; i < 4; i++) {
-        signature[i] = challenge[i] ^ key[i];
+        signature[i] = challenge_buffer[i] ^ key[i];
     }
 
+    sendbytet0(ins);
     for (i = 0; i < 4; i++) {
         sendbytet0(signature[i]);
     }
 
     sw1 = 0x90;
-    sw2 = 4;
 }
 
 int main(void)
@@ -439,6 +449,9 @@ int main(void)
                 break;
             case 0x0B:
                 sign_challenge();
+                break;
+            case 0x0C:
+                set_challenge();
                 break;
             default:
                 sw1 = 0x6d;

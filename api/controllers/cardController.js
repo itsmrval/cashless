@@ -67,10 +67,11 @@ exports.updateCard = async (req, res) => {
       if (typeof req.body.public_key !== 'string') {
         return res.status(400).json({ error: 'public_key must be a string' });
       }
-      if (!/^[0-9a-fA-F]{8}$/.test(req.body.public_key)) {
+      const trimmedKey = req.body.public_key.trim();
+      if (!/^[0-9a-fA-F]{8}$/.test(trimmedKey)) {
         return res.status(400).json({ error: 'public_key must be 8 hex characters (4 bytes)' });
       }
-      updates.public_key = req.body.public_key;
+      updates.public_key = trimmedKey;
     }
 
     if (Object.keys(updates).length === 0) {
