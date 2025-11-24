@@ -9,6 +9,7 @@ extern uint8_t recbytet0(void);
 
 uint8_t cla, ins, p1, p2, p3;
 uint8_t sw1, sw2;
+uint8_t pin_verified = 0;
 
 #define SIZE_ATR 8
 const char atr_str[SIZE_ATR] PROGMEM = "cashless";
@@ -184,6 +185,7 @@ void verify_pin()
     }
 
     if (match) {
+        pin_verified = 1;
         eeprom_update_byte((uint8_t*)EEPROM_PIN_ATTEMPTS_ADDR, MAX_PIN_ATTEMPTS);
         eeprom_busy_wait();
         sw1 = 0x90;
@@ -233,6 +235,7 @@ void verify_puk()
     }
 
     if (match) {
+        pin_verified = 1;
         for (i = 0; i < SIZE_PIN; i++) {
             eeprom_update_byte((uint8_t*)(EEPROM_PIN_ADDR + i), pin_buffer[i]);
         }
@@ -362,6 +365,10 @@ void set_challenge()
 {
     int i;
 
+    if (!check_pin_verified()) {
+        return;
+    }
+
     if (p3 != 4) {
         sw1 = 0x6c;
         sw2 = 4;
@@ -381,6 +388,10 @@ void sign_challenge()
     int i;
     uint8_t key[4];
     uint8_t signature[4];
+
+    if (!check_pin_verified()) {
+        return;
+    }
 
     if (p3 != 4) {
         sw1 = 0x6c;
@@ -411,6 +422,16 @@ void sign_challenge()
     }
 
     sw1 = 0x90;
+}
+
+uint8_t check_pin_verified(void)
+{
+    if (!pin_verified) {
+        sw1 = 0x69;
+        sw2 = 0x82;
+        return 0;
+    }
+    return 1;
 }
 
 int main(void)

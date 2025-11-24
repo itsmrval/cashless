@@ -13,8 +13,8 @@ cashless/
 ├── card_software/   # Firmware that is flashed on cards 
 ├── assignator/      # Simple tool that register the card in main API & assign ID
 ├── clients/
-    ├── atm/         # ATM client that allow to setup a PIN code, see transactions
-    └── coffeeshop/  # Coffe shop client example that allow payments
+├   ├── atm/         # ATM client that allow to setup a PIN code, see transactions
+├   └── coffeeshop/  # Coffe shop client example that allow payments
 └── docker-compose.yml
 ```
 
@@ -111,8 +111,8 @@ The card communicates via PC/SC protocol with APDU commands:
 | `0x08` | ASSIGN_CARD | 28 bytes in | Assign card ID (24 bytes) + PUK (4 bytes) - one-time operation |
 | `0x09` | WRITE_PIN_ONLY | 4 bytes in | Write PIN only (4 bytes) |
 | `0x0A` | WRITE_PRIVATE_KEY_CHUNK | 1-65 bytes in | Write RSA private key chunk (index byte + up to 64 bytes data) |
-| `0x0B` | SIGN_CHALLENGE | 4 bytes out | Sign challenge with private key |
-| `0x0C` | SET_CHALLENGE | 4 bytes in | Set 4-byte challenge for signing |
+| `0x0B` | SIGN_CHALLENGE | 4 bytes out | Sign challenge with private key (requires PIN verification) |
+| `0x0C` | SET_CHALLENGE | 4 bytes in | Set 4-byte challenge for signing (requires PIN verification) |
 | `0x0D` | GET_REMAINING_ATTEMPTS | 2 bytes out | Query remaining PIN/PUK attempts without consuming them |
 
 ### Status Codes (SW1/SW2)
@@ -125,6 +125,7 @@ The card communicates via PC/SC protocol with APDU commands:
 | `0x6A` | `0x82` | Memory offset error (private key write) |
 | `0x6A` | `0x84` | Invalid chunk index (must be ≤30) |
 | `0x6A` | `0x88` | Key size mismatch during signature |
+| `0x69` | `0x82` | Security status not satisfied (PIN verification required) |
 | `0x69` | `0x83` | PIN attempts exhausted (locked) |
 | `0x69` | `0x84` | PUK attempts exhausted (locked) |
 | `0x63` | `0xCn` | Authentication failed, n attempts remaining (n=0-3) |
@@ -172,3 +173,7 @@ Card identifies itself with the string "cashless".
 - When attempts reach 0: PIN returns `0x69 0x83`, PUK returns `0x69 0x84`
 - PUK can reset PIN when verified correctly
 - Successful verification resets attempt counter to 3
+- Successful PIN or PUK verification sets authenticated state (stored in RAM)
+- Commands `SET_CHALLENGE` and `SIGN_CHALLENGE` require prior PIN/PUK verification
+- Authenticated state persists until card power cycle (removal from reader)
+- Attempting protected commands without verification returns `0x69 0x82`
