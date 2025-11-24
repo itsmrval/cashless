@@ -56,18 +56,7 @@ function CardManagement({ cardData, userData, onCardUpdate }) {
     clearMessages();
 
     try {
-      const response = await fetch(`${api.API_BASE_URL || 'http://localhost:5001/api'}/v1/card/${cardData._id}`, {
-        method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
-        },
-        body: JSON.stringify({ status: newStatus })
-      });
-
-      if (!response.ok) throw new Error(`Erreur lors du changement de statut`);
-
-      const updatedCard = await response.json();
+      const updatedCard = await api.updateCard(cardData._id, { status: newStatus });
       onCardUpdate(updatedCard);
       setSuccess(`Votre carte a été ${successMessage} avec succès.`);
     } catch (err) {
