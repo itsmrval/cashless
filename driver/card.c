@@ -270,36 +270,25 @@ int verify_puk_on_card(const char *puk, const char *new_pin, BYTE *remaining_att
 
 int sign_challenge_on_card(const unsigned char *challenge, unsigned char *signature, size_t *signature_len)
 {
+    // Copy write_pin structure EXACTLY, just change INS and size
     LONG rv;
-    BYTE command[5 + 32] = {0x80, 0x0B, 0x00, 0x00, 0x20};
+    BYTE cmd_sign[5 + 32] = {0x80, 0x0B, 0x00, 0x00, 32};  // Changed INS to 0x0B, size to 32
     BYTE response[258];
     DWORD responseLen;
     SCARD_IO_REQUEST pioSendPci;
     int i;
 
-    // DEBUG: Print global state before setup
-    fprintf(stderr, "DEBUG: sign_challenge - hCard=%p dwActiveProtocol=%lu\n", (void*)hCard, dwActiveProtocol);
-
     pioSendPci.dwProtocol = dwActiveProtocol;
     pioSendPci.cbPciLength = sizeof(SCARD_IO_REQUEST);
 
-    // Use loop like write_pin instead of memcpy
     for (i = 0; i < 32; i++) {
-        command[5 + i] = challenge[i];
+        cmd_sign[5 + i] = challenge[i];
     }
 
     responseLen = sizeof(response);
 
-    // DEBUG: Print protocol and command details
-    fprintf(stderr, "DEBUG: sign_challenge - pioSendPci.dwProtocol=%lu pioSendPci.cbPciLength=%lu\n",
-            pioSendPci.dwProtocol, pioSendPci.cbPciLength);
-    fprintf(stderr, "DEBUG: sign_challenge - command size: %zu\n", sizeof(command));
-    fprintf(stderr, "DEBUG: sign_challenge - command header: %02X %02X %02X %02X %02X\n",
-            command[0], command[1], command[2], command[3], command[4]);
-    fprintf(stderr, "DEBUG: sign_challenge - first challenge bytes: %02X %02X %02X %02X\n",
-            command[5], command[6], command[7], command[8]);
-
-    rv = SCardTransmit(hCard, &pioSendPci, command, sizeof(command),
+    fprintf(stderr, "DEBUG: Calling SCardTransmit with cmd_sign, size=%zu\n", sizeof(cmd_sign));
+    rv = SCardTransmit(hCard, &pioSendPci, cmd_sign, sizeof(cmd_sign),
                       NULL, response, &responseLen);
 
     // DEBUG: Check if SCardTransmit succeeded
