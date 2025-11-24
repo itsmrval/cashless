@@ -357,6 +357,15 @@ int main(int argc, char *argv[])
                             }
                             fprintf(stderr, "DEBUG: Card is present, proceeding to sign\n");
 
+                            // DEBUG: Try reading card data again to test if handle works
+                            BYTE test_id[24], test_ver;
+                            fprintf(stderr, "DEBUG: Testing card handle by reading data...\n");
+                            if (!read_data(test_id, &test_ver)) {
+                                fprintf(stderr, "DEBUG: read_data FAILED - card handle is broken!\n");
+                            } else {
+                                fprintf(stderr, "DEBUG: read_data SUCCESS - card handle works\n");
+                            }
+
                             unsigned char signature[256];
                             size_t signature_len = 0;
                             if (!sign_challenge_on_card(challenge_bytes, signature, &signature_len)) {
