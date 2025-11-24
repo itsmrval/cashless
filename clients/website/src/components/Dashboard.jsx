@@ -43,18 +43,17 @@ function Dashboard() {
     setLoading(true);
     try {
       const [balanceData, transData] = await Promise.all([
-        api.getUserBalance(currentUserId).catch(() => ({ balance: 0 })),
-        api.getTransactions().catch(() => [])
+        api.getUserBalance(currentUserId).catch(err => {
+          console.error('Failed to fetch balance:', err);
+          return { balance: 0 };
+        }),
+        api.getTransactions().catch(err => {
+          console.error('Failed to fetch transactions:', err);
+          return [];
+        })
       ]);
       setBalance(balanceData.balance || 0);
-      // Filter transactions for current user
-      const normalizedUserId = String(currentUserId);
-      const userTransactions = transData.filter(t => {
-        const sourceId = normalizeId(t.source_user?.id || t.source_user?._id);
-        const destinationId = normalizeId(t.destination_user?.id || t.destination_user?._id);
-        return sourceId === normalizedUserId || destinationId === normalizedUserId;
-      });
-      setTransactions(userTransactions);
+      setTransactions(transData);
     } catch (err) {
       console.error('Error loading dashboard data:', err);
     } finally {

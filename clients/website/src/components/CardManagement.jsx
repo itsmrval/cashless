@@ -1,12 +1,12 @@
 import React, { useState, useMemo } from 'react';
 import { api } from '../api/api'; // Assurez-vous que ce chemin est correct
-import { 
-  RefreshCw, 
-  Ban, 
-  Loader2, 
-  AlertCircle, 
-  CheckCircle, 
-  Lock 
+import {
+  RefreshCw,
+  Loader2,
+  AlertCircle,
+  CheckCircle,
+  Lock,
+  Unlock
 } from 'lucide-react';
 
 // Fonction utilitaire pour formater les dates
@@ -21,7 +21,7 @@ const formatDate = (dateString) => {
 
 function CardManagement({ cardData, userData, onCardUpdate }) {
   const [loading, setLoading] = useState(false);
-  const [actionType, setActionType] = useState(null); // 'refresh' or 'block'
+  const [actionType, setActionType] = useState(null);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
 
@@ -43,19 +43,35 @@ function CardManagement({ cardData, userData, onCardUpdate }) {
     setSuccess('');
   };
 
-  const handleBlockCard = async () => {
-    if (!window.confirm('Êtes-vous sûr de vouloir bloquer définitivement cette carte ?')) return;
-    
+  const handleToggleCardStatus = async () => {
+    const isActive = cardData?.status === 'active';
+    const newStatus = isActive ? 'inactive' : 'active';
+    const actionMessage = isActive ? 'désactiver' : 'activer';
+    const successMessage = isActive ? 'désactivée' : 'activée';
+
+    if (!window.confirm(`Êtes-vous sûr de vouloir ${actionMessage} cette carte ?`)) return;
+
     setLoading(true);
-    setActionType('block');
+    setActionType('toggle');
     clearMessages();
-    
+
     try {
-      const updatedCard = await api.blockCard(cardData._id);
+      const response = await fetch(`${api.API_BASE_URL || 'http://localhost:5001/api'}/v1/card/${cardData._id}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        },
+        body: JSON.stringify({ status: newStatus })
+      });
+
+      if (!response.ok) throw new Error(`Erreur lors du changement de statut`);
+
+      const updatedCard = await response.json();
       onCardUpdate(updatedCard);
-      setSuccess('Votre carte a été bloquée avec succès.');
+      setSuccess(`Votre carte a été ${successMessage} avec succès.`);
     } catch (err) {
-      setError(err.message || 'Une erreur est survenue lors du blocage.');
+      setError(err.message || `Une erreur est survenue lors du changement de statut.`);
     } finally {
       setLoading(false);
       setActionType(null);
@@ -102,19 +118,25 @@ function CardManagement({ cardData, userData, onCardUpdate }) {
               <RefreshCw className="h-5 w-5" />
             )}
           </button>
-          
-          {cardData?.status === 'active' && (
+
+          {(cardData?.status === 'active' || cardData?.status === 'inactive') && (
             <button
-              onClick={handleBlockCard}
+              onClick={handleToggleCardStatus}
               disabled={loading}
-              className="flex items-center justify-center gap-2 w-full sm:w-auto px-4 py-2 bg-red-600 text-white rounded-lg shadow-sm hover:bg-red-700 disabled:bg-red-400 disabled:cursor-not-allowed transition-colors font-medium"
+              className={`flex items-center justify-center gap-2 w-full sm:w-auto px-4 py-2 rounded-lg shadow-sm font-medium transition-all ${
+                cardData?.status === 'active'
+                  ? 'bg-red-600 text-white hover:bg-red-700 disabled:bg-red-400'
+                  : 'bg-emerald-600 text-white hover:bg-emerald-700 disabled:bg-emerald-400'
+              } disabled:cursor-not-allowed`}
             >
-              {loading && actionType === 'block' ? (
+              {loading && actionType === 'toggle' ? (
                 <Loader2 className="h-5 w-5 animate-spin" />
+              ) : cardData?.status === 'active' ? (
+                <Lock className="h-5 w-5" />
               ) : (
-                <Ban className="h-5 w-5" />
+                <Unlock className="h-5 w-5" />
               )}
-              Bloquer
+              {cardData?.status === 'active' ? 'Désactiver' : 'Activer'}
             </button>
           )}
         </div>
