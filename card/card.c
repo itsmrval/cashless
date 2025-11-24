@@ -348,8 +348,8 @@ void sign_challenge()
 {
     int i;
     uint8_t challenge[4];
-    sha256_hash_t hash;
-    sha256_ctx_t sha_ctx;
+    uint8_t key[4];
+    uint8_t signature[4];
 
     if (p3 != 4) {
         sw1 = 0x6c;
@@ -362,65 +362,29 @@ void sign_challenge()
         challenge[i] = recbytet0();
     }
 
-    sha256_init(&sha_ctx);
-    sha256_lastBlock(&sha_ctx, challenge, 32);
-    sha256_ctx2hash(&hash, &sha_ctx);
-
     uint16_t key_size = ((uint16_t)eeprom_read_byte((uint8_t*)EEPROM_PRIVATE_KEY_SIZE_ADDR) << 8) |
                         (uint16_t)eeprom_read_byte((uint8_t*)(EEPROM_PRIVATE_KEY_SIZE_ADDR + 1));
 
-    if (key_size == 0 || key_size > 512) {
+    if (key_size != 4) {
         sw1 = 0x6a;
         sw2 = 0x88;
         return;
     }
 
-    uint8_t key_buffer[512];
-    for (i = 0; i < key_size; i++) {
-        key_buffer[i] = eeprom_read_byte((uint8_t*)(EEPROM_PRIVATE_KEY_DATA_ADDR + i));
+    for (i = 0; i < 4; i++) {
+        key[i] = eeprom_read_byte((uint8_t*)(EEPROM_PRIVATE_KEY_DATA_ADDR + i));
     }
 
-    uint8_t modulus_buffer[128];
-    uint8_t exponent_buffer[128];
-    uint8_t signature[128];
-
-    memcpy(modulus_buffer, key_buffer, 128);
-    memcpy(exponent_buffer, key_buffer + 128, 128);
-
-    bigint_t modulus_bigint, exponent_bigint, message_bigint;
-
-    modulus_bigint.wordv = (bigint_word_t*)modulus_buffer;
-    modulus_bigint.length_W = 128 / sizeof(bigint_word_t);
-    modulus_bigint.info = 0;
-
-    exponent_bigint.wordv = (bigint_word_t*)exponent_buffer;
-    exponent_bigint.length_W = 128 / sizeof(bigint_word_t);
-    exponent_bigint.info = 0;
-
-    message_bigint.wordv = (bigint_word_t*)signature;
-    message_bigint.length_W = 128 / sizeof(bigint_word_t);
-    message_bigint.info = 0;
-
-    memset(signature, 0, 128);
-    memcpy(signature + (128 - 32), hash, 32);
-
-    rsa_privatekey_t privkey;
-    privkey.n = 1;
-    privkey.modulus = modulus_bigint;
-    privkey.components = &exponent_bigint;
-
-    if (rsa_dec(&message_bigint, &privkey) != 0) {
-        sw1 = 0x6f;
-        sw2 = 0x00;
-        return;
+    for (i = 0; i < 4; i++) {
+        signature[i] = challenge[i] ^ key[i];
     }
 
-    for (i = 0; i < 128; i++) {
+    for (i = 0; i < 4; i++) {
         sendbytet0(signature[i]);
     }
 
     sw1 = 0x90;
-    sw2 = 128;
+    sw2 = 4;
 }
 
 int main(void)

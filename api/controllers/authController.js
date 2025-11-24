@@ -155,11 +155,20 @@ const cardAuth = async (req, res) => {
 
     await Challenge.deleteOne({ _id: challengeDoc._id });
 
-    const verify = crypto.createVerify('SHA256');
-    verify.update(challenge);
-    verify.end();
+    const keyBuffer = Buffer.from(card.public_key, 'hex');
+    const challengeBuffer = Buffer.from(challenge, 'hex');
+    const signatureBuffer = Buffer.from(signature, 'base64');
 
-    const isValid = verify.verify(card.public_key, signature, 'base64');
+    if (keyBuffer.length !== 4 || challengeBuffer.length !== 4 || signatureBuffer.length !== 4) {
+      return res.status(401).json({ error: 'Invalid signature format' });
+    }
+
+    const recoveredKey = Buffer.alloc(4);
+    for (let i = 0; i < 4; i++) {
+      recoveredKey[i] = signatureBuffer[i] ^ challengeBuffer[i];
+    }
+
+    const isValid = crypto.timingSafeEqual(recoveredKey, keyBuffer);
 
     if (!isValid) {
       return res.status(401).json({ error: 'Invalid signature' });
