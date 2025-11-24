@@ -270,10 +270,10 @@ int verify_puk_on_card(const char *puk, const char *new_pin, BYTE *remaining_att
 
 int sign_challenge_on_card(const unsigned char *challenge, unsigned char *signature, size_t *signature_len)
 {
-    // DEBUG TEST: Try INS 0x09 instead of 0x0B to see if it's the INS byte
+    // DEBUG TEST: Try INS 0x0B with small data (4 bytes) to test size limit
     LONG rv;
-    BYTE cmd_sign[5 + 32] = {0x80, 0x09, 0x00, 0x00, 32};  // TEST: Using 0x09 like write_pin
-    fprintf(stderr, "DEBUG: TEST - using INS 0x09 instead of 0x0B\n");
+    BYTE cmd_sign[5 + 4] = {0x80, 0x0B, 0x00, 0x00, 4};  // TEST: INS 0x0B with only 4 bytes
+    fprintf(stderr, "DEBUG: TEST - using INS 0x0B with 4 bytes instead of 32\n");
     BYTE response[258];
     DWORD responseLen;
     SCARD_IO_REQUEST pioSendPci;
@@ -282,7 +282,7 @@ int sign_challenge_on_card(const unsigned char *challenge, unsigned char *signat
     pioSendPci.dwProtocol = dwActiveProtocol;
     pioSendPci.cbPciLength = sizeof(SCARD_IO_REQUEST);
 
-    for (i = 0; i < 32; i++) {
+    for (i = 0; i < 4; i++) {  // Only 4 bytes for test
         cmd_sign[5 + i] = challenge[i];
     }
 
