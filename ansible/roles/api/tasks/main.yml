@@ -1,8 +1,26 @@
 ---
+- name: Login to API
+  uri:
+    url: "{{ api_url }}/v1/auth/login"
+    method: POST
+    body_format: json
+    body:
+      username: "{{ api_username }}"
+      password: "{{ api_password }}"
+    status_code: 200
+    return_content: yes
+  register: login_response
+
+- name: Set API token
+  set_fact:
+    api_token: "{{ login_response.json.token }}"
+
 - name: Create card in API
   uri:
     url: "{{ api_url }}/v1/card"
     method: POST
+    headers:
+      Authorization: "Bearer {{ api_token }}"
     body_format: json
     body:
       comment: "{{ card_comment }}"

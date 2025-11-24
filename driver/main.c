@@ -6,6 +6,7 @@
 #include "card.h"
 #include "api.h"
 #include "ui.h"
+#include "config.h"
 
 // Read PIN with card presence checking
 // Returns: 1 if PIN read successfully, 0 if card removed
@@ -65,14 +66,39 @@ int read_puk(char *puk)
     return read_digits(puk, SIZE_PUK);
 }
 
-int main()
+int main(int argc, char *argv[])
 {
     unsigned char card_id[SIZE_CARD_ID + 1];
     unsigned char version;
     int card_present = 0;
+    Config config;
+    char auth_token[512];
+    const char *config_path;
 
-    if (!api_init()) {
+    if (argc != 2) {
+        printf("Usage: %s <config_file>\n", argv[0]);
+        printf("Example: %s driver.conf\n", argv[0]);
+        return 1;
+    }
+
+    config_path = argv[1];
+
+    if (!load_config(config_path, &config)) {
+        printf("Error: Failed to load %s\n", config_path);
+        printf("Please create config file with username and password\n");
+        return 1;
+    }
+
+    if (!api_init(config.api_url)) {
         printf("Error: Failed to initialize API client\n");
+        return 1;
+    }
+
+    printf("Authenticating...\n");
+    if (!api_login(config.username, config.password, auth_token, sizeof(auth_token))) {
+        printf("Error: Authentication failed\n");
+        printf("Please check your username and password in driver.conf\n");
+        api_cleanup();
         return 1;
     }
 
@@ -105,14 +131,14 @@ int main()
                     }
 
                     char card_status[64];
-                    if (!get_card_status((char *)card_id, card_status, sizeof(card_status))) {
+                    if (!get_card_status((char *)card_id, auth_token, card_status, sizeof(card_status))) {
                         print_ui("Error: Cannot retrieve card status\n\nPlease remove your card.", version, (char *)card_id, NULL);
                         card_present = 1;
                         continue;
                     }
 
                     char user_name[256];
-                    int has_user = fetch_user_by_card((char *)card_id, user_name, sizeof(user_name));
+                    int has_user = fetch_user_by_card((char *)card_id, auth_token, user_name, sizeof(user_name));
 
                     if (!has_user) {
                         print_ui("Unable to authenticate your card.\nPlease remove it.", version, (char *)card_id, NULL);
@@ -156,7 +182,7 @@ int main()
                             continue;
                         }
 
-                        if (!update_card_status((char *)card_id, "active")) {
+                        if (!update_card_status((char *)card_id, auth_token, "active")) {
                             if (!connect_card()) {
                                 card_present = 0;
                                 continue;
@@ -300,7 +326,43 @@ int main()
                         }
 
                         if (verify_result) {
-                            print_ui("Authentication successful!", version, (char *)card_id, user_name);
+                            print_ui("Authentication successful!\n\nFetching transactions...", version, (char *)card_id, user_name);
+
+                            char user_token[512];
+                            if (!api_card_login((char *)card_id, pin, user_token, sizeof(user_token))) {
+                                print_ui("Error: Failed to authenticate with API\n\nPlease remove your card.", version, (char *)card_id, user_name);
+                                card_present = 1;
+                                continue;
+                            }
+
+                            int balance = 0;
+                            Transaction transactions[10];
+                            int transaction_count = 0;
+
+                            if (fetch_transactions((char *)card_id, user_token, &balance, transactions, 10, &transaction_count)) {
+                                char display[1024];
+                                sprintf(display, "Balance: %.2f€\n\n", balance / 100.0);
+
+                                if (transaction_count > 0) {
+                                    strcat(display, "Recent transactions:\n");
+                                    for (int i = 0; i < transaction_count; i++) {
+                                        char trans_line[256];
+                                        sprintf(trans_line, "%.2f€: %s -> %s\n",
+                                            transactions[i].operation / 100.0,
+                                            transactions[i].source_user_name,
+                                            transactions[i].destination_user_name);
+                                        strcat(display, trans_line);
+                                    }
+                                } else {
+                                    strcat(display, "No transactions yet.\n");
+                                }
+
+                                strcat(display, "\nPlease remove your card.");
+                                print_ui(display, version, (char *)card_id, user_name);
+                            } else {
+                                print_ui("Error: Failed to fetch account data\n\nPlease remove your card.", version, (char *)card_id, user_name);
+                            }
+
                             card_present = 1;
                         } else {
                             char error_msg[128];

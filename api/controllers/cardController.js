@@ -28,6 +28,7 @@ exports.createCard = async (req, res) => {
       puk: req.body?.puk || null
     });
     await card.save();
+
     res.status(201).json(card);
   } catch (error) {
     res.status(400).json({ error: error.message });
@@ -60,6 +61,17 @@ exports.updateCard = async (req, res) => {
         return res.status(400).json({ error: 'puk must be a string' });
       }
       updates.puk = req.body.puk;
+    }
+
+    if (req.body.public_key !== undefined) {
+      if (typeof req.body.public_key !== 'string') {
+        return res.status(400).json({ error: 'public_key must be a string' });
+      }
+      // Validate it looks like a PEM public key
+      if (!req.body.public_key.includes('BEGIN PUBLIC KEY')) {
+        return res.status(400).json({ error: 'public_key must be in PEM format' });
+      }
+      updates.public_key = req.body.public_key;
     }
 
     if (Object.keys(updates).length === 0) {

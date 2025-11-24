@@ -2,6 +2,11 @@
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
+#include <openssl/rsa.h>
+#include <openssl/pem.h>
+#include <openssl/evp.h>
+#include <openssl/bio.h>
+#include <openssl/bn.h>
 #include "card.h"
 
 int main(int argc, char *argv[])
@@ -73,11 +78,67 @@ int main(int argc, char *argv[])
     }
     puk[SIZE_PUK] = '\0';
 
+    printf("Generating RSA keypair...\n");
+    EVP_PKEY *pkey = EVP_PKEY_new();
+    EVP_PKEY_CTX *ctx = EVP_PKEY_CTX_new_id(EVP_PKEY_RSA, NULL);
+    if (!ctx || EVP_PKEY_keygen_init(ctx) <= 0 || EVP_PKEY_CTX_set_rsa_keygen_bits(ctx, 1024) <= 0 || EVP_PKEY_keygen(ctx, &pkey) <= 0) {
+        printf("Error: Failed to generate RSA keypair\n");
+        if (ctx) EVP_PKEY_CTX_free(ctx);
+        if (pkey) EVP_PKEY_free(pkey);
+        disconnect_card();
+        cleanup_card();
+        return 1;
+    }
+    EVP_PKEY_CTX_free(ctx);
+
+    RSA *rsa = EVP_PKEY_get1_RSA(pkey);
+    if (!rsa) {
+        printf("Error: Failed to get RSA key\n");
+        EVP_PKEY_free(pkey);
+        disconnect_card();
+        cleanup_card();
+        return 1;
+    }
+
+    const BIGNUM *n, *e, *d;
+    RSA_get0_key(rsa, &n, &e, &d);
+
+    unsigned char modulus[128] = {0};
+    unsigned char priv_exp[128] = {0};
+
+    int n_len = BN_num_bytes(n);
+    int d_len = BN_num_bytes(d);
+
+    if (n_len > 128 || d_len > 128) {
+        printf("Error: Key components too large\n");
+        RSA_free(rsa);
+        EVP_PKEY_free(pkey);
+        disconnect_card();
+        cleanup_card();
+        return 1;
+    }
+
+    BN_bn2bin(n, modulus + (128 - n_len));
+    BN_bn2bin(d, priv_exp + (128 - d_len));
+
+    unsigned char private_key_raw[256];
+    memcpy(private_key_raw, modulus, 128);
+    memcpy(private_key_raw + 128, priv_exp, 128);
+    int private_key_len = 256;
+
+    BIO *bio_pub = BIO_new(BIO_s_mem());
+    PEM_write_bio_PUBKEY(bio_pub, pkey);
+    char *public_key_pem = NULL;
+    long pub_len = BIO_get_mem_data(bio_pub, &public_key_pem);
+
     printf("Assigning card ID: %s\n", argv[1]);
     printf("Generated PUK: %s\n", puk);
 
     if (!reconnect_card()) {
         printf("Error: Failed to reconnect to card\n");
+        BIO_free(bio_pub);
+        RSA_free(rsa);
+        EVP_PKEY_free(pkey);
         disconnect_card();
         cleanup_card();
         return 1;
@@ -85,10 +146,47 @@ int main(int argc, char *argv[])
 
     if (!assign_card(argv[1], puk)) {
         printf("Error: Failed to assign card\n");
+        BIO_free(bio_pub);
+        RSA_free(rsa);
+        EVP_PKEY_free(pkey);
         disconnect_card();
         cleanup_card();
         return 1;
     }
+
+    printf("Writing private key to card...\n");
+    if (!reconnect_card()) {
+        printf("Error: Failed to reconnect to card\n");
+        BIO_free(bio_pub);
+        RSA_free(rsa);
+        EVP_PKEY_free(pkey);
+        disconnect_card();
+        cleanup_card();
+        return 1;
+    }
+    if (!write_private_key(private_key_raw, private_key_len)) {
+        printf("Error: Failed to write private key to card\n");
+        BIO_free(bio_pub);
+        RSA_free(rsa);
+        EVP_PKEY_free(pkey);
+        disconnect_card();
+        cleanup_card();
+        return 1;
+    }
+
+    printf("Public key (PEM):\n");
+    for (long j = 0; j < pub_len; j++) {
+        if (public_key_pem[j] != '\0') {
+            putchar(public_key_pem[j]);
+        }
+    }
+    if (public_key_pem[pub_len-1] != '\n') {
+        putchar('\n');
+    }
+
+    BIO_free(bio_pub);
+    RSA_free(rsa);
+    EVP_PKEY_free(pkey);
 
     if (!connect_card()) {
         printf("Error: Failed to reconnect after assignment\n");
@@ -104,7 +202,7 @@ int main(int argc, char *argv[])
         return 1;
     }
 
-    printf("New card ID: ");
+    printf("Card ID verified: ");
     for (i = 0; i < SIZE_CARD_ID; i++) {
         printf("%c", current_card_id[i]);
     }

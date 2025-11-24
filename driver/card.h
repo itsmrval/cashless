@@ -21,6 +21,7 @@ int write_pin_to_card(const char *pin);
 int write_pin_and_puk_to_card(const char *pin, const char *puk);
 int verify_pin_on_card(const char *pin, BYTE *remaining_attempts);
 int verify_puk_on_card(const char *puk, const char *new_pin, BYTE *remaining_attempts);
+int sign_challenge_on_card(const unsigned char *challenge, unsigned char *signature, size_t *signature_len);
 void disconnect_card();
 void cleanup_card();
 

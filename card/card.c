@@ -2,6 +2,10 @@
 #include <stdint.h>
 #include <avr/eeprom.h>
 #include <avr/pgmspace.h>
+#include <string.h>
+#include "crypto/bigint.h"
+#include "crypto/rsa_basic.h"
+#include "crypto/sha256.h"
 
 extern void sendbytet0(uint8_t b);
 extern uint8_t recbytet0(void);
@@ -16,12 +20,15 @@ const char atr_str[SIZE_ATR] PROGMEM = "cashless";
 #define SIZE_CARD_ID 24
 #define SIZE_PIN 4
 #define SIZE_PUK 4
+#define SIZE_PRIVATE_KEY_CHUNK 64
 #define EEPROM_PIN_ADDR 0
 #define EEPROM_CARD_ID_ADDR 4
 #define EEPROM_ASSIGNED_FLAG_ADDR 28
 #define EEPROM_PIN_ATTEMPTS_ADDR 29
 #define EEPROM_PUK_ATTEMPTS_ADDR 30
 #define EEPROM_PUK_ADDR 31
+#define EEPROM_PRIVATE_KEY_SIZE_ADDR 35
+#define EEPROM_PRIVATE_KEY_DATA_ADDR 37
 #define MAX_PIN_ATTEMPTS 3
 #define MAX_PUK_ATTEMPTS 3
 
@@ -56,7 +63,7 @@ void read_card_id()
 
     is_assigned = eeprom_read_byte((uint8_t*)EEPROM_ASSIGNED_FLAG_ADDR);
 
-    if (is_assigned == 0x00) {
+    if (is_assigned != 0xFF) {
         for (i = 0; i < SIZE_CARD_ID; i++) {
             uint8_t byte = eeprom_read_byte((uint8_t*)(EEPROM_CARD_ID_ADDR + i));
             sendbytet0(byte);
@@ -101,10 +108,12 @@ void write_pin_only()
     }
 
     for (i = 0; i < SIZE_PIN; i++) {
-        eeprom_write_byte((uint8_t*)(EEPROM_PIN_ADDR + i), pin_buffer[i]);
+        eeprom_update_byte((uint8_t*)(EEPROM_PIN_ADDR + i), pin_buffer[i]);
     }
 
-    eeprom_write_byte((uint8_t*)EEPROM_PIN_ATTEMPTS_ADDR, MAX_PIN_ATTEMPTS);
+    eeprom_update_byte((uint8_t*)EEPROM_PIN_ATTEMPTS_ADDR, MAX_PIN_ATTEMPTS);
+
+    eeprom_busy_wait();
 
     sw1 = 0x90;
 }
@@ -128,14 +137,16 @@ void write_pin()
     }
 
     for (i = 0; i < SIZE_PIN; i++) {
-        eeprom_write_byte((uint8_t*)(EEPROM_PIN_ADDR + i), pin_buffer[i]);
+        eeprom_update_byte((uint8_t*)(EEPROM_PIN_ADDR + i), pin_buffer[i]);
     }
     for (i = 0; i < SIZE_PUK; i++) {
-        eeprom_write_byte((uint8_t*)(EEPROM_PUK_ADDR + i), puk_buffer[i]);
+        eeprom_update_byte((uint8_t*)(EEPROM_PUK_ADDR + i), puk_buffer[i]);
     }
 
-    eeprom_write_byte((uint8_t*)EEPROM_PIN_ATTEMPTS_ADDR, MAX_PIN_ATTEMPTS);
-    eeprom_write_byte((uint8_t*)EEPROM_PUK_ATTEMPTS_ADDR, MAX_PUK_ATTEMPTS);
+    eeprom_update_byte((uint8_t*)EEPROM_PIN_ATTEMPTS_ADDR, MAX_PIN_ATTEMPTS);
+    eeprom_update_byte((uint8_t*)EEPROM_PUK_ATTEMPTS_ADDR, MAX_PUK_ATTEMPTS);
+
+    eeprom_busy_wait();
 
     sw1 = 0x90;
 }
@@ -174,11 +185,13 @@ void verify_pin()
     }
 
     if (match) {
-        eeprom_write_byte((uint8_t*)EEPROM_PIN_ATTEMPTS_ADDR, MAX_PIN_ATTEMPTS);
+        eeprom_update_byte((uint8_t*)EEPROM_PIN_ATTEMPTS_ADDR, MAX_PIN_ATTEMPTS);
+        eeprom_busy_wait();
         sw1 = 0x90;
     } else {
         pin_attempts--;
-        eeprom_write_byte((uint8_t*)EEPROM_PIN_ATTEMPTS_ADDR, pin_attempts);
+        eeprom_update_byte((uint8_t*)EEPROM_PIN_ATTEMPTS_ADDR, pin_attempts);
+        eeprom_busy_wait();
         sw1 = 0x63;
         sw2 = 0xC0 | pin_attempts;
     }
@@ -222,20 +235,23 @@ void verify_puk()
 
     if (match) {
         for (i = 0; i < SIZE_PIN; i++) {
-            eeprom_write_byte((uint8_t*)(EEPROM_PIN_ADDR + i), pin_buffer[i]);
+            eeprom_update_byte((uint8_t*)(EEPROM_PIN_ADDR + i), pin_buffer[i]);
         }
-        eeprom_write_byte((uint8_t*)EEPROM_PIN_ATTEMPTS_ADDR, MAX_PIN_ATTEMPTS);
-        eeprom_write_byte((uint8_t*)EEPROM_PUK_ATTEMPTS_ADDR, MAX_PUK_ATTEMPTS);
+        eeprom_update_byte((uint8_t*)EEPROM_PIN_ATTEMPTS_ADDR, MAX_PIN_ATTEMPTS);
+        eeprom_update_byte((uint8_t*)EEPROM_PUK_ATTEMPTS_ADDR, MAX_PUK_ATTEMPTS);
+        eeprom_busy_wait();
         sw1 = 0x90;
     } else {
         puk_attempts--;
-        eeprom_write_byte((uint8_t*)EEPROM_PUK_ATTEMPTS_ADDR, puk_attempts);
+        eeprom_update_byte((uint8_t*)EEPROM_PUK_ATTEMPTS_ADDR, puk_attempts);
+        eeprom_busy_wait();
         sw1 = 0x63;
         sw2 = 0xC0 | puk_attempts;
     }
 }
 
 uint8_t card_id_buffer[SIZE_CARD_ID];
+uint8_t private_key_chunk_buffer[SIZE_PRIVATE_KEY_CHUNK];
 
 void assign_card()
 {
@@ -250,7 +266,7 @@ void assign_card()
 
     is_assigned = eeprom_read_byte((uint8_t*)EEPROM_ASSIGNED_FLAG_ADDR);
 
-    if (is_assigned == 0x00) {
+    if (is_assigned != 0xFF) {
         sw1 = 0x6a;
         sw2 = 0x81;
         return;
@@ -265,16 +281,146 @@ void assign_card()
     }
 
     for (i = 0; i < SIZE_CARD_ID; i++) {
-        eeprom_write_byte((uint8_t*)(EEPROM_CARD_ID_ADDR + i), card_id_buffer[i]);
-    }
-    for (i = 0; i < SIZE_PUK; i++) {
-        eeprom_write_byte((uint8_t*)(EEPROM_PUK_ADDR + i), puk_buffer[i]);
+        eeprom_update_byte((uint8_t*)(EEPROM_CARD_ID_ADDR + i), card_id_buffer[i]);
     }
 
-    eeprom_write_byte((uint8_t*)EEPROM_PUK_ATTEMPTS_ADDR, MAX_PUK_ATTEMPTS);
-    eeprom_write_byte((uint8_t*)EEPROM_ASSIGNED_FLAG_ADDR, 0x00);
+    for (i = 0; i < SIZE_PUK; i++) {
+        eeprom_update_byte((uint8_t*)(EEPROM_PUK_ADDR + i), puk_buffer[i]);
+    }
+
+    eeprom_update_byte((uint8_t*)EEPROM_PUK_ATTEMPTS_ADDR, MAX_PUK_ATTEMPTS);
+    eeprom_update_byte((uint8_t*)EEPROM_ASSIGNED_FLAG_ADDR, 0x00);
+
+    eeprom_busy_wait();
 
     sw1 = 0x90;
+}
+
+void write_private_key_chunk()
+{
+    int i;
+    uint8_t chunk_index;
+    uint16_t offset;
+
+    if (p3 < 1 || p3 > SIZE_PRIVATE_KEY_CHUNK + 1) {
+        sw1 = 0x6c;
+        sw2 = SIZE_PRIVATE_KEY_CHUNK + 1;
+        return;
+    }
+
+    sendbytet0(ins);
+    chunk_index = recbytet0();
+
+    if (chunk_index > 30) {
+        sw1 = 0x6a;
+        sw2 = 0x84;
+        return;
+    }
+
+    for (i = 0; i < p3 - 1; i++) {
+        private_key_chunk_buffer[i] = recbytet0();
+    }
+
+    offset = EEPROM_PRIVATE_KEY_DATA_ADDR + ((uint16_t)chunk_index * (uint16_t)SIZE_PRIVATE_KEY_CHUNK);
+
+    if (offset < EEPROM_PRIVATE_KEY_DATA_ADDR) {
+        sw1 = 0x6a;
+        sw2 = 0x82;
+        return;
+    }
+
+    for (i = 0; i < p3 - 1; i++) {
+        eeprom_update_byte((uint8_t*)(offset + i), private_key_chunk_buffer[i]);
+    }
+
+    if (chunk_index == 0) {
+        uint16_t total_size = (uint16_t)(p3 - 1);
+        eeprom_update_byte((uint8_t*)EEPROM_PRIVATE_KEY_SIZE_ADDR, (uint8_t)(total_size >> 8));
+        eeprom_update_byte((uint8_t*)(EEPROM_PRIVATE_KEY_SIZE_ADDR + 1), (uint8_t)(total_size & 0xFF));
+    }
+
+    eeprom_busy_wait();
+
+    sw1 = 0x90;
+}
+
+void sign_challenge()
+{
+    int i;
+    uint8_t challenge[32];
+    sha256_hash_t hash;
+    sha256_ctx_t sha_ctx;
+
+    if (p3 != 32) {
+        sw1 = 0x6c;
+        sw2 = 32;
+        return;
+    }
+
+    sendbytet0(ins);
+    for (i = 0; i < 32; i++) {
+        challenge[i] = recbytet0();
+    }
+
+    sha256_init(&sha_ctx);
+    sha256_lastBlock(&sha_ctx, challenge, 256);
+    sha256_ctx2hash(&hash, &sha_ctx);
+
+    uint16_t key_size = ((uint16_t)eeprom_read_byte((uint8_t*)EEPROM_PRIVATE_KEY_SIZE_ADDR) << 8) |
+                        (uint16_t)eeprom_read_byte((uint8_t*)(EEPROM_PRIVATE_KEY_SIZE_ADDR + 1));
+
+    if (key_size == 0 || key_size > 512) {
+        sw1 = 0x6a;
+        sw2 = 0x88;
+        return;
+    }
+
+    uint8_t key_buffer[512];
+    for (i = 0; i < key_size; i++) {
+        key_buffer[i] = eeprom_read_byte((uint8_t*)(EEPROM_PRIVATE_KEY_DATA_ADDR + i));
+    }
+
+    uint8_t modulus_buffer[128];
+    uint8_t exponent_buffer[128];
+    uint8_t signature[128];
+
+    memcpy(modulus_buffer, key_buffer, 128);
+    memcpy(exponent_buffer, key_buffer + 128, 128);
+
+    bigint_t modulus_bigint, exponent_bigint, message_bigint;
+
+    modulus_bigint.wordv = (bigint_word_t*)modulus_buffer;
+    modulus_bigint.length_W = 128 / sizeof(bigint_word_t);
+    modulus_bigint.info = 0;
+
+    exponent_bigint.wordv = (bigint_word_t*)exponent_buffer;
+    exponent_bigint.length_W = 128 / sizeof(bigint_word_t);
+    exponent_bigint.info = 0;
+
+    message_bigint.wordv = (bigint_word_t*)signature;
+    message_bigint.length_W = 128 / sizeof(bigint_word_t);
+    message_bigint.info = 0;
+
+    memset(signature, 0, 128);
+    memcpy(signature + (128 - 32), hash, 32);
+
+    rsa_privatekey_t privkey;
+    privkey.n = 1;
+    privkey.modulus = modulus_bigint;
+    privkey.components = &exponent_bigint;
+
+    if (rsa_dec(&message_bigint, &privkey) != 0) {
+        sw1 = 0x6f;
+        sw2 = 0x00;
+        return;
+    }
+
+    for (i = 0; i < 128; i++) {
+        sendbytet0(signature[i]);
+    }
+
+    sw1 = 0x90;
+    sw2 = 128;
 }
 
 int main(void)
@@ -323,6 +469,12 @@ int main(void)
                 break;
             case 0x09:
                 write_pin_only();
+                break;
+            case 0x0A:
+                write_private_key_chunk();
+                break;
+            case 0x0B:
+                sign_challenge();
                 break;
             default:
                 sw1 = 0x6d;
