@@ -270,9 +270,10 @@ int verify_puk_on_card(const char *puk, const char *new_pin, BYTE *remaining_att
 
 int sign_challenge_on_card(const unsigned char *challenge, unsigned char *signature, size_t *signature_len)
 {
-    // Copy write_pin structure EXACTLY, just change INS and size
+    // DEBUG TEST: Try INS 0x09 instead of 0x0B to see if it's the INS byte
     LONG rv;
-    BYTE cmd_sign[5 + 32] = {0x80, 0x0B, 0x00, 0x00, 32};  // Changed INS to 0x0B, size to 32
+    BYTE cmd_sign[5 + 32] = {0x80, 0x09, 0x00, 0x00, 32};  // TEST: Using 0x09 like write_pin
+    fprintf(stderr, "DEBUG: TEST - using INS 0x09 instead of 0x0B\n");
     BYTE response[258];
     DWORD responseLen;
     SCARD_IO_REQUEST pioSendPci;
