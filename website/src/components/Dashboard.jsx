@@ -1,9 +1,9 @@
-// src/components/Dashboard.jsx
 import React, { useState, useEffect } from 'react';
-import { useAuth } from '../contexts/AuthContext'; // Importez useAuth
+import { useAuth } from '../contexts/AuthContext';
 import AccountOverview from './AccountOverview';
 import TransactionsList from './TransactionsList';
 import CardManagement from './CardManagement';
+import BeneficiariesManager from './BeneficiariesManager';
 import MainLayout from './MainLayout';
 import { api } from '../api/api';
 
@@ -76,18 +76,21 @@ function Dashboard() {
         />
       )}
       {activeTab === 'transactions' && (
-        <TransactionsList 
+        <TransactionsList
           transactions={transactions}
           userId={userId}
           loading={loading}
           onRefresh={loadDashboardData}
         />
       )}
+      {activeTab === 'beneficiaries' && (
+        <BeneficiariesManager />
+      )}
       {activeTab === 'card' && (
-        <CardManagement 
-          cardData={card} 
-          userData={user} 
-          onCardUpdate={updateCardData} // Utilise la fonction du contexte
+        <CardManagement
+          cardData={card}
+          userData={user}
+          onCardUpdate={updateCardData}
         />
       )}
     </MainLayout>

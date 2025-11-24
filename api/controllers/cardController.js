@@ -1,6 +1,6 @@
 const Card = require('../models/Card');
 
-exports.getAllCards = async (req, res) => {
+const getAllCards = async (req, res) => {
   try {
     const cards = await Card.find().populate('user_id', 'name');
     res.json(cards);
@@ -9,7 +9,7 @@ exports.getAllCards = async (req, res) => {
   }
 };
 
-exports.getCardByCardId = async (req, res) => {
+const getCardByCardId = async (req, res) => {
   try {
     const card = await Card.findById(req.params.card_id).populate('user_id', 'name');
     if (!card) {
@@ -21,7 +21,7 @@ exports.getCardByCardId = async (req, res) => {
   }
 };
 
-exports.createCard = async (req, res) => {
+const createCard = async (req, res) => {
   try {
     const card = new Card({
       comment: req.body?.comment || '',
@@ -35,7 +35,7 @@ exports.createCard = async (req, res) => {
   }
 };
 
-exports.updateCard = async (req, res) => {
+const updateCard = async (req, res) => {
   try {
     const updates = {};
 
@@ -93,7 +93,7 @@ exports.updateCard = async (req, res) => {
   }
 };
 
-exports.assignCard = async (req, res) => {
+const assignCard = async (req, res) => {
   try {
     if (!req.body.user_id) {
       return res.status(400).json({ error: 'user_id is required' });
@@ -118,7 +118,7 @@ exports.assignCard = async (req, res) => {
   }
 };
 
-exports.unassignCard = async (req, res) => {
+const unassignCard = async (req, res) => {
   try {
     const card = await Card.findByIdAndUpdate(
       req.params.card_id,
@@ -135,7 +135,7 @@ exports.unassignCard = async (req, res) => {
   }
 };
 
-exports.deleteCard = async (req, res) => {
+const deleteCard = async (req, res) => {
   try {
     const card = await Card.findByIdAndDelete(req.params.card_id);
     if (!card) {
@@ -145,4 +145,14 @@ exports.deleteCard = async (req, res) => {
   } catch (error) {
     res.status(400).json({ error: error.message });
   }
+};
+
+module.exports = {
+  getAllCards,
+  getCardByCardId,
+  createCard,
+  updateCard,
+  assignCard,
+  unassignCard,
+  deleteCard
 };

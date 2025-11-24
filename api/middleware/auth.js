@@ -97,9 +97,17 @@ const verifyAny = async (req, res, next) => {
   }
 };
 
+const verifyAdmin = async (req, res, next) => {
+  if (!req.user || req.user.role !== 'admin') {
+    return res.status(403).json({ error: 'Admin access required' });
+  }
+  next();
+};
+
 module.exports = {
   verifyJWT,
   verifyCardToken,
   verifyAny,
+  verifyAdmin,
   JWT_SECRET
 };

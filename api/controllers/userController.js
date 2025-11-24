@@ -2,7 +2,7 @@ const User = require('../models/User');
 const Card = require('../models/Card');
 const Transaction = require('../models/Transaction');
 
-exports.login = async (req, res) => {
+const login = async (req, res) => {
   try {
     const { username, password } = req.body;
 
@@ -30,11 +30,11 @@ exports.login = async (req, res) => {
   }
 };
 
-exports.getAllUsers = async (req, res) => {
+const getAllUsers = async (req, res) => {
   try {
     // Check if card_id query parameter is provided
     if (req.query.card_id) {
-      return exports.getUserByCardId(req, res);
+      return getUserByCardId(req, res);
     }
 
     const users = await User.find();
@@ -44,7 +44,7 @@ exports.getAllUsers = async (req, res) => {
   }
 };
 
-exports.getUserByCardId = async (req, res) => {
+const getUserByCardId = async (req, res) => {
   try {
     const card = await Card.findById(req.query.card_id).populate('user_id');
     if (!card) {
@@ -59,8 +59,15 @@ exports.getUserByCardId = async (req, res) => {
   }
 };
 
-exports.getUser = async (req, res) => {
+const getUser = async (req, res) => {
   try {
+    const isAdmin = req.user.role === 'admin';
+    const isOwnProfile = req.params.id === req.user.userId;
+
+    if (!isAdmin && !isOwnProfile) {
+      return res.status(403).json({ error: 'Access denied' });
+    }
+
     const user = await User.findById(req.params.id);
     if (!user) {
       return res.status(404).json({ error: 'User not found' });
@@ -71,7 +78,7 @@ exports.getUser = async (req, res) => {
   }
 };
 
-exports.createUser = async (req, res) => {
+const createUser = async (req, res) => {
   try {
     const { name, username, password } = req.body;
     
@@ -90,15 +97,26 @@ exports.createUser = async (req, res) => {
   }
 };
 
-exports.updateUser = async (req, res) => {
+const updateUser = async (req, res) => {
   try {
+    const isAdmin = req.user.role === 'admin';
+    const isOwnProfile = req.params.id === req.user.userId;
+
+    if (!isAdmin && !isOwnProfile) {
+      return res.status(403).json({ error: 'Access denied' });
+    }
+
+    if (!isAdmin && req.body.role) {
+      return res.status(403).json({ error: 'Cannot change role' });
+    }
+
     const user = await User.findById(req.params.id);
     if (!user) {
       return res.status(404).json({ error: 'User not found' });
     }
 
     if (req.body.name) user.name = req.body.name;
-    if (req.body.role) user.role = req.body.role;
+    if (req.body.role && isAdmin) user.role = req.body.role;
     if (req.body.username) user.username = req.body.username;
     if (req.body.password) user.password = req.body.password;
 
@@ -109,7 +127,7 @@ exports.updateUser = async (req, res) => {
   }
 };
 
-exports.deleteUser = async (req, res) => {
+const deleteUser = async (req, res) => {
   try {
     const user = await User.findByIdAndDelete(req.params.id);
     if (!user) {
@@ -121,9 +139,15 @@ exports.deleteUser = async (req, res) => {
   }
 };
 
-exports.getUserBalance = async (req, res) => {
+const getUserBalance = async (req, res) => {
   try {
     const userId = req.params.id;
+    const isAdmin = req.user.role === 'admin';
+    const isOwnProfile = userId === req.user.userId;
+
+    if (!isAdmin && !isOwnProfile) {
+      return res.status(403).json({ error: 'Access denied' });
+    }
 
     const user = await User.findById(userId);
     if (!user) {
@@ -161,4 +185,15 @@ exports.getUserBalance = async (req, res) => {
   } catch (error) {
     res.status(400).json({ error: error.message });
   }
+};
+
+module.exports = {
+  login,
+  getAllUsers,
+  getUserByCardId,
+  getUser,
+  createUser,
+  updateUser,
+  deleteUser,
+  getUserBalance
 };

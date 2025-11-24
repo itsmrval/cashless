@@ -1,15 +1,16 @@
 import React from 'react';
-import { 
-  LayoutDashboard, 
-  ArrowLeftRight, 
-  CreditCard, 
-  LifeBuoy 
+import {
+  LayoutDashboard,
+  ArrowLeftRight,
+  CreditCard,
+  Users,
+  LifeBuoy
 } from 'lucide-react';
 
-// Définition des onglets pour un code plus propre
 const navItems = [
   { id: 'overview', label: 'Vue d\'ensemble', icon: LayoutDashboard },
   { id: 'transactions', label: 'Transactions', icon: ArrowLeftRight },
+  { id: 'beneficiaries', label: 'Bénéficiaires', icon: Users },
   { id: 'card', label: 'Ma carte', icon: CreditCard },
 ];
 

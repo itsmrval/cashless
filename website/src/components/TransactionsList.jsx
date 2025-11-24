@@ -1,10 +1,10 @@
-import React, { useState } from 'react';
-import { 
-  ArrowUpRight, 
-  ArrowDownLeft, 
-  Coffee, 
-  Banknote, 
-  Wallet, 
+import React, { useState, useEffect } from 'react';
+import {
+  ArrowUpRight,
+  ArrowDownLeft,
+  Coffee,
+  Banknote,
+  Wallet,
   CreditCard,
   ShoppingBag,
   RefreshCw,
@@ -12,44 +12,69 @@ import {
   Send,
   X,
   AlertCircle,
-  CheckCircle
+  CheckCircle,
+  Plus,
+  Star
 } from 'lucide-react';
 import { api } from '../api/api';
 
 function TransactionsList({ transactions = [], userId, loading, onRefresh }) {
-  const [filter, setFilter] = useState('all'); // 'all', 'credit', 'debit'
+  const [filter, setFilter] = useState('all');
   const normalizedUserId = userId ? String(userId) : null;
-  
-  // Transaction modal
+
   const [showTransactionModal, setShowTransactionModal] = useState(false);
-  const [users, setUsers] = useState([]);
-  const [loadingUsers, setLoadingUsers] = useState(false);
+  const [beneficiaries, setBeneficiaries] = useState([]);
+  const [loadingBeneficiaries, setLoadingBeneficiaries] = useState(false);
   const [newTransaction, setNewTransaction] = useState({ destination_user_id: '', operation: '' });
   const [transactionError, setTransactionError] = useState('');
   const [transactionSuccess, setTransactionSuccess] = useState('');
   const [submitting, setSubmitting] = useState(false);
 
+  const [showManualEntry, setShowManualEntry] = useState(false);
+  const [manualUserId, setManualUserId] = useState('');
+  const [saveAsBeneficiary, setSaveAsBeneficiary] = useState(false);
+  const [beneficiaryComment, setBeneficiaryComment] = useState('');
+
+  useEffect(() => {
+    if (showTransactionModal) {
+      loadBeneficiaries();
+    }
+  }, [showTransactionModal]);
+
   const formatCurrency = (amount) => {
     return new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR' }).format(amount / 100);
   };
 
-  const loadUsers = async () => {
-    setLoadingUsers(true);
+  const loadBeneficiaries = async () => {
+    setLoadingBeneficiaries(true);
     try {
-      const usersData = await api.getAllUsers();
-      setUsers(usersData.filter(u => String(u._id) !== normalizedUserId));
+      const data = await api.getBeneficiaries();
+      setBeneficiaries(data);
     } catch (err) {
-      console.error('Error loading users:', err);
+      console.error('Error loading beneficiaries:', err);
     } finally {
-      setLoadingUsers(false);
+      setLoadingBeneficiaries(false);
     }
   };
 
   const handleOpenTransactionModal = () => {
     setShowTransactionModal(true);
-    loadUsers();
     setTransactionError('');
     setTransactionSuccess('');
+    setShowManualEntry(false);
+    setManualUserId('');
+    setSaveAsBeneficiary(false);
+    setBeneficiaryComment('');
+  };
+
+  const handleSelectBeneficiary = (beneficiaryId) => {
+    setNewTransaction({ ...newTransaction, destination_user_id: beneficiaryId });
+    setShowManualEntry(false);
+  };
+
+  const handleManualUserIdChange = (value) => {
+    setManualUserId(value);
+    setNewTransaction({ ...newTransaction, destination_user_id: value });
   };
 
   const handleCreateTransaction = async (e) => {
@@ -64,8 +89,20 @@ function TransactionsList({ transactions = [], userId, loading, onRefresh }) {
         destination_user_id: newTransaction.destination_user_id,
         operation: operationCents
       });
+
+      if (saveAsBeneficiary && manualUserId) {
+        try {
+          await api.addBeneficiary(manualUserId, beneficiaryComment);
+        } catch (err) {
+          console.error('Failed to save beneficiary:', err);
+        }
+      }
+
       setTransactionSuccess('Transaction effectuée avec succès !');
       setNewTransaction({ destination_user_id: '', operation: '' });
+      setManualUserId('');
+      setSaveAsBeneficiary(false);
+      setBeneficiaryComment('');
       setTimeout(() => {
         setShowTransactionModal(false);
         if (onRefresh) onRefresh();
@@ -272,27 +309,106 @@ function TransactionsList({ transactions = [], userId, loading, onRefresh }) {
                   <span className="text-sm">{transactionSuccess}</span>
                 </div>
               )}
-              
+
               <div>
-                <label className="block text-sm font-semibold text-slate-700 mb-2">
+                <label className="block text-sm font-semibold text-slate-700 mb-3">
                   Destinataire <span className="text-red-500">*</span>
                 </label>
-                {loadingUsers ? (
-                  <div className="flex items-center justify-center py-3">
-                    <Loader2 className="h-5 w-5 animate-spin text-blue-600" />
+
+                {loadingBeneficiaries ? (
+                  <div className="flex items-center justify-center py-8">
+                    <Loader2 className="h-6 w-6 animate-spin text-blue-600" />
                   </div>
                 ) : (
-                  <select
-                    value={newTransaction.destination_user_id}
-                    onChange={(e) => setNewTransaction({ ...newTransaction, destination_user_id: e.target.value })}
-                    className="w-full px-4 py-3 border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"
-                    required
-                  >
-                    <option value="">Sélectionner un utilisateur</option>
-                    {users.map(user => (
-                      <option key={user._id} value={user._id}>{user.name} (@{user.username})</option>
-                    ))}
-                  </select>
+                  <>
+                    {beneficiaries.length > 0 && !showManualEntry && (
+                      <div className="space-y-2 mb-4">
+                        <p className="text-xs text-slate-500 mb-2 flex items-center gap-1">
+                          <Star className="h-3 w-3" /> Bénéficiaires
+                        </p>
+                        {beneficiaries.map(b => (
+                          <button
+                            key={b.user_id}
+                            type="button"
+                            onClick={() => handleSelectBeneficiary(b.user_id)}
+                            className={`w-full flex items-center gap-3 p-3 rounded-lg border-2 transition-all ${
+                              newTransaction.destination_user_id === b.user_id
+                                ? 'border-blue-500 bg-blue-50'
+                                : 'border-slate-200 hover:border-slate-300 hover:bg-slate-50'
+                            }`}
+                          >
+                            <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 text-white flex items-center justify-center font-semibold text-sm">
+                              {b.name?.[0]?.toUpperCase() || 'U'}
+                            </div>
+                            <div className="flex-1 text-left">
+                              <p className="font-semibold text-slate-900 text-sm">{b.name}</p>
+                              <p className="text-xs text-slate-500">@{b.username}</p>
+                              {b.comment && <p className="text-xs text-slate-400 mt-0.5">{b.comment}</p>}
+                            </div>
+                            {newTransaction.destination_user_id === b.user_id && (
+                              <CheckCircle className="h-5 w-5 text-blue-600" />
+                            )}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+
+                    {!showManualEntry ? (
+                      <button
+                        type="button"
+                        onClick={() => setShowManualEntry(true)}
+                        className="w-full flex items-center justify-center gap-2 p-3 border-2 border-dashed border-slate-300 rounded-lg hover:border-blue-500 hover:bg-blue-50 transition-all text-slate-600 hover:text-blue-600"
+                      >
+                        <Plus className="h-4 w-4" />
+                        Entrer un ID utilisateur
+                      </button>
+                    ) : (
+                      <div className="space-y-3">
+                        <input
+                          type="text"
+                          value={manualUserId}
+                          onChange={(e) => handleManualUserIdChange(e.target.value)}
+                          placeholder="ID de l'utilisateur"
+                          className="w-full px-4 py-3 border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                          required
+                        />
+                        <div className="flex items-center gap-2 p-3 bg-slate-50 rounded-lg">
+                          <input
+                            type="checkbox"
+                            id="saveBeneficiary"
+                            checked={saveAsBeneficiary}
+                            onChange={(e) => setSaveAsBeneficiary(e.target.checked)}
+                            className="rounded border-slate-300"
+                          />
+                          <label htmlFor="saveBeneficiary" className="text-sm text-slate-700 cursor-pointer">
+                            Enregistrer comme bénéficiaire
+                          </label>
+                        </div>
+                        {saveAsBeneficiary && (
+                          <input
+                            type="text"
+                            value={beneficiaryComment}
+                            onChange={(e) => setBeneficiaryComment(e.target.value)}
+                            placeholder="Commentaire (optionnel)"
+                            className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
+                          />
+                        )}
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setShowManualEntry(false);
+                            setManualUserId('');
+                            setSaveAsBeneficiary(false);
+                            setBeneficiaryComment('');
+                            setNewTransaction({ ...newTransaction, destination_user_id: '' });
+                          }}
+                          className="text-sm text-slate-600 hover:text-slate-800"
+                        >
+                          ← Retour aux bénéficiaires
+                        </button>
+                      </div>
+                    )}
+                  </>
                 )}
               </div>
               

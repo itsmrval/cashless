@@ -1,10 +1,26 @@
 import React from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { LogOut, Bell, Search } from 'lucide-react';
 
 function Header() {
   const { user, card, logout } = useAuth();
-  
+  const navigate = useNavigate();
+  const location = useLocation();
+
+  const isAdmin = user?.role?.toLowerCase() === 'admin' || user?.username?.toLowerCase() === 'admin';
+  const isAdminView = location.pathname.startsWith('/admin');
+
+  const handleRoleClick = () => {
+    if (isAdmin) {
+      if (isAdminView) {
+        navigate('/');
+      } else {
+        navigate('/admin');
+      }
+    }
+  };
+
   const statusConfig = {
     active: { text: 'Active', color: 'text-emerald-600', bg: 'bg-emerald-50', border: 'border-emerald-200' },
     inactive: { text: 'Inactive', color: 'text-red-600', bg: 'bg-red-50', border: 'border-red-200' },
@@ -53,7 +69,17 @@ function Header() {
           <div className="flex items-center gap-3 pl-3 border-l border-slate-200">
             <div className="hidden sm:block text-right">
               <p className="text-sm font-semibold text-slate-900">{user?.name}</p>
-              <p className="text-xs text-slate-500">{user?.role || 'Utilisateur'}</p>
+              {isAdmin ? (
+                <button
+                  onClick={handleRoleClick}
+                  className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-blue-100 text-blue-700 hover:bg-blue-200 transition-colors cursor-pointer"
+                  title={isAdminView ? 'Passer à la vue utilisateur' : 'Passer à la vue admin'}
+                >
+                  {user?.role || 'Admin'}
+                </button>
+              ) : (
+                <p className="text-xs text-slate-500">{user?.role || 'Utilisateur'}</p>
+              )}
             </div>
             <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 text-white flex items-center justify-center font-semibold">
               {user?.name?.[0]?.toUpperCase() || 'U'}

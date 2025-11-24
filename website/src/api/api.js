@@ -228,5 +228,46 @@ export const api = {
       throw new Error(error.error || "Erreur lors de la création de la transaction");
     }
     return response.json();
+  },
+
+  // Beneficiaries
+  getBeneficiaries: async () => {
+    const response = await fetch(`${API_BASE_URL}/v1/user/me/beneficiaries`, { headers: getAuthHeaders() });
+    if (!response.ok) throw new Error("Erreur lors de la récupération des bénéficiaires");
+    return response.json();
+  },
+
+  addBeneficiary: async (userId, comment = '') => {
+    const response = await fetch(`${API_BASE_URL}/v1/user/me/beneficiaries`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      body: JSON.stringify({ user_id: userId, comment })
+    });
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.error || "Erreur lors de l'ajout du bénéficiaire");
+    }
+    return response.json();
+  },
+
+  updateBeneficiaryComment: async (userId, comment) => {
+    const response = await fetch(`${API_BASE_URL}/v1/user/me/beneficiaries/${userId}`, {
+      method: 'PATCH',
+      headers: getAuthHeaders(),
+      body: JSON.stringify({ comment })
+    });
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.error || "Erreur lors de la mise à jour du commentaire");
+    }
+    return response.json();
+  },
+
+  removeBeneficiary: async (userId) => {
+    const response = await fetch(`${API_BASE_URL}/v1/user/me/beneficiaries/${userId}`, {
+      method: 'DELETE',
+      headers: getAuthHeaders()
+    });
+    if (!response.ok) throw new Error("Erreur lors de la suppression du bénéficiaire");
   }
 };

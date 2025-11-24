@@ -2,10 +2,11 @@ const express = require('express');
 const cors = require('cors');
 const mongoose = require('mongoose');
 const bcrypt = require('bcryptjs');
-const userRoutes = require('./routes/userRoutes');
-const cardRoutes = require('./routes/cardRoutes');
-const authRoutes = require('./routes/authRoutes');
-const transactionRoutes = require('./routes/transactionRoutes');
+const userRoutes = require('./routes/user');
+const cardRoutes = require('./routes/card');
+const authRoutes = require('./routes/auth');
+const transactionRoutes = require('./routes/transaction');
+const beneficiaryRoutes = require('./routes/beneficiary');
 const User = require('./models/User');
 
 const app = express();
@@ -43,6 +44,7 @@ app.get('/health', (req, res) => {
 
 app.use('/v1/auth', authRoutes);
 app.use('/v1/user', userRoutes);
+app.use('/v1/user', beneficiaryRoutes);
 app.use('/v1/card', cardRoutes);
 app.use('/v1/transactions', transactionRoutes);
 
