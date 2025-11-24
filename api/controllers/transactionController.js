@@ -69,7 +69,7 @@ const getTransactions = async (req, res) => {
 
 const createTransaction = async (req, res) => {
   try {
-    const { destination_user_id, operation } = req.body;
+    const { source_user_id: bodySourceUserId, destination_user_id, operation } = req.body;
 
     if (!destination_user_id || !operation) {
       return res.status(400).json({ error: 'destination_user_id and operation are required' });
@@ -86,7 +86,11 @@ const createTransaction = async (req, res) => {
       source_user_id = cardData.user_id._id;
       source_card_id = req.card._id;
     } else if (req.user) {
-      source_user_id = req.user.userId;
+      if (req.user.role === 'admin' && bodySourceUserId) {
+        source_user_id = bodySourceUserId;
+      } else {
+        source_user_id = req.user.userId;
+      }
     } else {
       return res.status(401).json({ error: 'Authentication required' });
     }
