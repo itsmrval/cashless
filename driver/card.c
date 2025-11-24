@@ -82,7 +82,9 @@ int reconnect_card()
                          SCARD_PROTOCOL_T0,
                          &hCard, &dwActiveProtocol);
     }
-    fprintf(stderr, "DEBUG: Connected with protocol: %lu\n", dwActiveProtocol);
+    fprintf(stderr, "DEBUG: Connected with protocol: %lu, rv=0x%08lX, SCARD_S_SUCCESS=0x%08lX\n",
+            dwActiveProtocol, rv, SCARD_S_SUCCESS);
+    fprintf(stderr, "DEBUG: Returning: %d\n", (rv == SCARD_S_SUCCESS));
 
     return (rv == SCARD_S_SUCCESS);
 }
