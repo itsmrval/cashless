@@ -11,7 +11,7 @@
 
 - name: Assign card ID to hardware
   command:
-    cmd: "./assign {{ card_id }}"
+    cmd: "./assignator {{ card_id }}"
     chdir: "{{ assign_folder }}"
   register: assign_result
 

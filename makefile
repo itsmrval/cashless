@@ -3,25 +3,25 @@
 all: card driver assign
 
 card:
-	$(MAKE) -C card
+	$(MAKE) -C card_software
 
-driver:
-	$(MAKE) -C driver
+atm:
+	$(MAKE) -C clients/atm
 
 assign:
 ifndef CARD_ID
-	$(error CARD_ID is not set. Use: make assign CARD_ID=<24_char_id>)
+	$(error CARD_ID is not set. Use: make assignator CARD_ID=<24_char_id>)
 endif
 	$(MAKE) -C assign
-	cd assign && ./assign $(CARD_ID)
+	cd assignator && ./assignator $(CARD_ID)
 
 clean: clean-card clean-driver clean-assign
 
 clean-card:
-	$(MAKE) -C card clean
+	$(MAKE) -C card_software clean
 
-clean-driver:
-	$(MAKE) -C driver clean
+clean-atm:
+	$(MAKE) -C clients/atm clean
 
 clean-assign:
-	$(MAKE) -C assign clean
+	$(MAKE) -C assignator clean

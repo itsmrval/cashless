@@ -1,4 +1,4 @@
-NOM=driver
+NOM=atm
 
 SRCS=main.c card.c api.c ui.c config.c
 OBJS=$(SRCS:.c=.o)
