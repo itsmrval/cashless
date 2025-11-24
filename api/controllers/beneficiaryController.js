@@ -1,4 +1,5 @@
 const User = require('../models/User');
+const mongoose = require('mongoose');
 
 const getBeneficiaries = async (req, res) => {
   try {
@@ -44,6 +45,10 @@ const addBeneficiary = async (req, res) => {
 
     if (!user_id) {
       return res.status(400).json({ error: 'user_id is required' });
+    }
+
+    if (!mongoose.Types.ObjectId.isValid(user_id)) {
+      return res.status(400).json({ error: 'Invalid user ID format' });
     }
 
     if (user_id === userId) {
