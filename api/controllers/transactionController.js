@@ -3,19 +3,49 @@ const Card = require('../models/Card');
 
 const getTransactions = async (req, res) => {
   try {
-    const card = req.card;
+    let targetUserId;
+    let isAdmin = false;
 
-    const cardData = await Card.findById(card._id).populate('user_id');
-    if (!cardData || !cardData.user_id) {
-      return res.status(400).json({ error: 'Card not assigned to user' });
+    if (req.card) {
+      const cardData = await Card.findById(req.card._id).populate('user_id');
+      if (!cardData || !cardData.user_id) {
+        return res.status(400).json({ error: 'Card not assigned to user' });
+      }
+      targetUserId = cardData.user_id._id;
+    } else if (req.user) {
+      isAdmin = req.user.role === 'admin';
+      const requestedUserId = req.query.userId;
+
+      if (isAdmin && !requestedUserId) {
+        const transactions = await Transaction.find()
+          .populate('source_user_id', 'name')
+          .populate('destination_user_id', 'name')
+          .sort({ date: -1 })
+          .limit(100);
+
+        return res.json(transactions.map(t => ({
+          _id: t._id,
+          operation: t.operation,
+          source_user_name: t.source_user_id ? t.source_user_id.name : null,
+          destination_user_name: t.destination_user_id ? t.destination_user_id.name : null,
+          source_card_id: t.source_card_id,
+          date: t.date
+        })));
+      }
+
+      if (isAdmin && requestedUserId) {
+        targetUserId = requestedUserId;
+      } else {
+        targetUserId = req.user.userId;
+      }
+    } else {
+      return res.status(401).json({ error: 'Authentication required' });
     }
-
-    const userId = cardData.user_id._id;
 
     const transactions = await Transaction.find({
       $or: [
-        { source_user_id: userId },
-        { destination_user_id: userId }
+        { source_user_id: targetUserId },
+        { destination_user_id: targetUserId }
       ]
     })
       .populate('source_user_id', 'name')
@@ -23,24 +53,14 @@ const getTransactions = async (req, res) => {
       .sort({ date: -1 })
       .limit(50);
 
-    const balance = transactions.reduce((sum, t) => {
-      if (t.source_user_id._id.toString() === userId.toString()) {
-        return sum - t.operation;
-      } else {
-        return sum + t.operation;
-      }
-    }, 0);
-
-    res.json({
-      card_id: card._id,
-      balance,
-      transactions: transactions.map(t => ({
-        operation: t.operation,
-        source_user_name: t.source_user_id ? t.source_user_id.name : null,
-        destination_user_name: t.destination_user_id ? t.destination_user_id.name : null,
-        date: t.date
-      }))
-    });
+    res.json(transactions.map(t => ({
+      _id: t._id,
+      operation: t.operation,
+      source_user_name: t.source_user_id ? t.source_user_id.name : null,
+      destination_user_name: t.destination_user_id ? t.destination_user_id.name : null,
+      source_card_id: t.source_card_id,
+      date: t.date
+    })));
   } catch (error) {
     console.error('Transaction error:', error);
     res.status(500).json({ error: 'Internal server error' });
@@ -86,30 +106,7 @@ const createTransaction = async (req, res) => {
   }
 };
 
-const getAllTransactions = async (req, res) => {
-  try {
-    const transactions = await Transaction.find()
-      .populate('source_user_id', 'name')
-      .populate('destination_user_id', 'name')
-      .sort({ date: -1 })
-      .limit(100);
-
-    res.json(transactions.map(t => ({
-      _id: t._id,
-      operation: t.operation,
-      source_user_name: t.source_user_id ? t.source_user_id.name : null,
-      destination_user_name: t.destination_user_id ? t.destination_user_id.name : null,
-      source_card_id: t.source_card_id,
-      date: t.date
-    })));
-  } catch (error) {
-    console.error('Transaction error:', error);
-    res.status(500).json({ error: 'Internal server error' });
-  }
-};
-
 module.exports = {
   getTransactions,
-  createTransaction,
-  getAllTransactions
+  createTransaction
 };

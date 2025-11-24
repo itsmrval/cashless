@@ -123,8 +123,18 @@ async function apiCall(endpoint, method = 'GET', body = null) {
 // Users
 async function loadUsers() {
     users = await apiCall('/v1/user');
+    // Fetch balances for all users
+    for (let user of users) {
+        try {
+            const balanceData = await apiCall(`/v1/user/${user._id}/balance`);
+            user.balance = balanceData.balance;
+        } catch (error) {
+            user.balance = 0;
+        }
+    }
     renderUsers();
     populateUserSelects();
+    populateTransactionUserFilter();
 }
 
 function renderUsers() {
@@ -133,7 +143,13 @@ function renderUsers() {
         <tr>
             <td>${user._id}</td>
             <td>${user.name}</td>
+            <td>${user.username || '-'}</td>
             <td>
+                <span class="badge">${user.role || 'admin'}</span>
+            </td>
+            <td>${(user.balance / 100).toFixed(2)}€</td>
+            <td>
+                <button onclick="editUserRole('${user._id}', '${user.role || 'admin'}')">Rôle</button>
                 <button class="danger" onclick="deleteUser('${user._id}')">Supprimer</button>
             </td>
         </tr>
@@ -156,8 +172,12 @@ function populateUserSelects() {
 document.getElementById('create-user-form').addEventListener('submit', async (e) => {
     e.preventDefault();
     const name = document.getElementById('user-name').value;
-    await apiCall('/v1/user', 'POST', { name });
+    const username = document.getElementById('user-username').value;
+    const password = document.getElementById('user-password').value;
+    await apiCall('/v1/user', 'POST', { name, username, password });
     document.getElementById('user-name').value = '';
+    document.getElementById('user-username').value = '';
+    document.getElementById('user-password').value = '';
     loadUsers();
 });
 
@@ -166,6 +186,21 @@ async function deleteUser(id) {
     await apiCall(`/v1/user/${id}`, 'DELETE');
     loadUsers();
 }
+
+let currentUserId = null;
+
+function editUserRole(userId, currentRole) {
+    currentUserId = userId;
+    document.getElementById('user-role-select').value = currentRole;
+    document.getElementById('user-role-modal').classList.add('active');
+}
+
+document.getElementById('user-role-confirm').addEventListener('click', async () => {
+    const role = document.getElementById('user-role-select').value;
+    await apiCall(`/v1/user/${currentUserId}`, 'PATCH', { role });
+    document.getElementById('user-role-modal').classList.remove('active');
+    loadUsers();
+});
 
 document.getElementById('refresh-users').addEventListener('click', loadUsers);
 
@@ -265,9 +300,13 @@ function viewPublicKey(cardId) {
 document.getElementById('refresh-cards').addEventListener('click', loadCards);
 
 // Transactions
-async function loadTransactions() {
+async function loadTransactions(userId = null) {
     try {
-        const response = await fetch(`${API_URL}/v1/transactions/all`, {
+        const url = userId
+            ? `${API_URL}/v1/transactions?userId=${userId}`
+            : `${API_URL}/v1/transactions`;
+
+        const response = await fetch(url, {
             headers: {
                 'Authorization': `Bearer ${AUTH_TOKEN}`
             }
@@ -279,9 +318,36 @@ async function loadTransactions() {
             transactions = [];
         }
         renderTransactions();
+
+        if (userId) {
+            await loadBalance(userId);
+        } else {
+            document.getElementById('balance-display').textContent = '';
+        }
     } catch (error) {
         transactions = [];
         renderTransactions();
+        document.getElementById('balance-display').textContent = '';
+    }
+}
+
+async function loadBalance(userId) {
+    try {
+        const response = await fetch(`${API_URL}/v1/user/${userId}/balance`, {
+            headers: {
+                'Authorization': `Bearer ${AUTH_TOKEN}`
+            }
+        });
+
+        if (response.ok) {
+            const data = await response.json();
+            const balanceEuros = (data.balance / 100).toFixed(2);
+            document.getElementById('balance-display').textContent = `Balance: ${balanceEuros}€`;
+        } else {
+            document.getElementById('balance-display').textContent = '';
+        }
+    } catch (error) {
+        document.getElementById('balance-display').textContent = '';
     }
 }
 
@@ -297,6 +363,18 @@ function renderTransactions() {
         </tr>
     `).join('');
 }
+
+function populateTransactionUserFilter() {
+    const filterSelect = document.getElementById('transaction-user-filter');
+    filterSelect.innerHTML = '<option value="">All Transactions</option>' + users.map(user =>
+        `<option value="${user._id}">${user.name}</option>`
+    ).join('');
+}
+
+document.getElementById('transaction-user-filter').addEventListener('change', (e) => {
+    const userId = e.target.value;
+    loadTransactions(userId || null);
+});
 
 document.getElementById('create-transaction-form').addEventListener('submit', async (e) => {
     e.preventDefault();

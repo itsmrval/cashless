@@ -41,6 +41,8 @@
                 <h3>Créer un utilisateur</h3>
                 <form id="create-user-form">
                     <input type="text" id="user-name" placeholder="Nom" required>
+                    <input type="text" id="user-username" placeholder="Username" required>
+                    <input type="password" id="user-password" placeholder="Password" required>
                     <button type="submit">Créer</button>
                 </form>
             </div>
@@ -53,6 +55,9 @@
                         <tr>
                             <th>ID</th>
                             <th>Nom</th>
+                            <th>Username</th>
+                            <th>Role</th>
+                            <th>Balance</th>
                             <th>Actions</th>
                         </tr>
                     </thead>
@@ -105,6 +110,13 @@
 
             <div class="list-section">
                 <h3>Liste des transactions</h3>
+                <div style="margin-bottom: 10px;">
+                    <label for="transaction-user-filter">Filtrer par utilisateur:</label>
+                    <select id="transaction-user-filter">
+                        <option value="">All Transactions</option>
+                    </select>
+                    <span id="balance-display" style="margin-left: 20px; font-weight: bold;"></span>
+                </div>
                 <button id="refresh-transactions">Actualiser</button>
                 <table id="transactions-table">
                     <thead>
@@ -169,6 +181,19 @@
             <span class="close">&times;</span>
             <h3>Clé publique</h3>
             <pre id="public-key-display"></pre>
+        </div>
+    </div>
+
+    <!-- Modal for edit user role -->
+    <div id="user-role-modal" class="modal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <h3>Modifier le rôle</h3>
+            <select id="user-role-select">
+                <option value="admin">admin</option>
+                <option value="user">user</option>
+            </select>
+            <button id="user-role-confirm">Enregistrer</button>
         </div>
     </div>
 
