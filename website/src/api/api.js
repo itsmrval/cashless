@@ -230,6 +230,19 @@ export const api = {
     return response.json();
   },
 
+  updateTransactionComment: async (transactionId, comment) => {
+    const response = await fetch(`${API_BASE_URL}/v1/transactions/${transactionId}/comment`, {
+      method: 'PATCH',
+      headers: getAuthHeaders(),
+      body: JSON.stringify({ comment })
+    });
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.error || "Erreur lors de la mise à jour du commentaire");
+    }
+    return response.json();
+  },
+
   // Beneficiaries
   getBeneficiaries: async () => {
     const response = await fetch(`${API_BASE_URL}/v1/user/me/beneficiaries`, { headers: getAuthHeaders() });

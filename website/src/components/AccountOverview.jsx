@@ -97,7 +97,7 @@ function AccountOverview({ cardData, userData, loading }) {
             <div className="p-3 bg-blue-50 rounded-xl text-blue-600 group-hover:bg-blue-600 group-hover:text-white transition-colors">
               <User size={24} />
             </div>
-            <h3 className="text-lg font-bold text-slate-800">Profil Utilisateur</h3>
+            <h3 className="text-lg font-bold text-slate-800">Profil</h3>
           </div>
 
           <div className="space-y-5 relative z-10">
@@ -106,7 +106,7 @@ function AccountOverview({ cardData, userData, loading }) {
               <span className="text-slate-800 font-semibold">{userData?.name}</span>
             </div>
             <div className="flex flex-col">
-              <span className="text-xs text-slate-400 uppercase tracking-wide mb-1">Identifiant Unique</span>
+              <span className="text-xs text-slate-400 uppercase tracking-wide mb-1">Identifiant</span>
               <span className="text-slate-600 font-mono text-xs bg-slate-50 px-2 py-1 rounded border border-slate-100 w-fit">
                 {userData?._id}
               </span>
@@ -122,7 +122,7 @@ function AccountOverview({ cardData, userData, loading }) {
             <div className="p-3 bg-indigo-50 rounded-xl text-indigo-600 group-hover:bg-indigo-600 group-hover:text-white transition-colors">
               <ShieldCheck size={24} />
             </div>
-            <h3 className="text-lg font-bold text-slate-800">Sécurité & Statut</h3>
+            <h3 className="text-lg font-bold text-slate-800">Carte sélectionnée</h3>
           </div>
 
           <div className="space-y-5 relative z-10">

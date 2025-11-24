@@ -14,7 +14,10 @@ import {
   AlertCircle,
   CheckCircle,
   Plus,
-  Star
+  Star,
+  MessageSquare,
+  Edit2,
+  Save
 } from 'lucide-react';
 import { api } from '../api/api';
 
@@ -34,6 +37,10 @@ function TransactionsList({ transactions = [], userId, loading, onRefresh }) {
   const [manualUserId, setManualUserId] = useState('');
   const [saveAsBeneficiary, setSaveAsBeneficiary] = useState(false);
   const [beneficiaryComment, setBeneficiaryComment] = useState('');
+
+  const [editingCommentId, setEditingCommentId] = useState(null);
+  const [editCommentText, setEditCommentText] = useState('');
+  const [updatingComment, setUpdatingComment] = useState(false);
 
   useEffect(() => {
     if (showTransactionModal) {
@@ -114,12 +121,36 @@ function TransactionsList({ transactions = [], userId, loading, onRefresh }) {
     }
   };
 
+  const handleEditComment = (transactionId, currentComment) => {
+    setEditingCommentId(transactionId);
+    setEditCommentText(currentComment || '');
+  };
+
+  const handleSaveComment = async (transactionId) => {
+    setUpdatingComment(true);
+    try {
+      await api.updateTransactionComment(transactionId, editCommentText);
+      setEditingCommentId(null);
+      setEditCommentText('');
+      if (onRefresh) await onRefresh();
+    } catch (err) {
+      console.error('Failed to update comment:', err);
+    } finally {
+      setUpdatingComment(false);
+    }
+  };
+
+  const handleCancelEdit = () => {
+    setEditingCommentId(null);
+    setEditCommentText('');
+  };
+
   const formatDate = (date) => {
     const transDate = new Date(date);
     const now = new Date();
     const diff = now - transDate;
     const hours = Math.floor(diff / (1000 * 60 * 60));
-    
+
     if (hours < 24) return `Aujourd'hui, ${transDate.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}`;
     if (hours < 48) return `Hier, ${transDate.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}`;
     return transDate.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
@@ -229,8 +260,8 @@ function TransactionsList({ transactions = [], userId, loading, onRefresh }) {
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-4">
                     <div className={`relative w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0 ${
-                      tx.type === 'credit' 
-                        ? 'bg-emerald-100 text-emerald-600' 
+                      tx.type === 'credit'
+                        ? 'bg-emerald-100 text-emerald-600'
                         : 'bg-slate-100 text-slate-600 group-hover:bg-white group-hover:shadow-sm transition-all'
                     }`}>
                       {getTransactionIcon(tx.description, tx.type)}
@@ -242,8 +273,8 @@ function TransactionsList({ transactions = [], userId, loading, onRefresh }) {
                     </div>
                     <div>
                       <p className="text-sm font-bold text-slate-800 group-hover:text-blue-600 transition-colors">
-                        {tx.type === 'credit' 
-                          ? `De ${tx.source_user?.name || 'Inconnu'}` 
+                        {tx.type === 'credit'
+                          ? `De ${tx.source_user?.name || 'Inconnu'}`
                           : `Vers ${tx.destination_user?.name || 'Inconnu'}`
                         }
                       </p>
@@ -262,6 +293,61 @@ function TransactionsList({ transactions = [], userId, loading, onRefresh }) {
                       Solde: {formatCurrency(tx.balance_after)}
                     </p>
                   </div>
+                </div>
+
+                {/* Comment section */}
+                <div className="mt-3 ml-16 space-y-2">
+                  {editingCommentId === tx._id ? (
+                    <div className="flex items-start gap-2">
+                      <input
+                        type="text"
+                        value={editCommentText}
+                        onChange={(e) => setEditCommentText(e.target.value)}
+                        placeholder="Ajouter un commentaire..."
+                        className="flex-1 px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        disabled={updatingComment}
+                      />
+                      <button
+                        onClick={() => handleSaveComment(tx._id)}
+                        disabled={updatingComment}
+                        className="p-2 text-white bg-blue-600 rounded-lg hover:bg-blue-700 disabled:opacity-50"
+                      >
+                        {updatingComment ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+                      </button>
+                      <button
+                        onClick={handleCancelEdit}
+                        disabled={updatingComment}
+                        className="p-2 text-slate-600 bg-slate-100 rounded-lg hover:bg-slate-200 disabled:opacity-50"
+                      >
+                        <X className="h-4 w-4" />
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="flex items-start gap-2">
+                      {tx.comment ? (
+                        <>
+                          <div className="flex-1 flex items-center gap-2 text-sm text-slate-600 bg-slate-50 px-3 py-2 rounded-lg">
+                            <MessageSquare className="h-3.5 w-3.5 text-slate-400 flex-shrink-0" />
+                            <span>{tx.comment}</span>
+                          </div>
+                          <button
+                            onClick={() => handleEditComment(tx._id, tx.comment)}
+                            className="p-2 text-slate-500 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                          >
+                            <Edit2 className="h-4 w-4" />
+                          </button>
+                        </>
+                      ) : (
+                        <button
+                          onClick={() => handleEditComment(tx._id, '')}
+                          className="flex items-center gap-2 text-sm text-slate-400 hover:text-blue-600 transition-colors"
+                        >
+                          <MessageSquare className="h-3.5 w-3.5" />
+                          <span>Ajouter un commentaire</span>
+                        </button>
+                      )}
+                    </div>
+                  )}
                 </div>
               </li>
             ))}

@@ -19,7 +19,7 @@ function BeneficiariesManager() {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
 
-  const [addingNew, setAddingNew] = useState(false);
+  const [showAddModal, setShowAddModal] = useState(false);
   const [newUserId, setNewUserId] = useState('');
   const [newComment, setNewComment] = useState('');
   const [addingLoading, setAddingLoading] = useState(false);
@@ -66,7 +66,7 @@ function BeneficiariesManager() {
       setSuccess('Bénéficiaire ajouté avec succès');
       setNewUserId('');
       setNewComment('');
-      setAddingNew(false);
+      setShowAddModal(false);
       await loadBeneficiaries();
       setTimeout(() => setSuccess(''), 3000);
     } catch (err) {
@@ -170,11 +170,11 @@ function BeneficiariesManager() {
           <p className="text-base text-slate-500 mt-1">Gérez vos bénéficiaires favoris</p>
         </div>
         <button
-          onClick={() => setAddingNew(!addingNew)}
-          className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium"
+          onClick={() => setShowAddModal(true)}
+          className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-lg hover:from-blue-700 hover:to-indigo-700 shadow-lg transition-all font-medium"
         >
-          {addingNew ? <X className="h-5 w-5" /> : <Plus className="h-5 w-5" />}
-          {addingNew ? 'Annuler' : 'Ajouter'}
+          <Plus className="h-5 w-5" />
+          Ajouter
         </button>
       </div>
 
@@ -189,51 +189,6 @@ function BeneficiariesManager() {
         <div className="flex items-center gap-3 bg-emerald-50 border border-emerald-200 text-emerald-700 px-4 py-3 rounded-lg">
           <CheckCircle className="h-5 w-5 flex-shrink-0" />
           <span className="text-sm">{success}</span>
-        </div>
-      )}
-
-      {addingNew && (
-        <div className="bg-white rounded-xl shadow-sm border border-slate-100 p-6">
-          <h3 className="text-lg font-semibold text-slate-900 mb-4">Ajouter un bénéficiaire</h3>
-          <form onSubmit={handleAddBeneficiary} className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium text-slate-700 mb-2">
-                ID Utilisateur *
-              </label>
-              <input
-                type="text"
-                value={newUserId}
-                onChange={(e) => setNewUserId(e.target.value)}
-                placeholder="Entrez l'ID de l'utilisateur"
-                className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                required
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-slate-700 mb-2">
-                Commentaire (optionnel)
-              </label>
-              <input
-                type="text"
-                value={newComment}
-                onChange={(e) => setNewComment(e.target.value)}
-                placeholder="Ex: Ami, Collègue, Famille..."
-                className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              />
-            </div>
-            <button
-              type="submit"
-              disabled={addingLoading}
-              className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-blue-400 transition-colors font-medium"
-            >
-              {addingLoading ? (
-                <Loader2 className="h-5 w-5 animate-spin" />
-              ) : (
-                <Plus className="h-5 w-5" />
-              )}
-              Ajouter
-            </button>
-          </form>
         </div>
       )}
 
@@ -318,16 +273,130 @@ function BeneficiariesManager() {
         )}
       </div>
 
-      {showSendModal && selectedBeneficiary && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-xl shadow-xl max-w-md w-full p-6">
-            <h3 className="text-xl font-bold text-slate-900 mb-4">
-              Envoyer de l'argent à {selectedBeneficiary.name}
-            </h3>
-            <form onSubmit={handleSendMoney} className="space-y-4">
+      {showAddModal && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-in fade-in">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full mx-4 animate-in zoom-in">
+            <div className="flex items-center justify-between p-6 border-b border-slate-200 bg-gradient-to-r from-slate-50 to-blue-50">
+              <div className="flex items-center gap-3">
+                <div className="p-2 bg-blue-100 rounded-lg">
+                  <Plus className="h-5 w-5 text-blue-600" />
+                </div>
+                <h3 className="text-lg font-bold text-slate-900">Ajouter un bénéficiaire</h3>
+              </div>
+              <button
+                onClick={() => {
+                  setShowAddModal(false);
+                  setNewUserId('');
+                  setNewComment('');
+                  setError('');
+                }}
+                className="p-2 hover:bg-slate-100 rounded-lg transition-colors"
+              >
+                <X className="h-5 w-5 text-slate-500" />
+              </button>
+            </div>
+
+            <form onSubmit={handleAddBeneficiary} className="p-6 space-y-6">
+              {error && (
+                <div className="bg-red-50 border-l-4 border-red-500 text-red-700 px-4 py-3 rounded-lg flex items-center gap-2">
+                  <AlertCircle className="h-4 w-4 flex-shrink-0" />
+                  <span className="text-sm">{error}</span>
+                </div>
+              )}
+
               <div>
-                <label className="block text-sm font-medium text-slate-700 mb-2">
-                  Montant (€)
+                <label className="block text-sm font-semibold text-slate-700 mb-2">
+                  ID Utilisateur <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="text"
+                  value={newUserId}
+                  onChange={(e) => setNewUserId(e.target.value)}
+                  placeholder="Entrez l'ID de l'utilisateur"
+                  className="w-full px-4 py-3 border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"
+                  required
+                  autoFocus
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-semibold text-slate-700 mb-2">
+                  Commentaire (optionnel)
+                </label>
+                <input
+                  type="text"
+                  value={newComment}
+                  onChange={(e) => setNewComment(e.target.value)}
+                  placeholder="Ex: Ami, Collègue, Famille..."
+                  className="w-full px-4 py-3 border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"
+                />
+              </div>
+
+              <div className="flex gap-3">
+                <button
+                  type="submit"
+                  disabled={addingLoading}
+                  className="flex-1 px-6 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-xl hover:from-blue-700 hover:to-indigo-700 shadow-lg font-medium transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {addingLoading ? (
+                    <Loader2 className="h-5 w-5 animate-spin mx-auto" />
+                  ) : (
+                    'Ajouter'
+                  )}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowAddModal(false);
+                    setNewUserId('');
+                    setNewComment('');
+                    setError('');
+                  }}
+                  className="flex-1 px-6 py-3 bg-slate-100 text-slate-700 rounded-xl hover:bg-slate-200 font-medium transition-all"
+                >
+                  Annuler
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {showSendModal && selectedBeneficiary && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-in fade-in">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full mx-4 animate-in zoom-in">
+            <div className="flex items-center justify-between p-6 border-b border-slate-200 bg-gradient-to-r from-slate-50 to-blue-50">
+              <div className="flex items-center gap-3">
+                <div className="p-2 bg-blue-100 rounded-lg">
+                  <Send className="h-5 w-5 text-blue-600" />
+                </div>
+                <h3 className="text-lg font-bold text-slate-900">
+                  Envoyer à {selectedBeneficiary.name}
+                </h3>
+              </div>
+              <button
+                onClick={() => {
+                  setShowSendModal(false);
+                  setSelectedBeneficiary(null);
+                  setSendAmount('');
+                }}
+                className="p-2 hover:bg-slate-100 rounded-lg transition-colors"
+              >
+                <X className="h-5 w-5 text-slate-500" />
+              </button>
+            </div>
+
+            <form onSubmit={handleSendMoney} className="p-6 space-y-6">
+              {error && (
+                <div className="bg-red-50 border-l-4 border-red-500 text-red-700 px-4 py-3 rounded-lg flex items-center gap-2">
+                  <AlertCircle className="h-4 w-4 flex-shrink-0" />
+                  <span className="text-sm">{error}</span>
+                </div>
+              )}
+
+              <div>
+                <label className="block text-sm font-semibold text-slate-700 mb-2">
+                  Montant (€) <span className="text-red-500">*</span>
                 </label>
                 <input
                   type="number"
@@ -336,12 +405,24 @@ function BeneficiariesManager() {
                   value={sendAmount}
                   onChange={(e) => setSendAmount(e.target.value)}
                   placeholder="0.00"
-                  className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  className="w-full px-4 py-3 border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"
                   required
                   autoFocus
                 />
               </div>
+
               <div className="flex gap-3">
+                <button
+                  type="submit"
+                  disabled={sendLoading}
+                  className="flex-1 px-6 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-xl hover:from-blue-700 hover:to-indigo-700 shadow-lg font-medium transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {sendLoading ? (
+                    <Loader2 className="h-5 w-5 animate-spin mx-auto" />
+                  ) : (
+                    'Envoyer'
+                  )}
+                </button>
                 <button
                   type="button"
                   onClick={() => {
@@ -349,21 +430,9 @@ function BeneficiariesManager() {
                     setSelectedBeneficiary(null);
                     setSendAmount('');
                   }}
-                  className="flex-1 px-4 py-2 border border-slate-300 text-slate-700 rounded-lg hover:bg-slate-50 transition-colors font-medium"
+                  className="flex-1 px-6 py-3 bg-slate-100 text-slate-700 rounded-xl hover:bg-slate-200 font-medium transition-all"
                 >
                   Annuler
-                </button>
-                <button
-                  type="submit"
-                  disabled={sendLoading}
-                  className="flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-blue-400 transition-colors font-medium"
-                >
-                  {sendLoading ? (
-                    <Loader2 className="h-5 w-5 animate-spin" />
-                  ) : (
-                    <Send className="h-5 w-5" />
-                  )}
-                  Envoyer
                 </button>
               </div>
             </form>

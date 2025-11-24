@@ -23,6 +23,10 @@ const transactionSchema = new mongoose.Schema({
   date: {
     type: Date,
     default: Date.now
+  },
+  comment: {
+    type: String,
+    default: ''
   }
 }, {
   timestamps: true

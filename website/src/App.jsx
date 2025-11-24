@@ -59,7 +59,9 @@ function App() {
         }
       >
         <Route index element={<Dashboard />} />
-        {/* Ajoutez d'autres routes utilisateur ici si nécessaire */}
+        <Route path="transactions" element={<Dashboard />} />
+        <Route path="beneficiaries" element={<Dashboard />} />
+        <Route path="card" element={<Dashboard />} />
       </Route>
 
       {/* --- Routes Admin Protégées --- */}

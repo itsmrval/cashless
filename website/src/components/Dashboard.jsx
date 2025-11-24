@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import AccountOverview from './AccountOverview';
 import TransactionsList from './TransactionsList';
@@ -8,14 +9,33 @@ import MainLayout from './MainLayout';
 import { api } from '../api/api';
 
 function Dashboard() {
-  const [activeTab, setActiveTab] = useState('overview');
+  const navigate = useNavigate();
+  const location = useLocation();
+  const { user, card, updateCardData } = useAuth();
+
+  const getTabFromPath = (pathname) => {
+    if (pathname === '/') return 'overview';
+    const tab = pathname.substring(1);
+    return ['overview', 'transactions', 'beneficiaries', 'card'].includes(tab) ? tab : 'overview';
+  };
+
+  const [activeTab, setActiveTab] = useState(getTabFromPath(location.pathname));
   const [balance, setBalance] = useState(0);
   const [transactions, setTransactions] = useState([]);
   const [loading, setLoading] = useState(true);
-  // Récupérer les données directement du contexte !
-  const { user, card, updateCardData } = useAuth();
 
   const userId = user?.id || user?._id || user?.userId || null;
+
+  useEffect(() => {
+    const tab = getTabFromPath(location.pathname);
+    setActiveTab(tab);
+  }, [location.pathname]);
+
+  const handleTabChange = (tab) => {
+    setActiveTab(tab);
+    const path = tab === 'overview' ? '/' : `/${tab}`;
+    navigate(path);
+  };
 
   useEffect(() => {
     if (!userId) {
@@ -65,7 +85,7 @@ function Dashboard() {
     <MainLayout
       userName={user?.name}
       activeTab={activeTab}
-      setActiveTab={setActiveTab}
+      setActiveTab={handleTabChange}
     >
       {/* Le contenu de l'onglet actif est affiché ici par MainLayout */}
       {activeTab === 'overview' && (

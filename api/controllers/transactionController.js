@@ -15,7 +15,8 @@ const formatTransaction = (t) => ({
   } : null,
   operation: t.operation,
   date: t.date,
-  source_card_id: t.source_card_id
+  source_card_id: t.source_card_id,
+  comment: t.comment || ''
 });
 
 const getTransactions = async (req, res) => {
@@ -115,7 +116,40 @@ const createTransaction = async (req, res) => {
   }
 };
 
+const updateTransactionComment = async (req, res) => {
+  try {
+    const { transactionId } = req.params;
+    const { comment } = req.body;
+
+    const transaction = await Transaction.findById(transactionId);
+    if (!transaction) {
+      return res.status(404).json({ error: 'Transaction not found' });
+    }
+
+    const isAdmin = req.user && req.user.role === 'admin';
+    const isSourceUser = req.user && transaction.source_user_id.toString() === req.user.userId;
+    const isDestinationUser = req.user && transaction.destination_user_id.toString() === req.user.userId;
+
+    if (!isAdmin && !isSourceUser && !isDestinationUser) {
+      return res.status(403).json({ error: 'Access denied' });
+    }
+
+    transaction.comment = comment || '';
+    await transaction.save();
+
+    const populatedTransaction = await Transaction.findById(transactionId)
+      .populate('source_user_id', 'name username')
+      .populate('destination_user_id', 'name username')
+      .lean();
+
+    res.json(formatTransaction(populatedTransaction));
+  } catch (error) {
+    res.status(400).json({ error: error.message });
+  }
+};
+
 module.exports = {
   getTransactions,
-  createTransaction
+  createTransaction,
+  updateTransactionComment
 };
