@@ -384,7 +384,6 @@ void sign_challenge()
     }
 
     sw1 = 0x90;
-    sw2 = 4;
 }
 
 int main(void)
