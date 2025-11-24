@@ -71,9 +71,18 @@ int reconnect_card()
 
     disconnect_card();
 
+    // DEBUG: Try T=1 only (simpler protocol)
+    fprintf(stderr, "DEBUG: reconnect_card - trying T=1 only\n");
     rv = SCardConnect(hContext, readers, SCARD_SHARE_EXCLUSIVE,
-                     SCARD_PROTOCOL_T0 | SCARD_PROTOCOL_T1,
+                     SCARD_PROTOCOL_T1,
                      &hCard, &dwActiveProtocol);
+    if (rv != SCARD_S_SUCCESS) {
+        fprintf(stderr, "DEBUG: T=1 failed, trying T=0\n");
+        rv = SCardConnect(hContext, readers, SCARD_SHARE_EXCLUSIVE,
+                         SCARD_PROTOCOL_T0,
+                         &hCard, &dwActiveProtocol);
+    }
+    fprintf(stderr, "DEBUG: Connected with protocol: %lu\n", dwActiveProtocol);
 
     return (rv == SCARD_S_SUCCESS);
 }
