@@ -2,7 +2,6 @@ import React, { useState } from 'react';
 import { CreditCard, User, Wallet, ShieldCheck, Wifi, Loader2, Info } from 'lucide-react';
 
 function AccountOverview({ cardData, userData, loading }) {
-  const [showBalanceInfo, setShowBalanceInfo] = useState(false);
   const balance = cardData?.balance || 0;
   
   // Fonction utilitaire pour formater l'argent
@@ -50,12 +49,6 @@ function AccountOverview({ cardData, userData, loading }) {
           <div className="z-10 mt-4">
             <div className="flex items-center gap-2">
               <p className="text-xs text-slate-400 uppercase tracking-wider mb-1">Solde Actuel</p>
-              <button
-                title="Comment le solde est calculé"
-                className="text-slate-400 hover:text-slate-600 p-1 rounded-md"
-                onClick={() => setShowBalanceInfo(s => !s)}
-                aria-expanded={showBalanceInfo}
-              >
                 <Info className="h-4 w-4" />
               </button>
             </div>

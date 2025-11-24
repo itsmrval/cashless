@@ -1,11 +1,11 @@
 const express = require('express');
 const router = express.Router();
 const beneficiaryController = require('../controllers/beneficiaryController');
-const { verifyJWT } = require('../middleware/auth');
+const { verifyJWT, validateObjectId } = require('../middleware/auth');
 
-router.get('/me/beneficiaries', verifyJWT, beneficiaryController.getBeneficiaries);
-router.post('/me/beneficiaries', verifyJWT, beneficiaryController.addBeneficiary);
-router.patch('/me/beneficiaries/:userId', verifyJWT, beneficiaryController.updateBeneficiaryComment);
-router.delete('/me/beneficiaries/:userId', verifyJWT, beneficiaryController.removeBeneficiary);
+router.get('/:id/beneficiaries', verifyJWT, validateObjectId('id'), beneficiaryController.getBeneficiaries);
+router.post('/:id/beneficiaries', verifyJWT, validateObjectId('id'), beneficiaryController.addBeneficiary);
+router.patch('/:id/beneficiaries/:userId', verifyJWT, validateObjectId('id'), validateObjectId('userId'), beneficiaryController.updateBeneficiaryComment);
+router.delete('/:id/beneficiaries/:userId', verifyJWT, validateObjectId('id'), validateObjectId('userId'), beneficiaryController.removeBeneficiary);
 
 module.exports = router;

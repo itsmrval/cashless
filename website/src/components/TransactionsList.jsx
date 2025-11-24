@@ -365,7 +365,7 @@ function TransactionsList({ transactions = [], userId, loading, onRefresh }) {
 
       {/* Transaction Modal */}
       {showTransactionModal && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-in fade-in">
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-md flex items-center justify-center z-50 p-4 animate-in fade-in">
           <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full mx-4 animate-in zoom-in overflow-hidden">
             <div className="flex items-center justify-between p-6 border-b border-slate-200 bg-gradient-to-r from-slate-50 to-blue-50 rounded-t-2xl">
               <div className="flex items-center gap-3">

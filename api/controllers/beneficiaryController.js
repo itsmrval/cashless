@@ -2,7 +2,15 @@ const User = require('../models/User');
 
 const getBeneficiaries = async (req, res) => {
   try {
-    const user = await User.findById(req.user.userId)
+    const userId = req.params.id;
+    const isAdmin = req.user.role === 'admin';
+    const isOwnProfile = userId === req.user.userId;
+
+    if (!isAdmin && !isOwnProfile) {
+      return res.status(403).json({ error: 'Access denied' });
+    }
+
+    const user = await User.findById(userId)
       .populate('beneficiaries.user_id', 'name username');
 
     if (!user) {
@@ -25,14 +33,20 @@ const getBeneficiaries = async (req, res) => {
 
 const addBeneficiary = async (req, res) => {
   try {
+    const userId = req.params.id;
     const { user_id, comment } = req.body;
-    const currentUserId = req.user.userId;
+    const isAdmin = req.user.role === 'admin';
+    const isOwnProfile = userId === req.user.userId;
+
+    if (!isAdmin && !isOwnProfile) {
+      return res.status(403).json({ error: 'Access denied' });
+    }
 
     if (!user_id) {
       return res.status(400).json({ error: 'user_id is required' });
     }
 
-    if (user_id === currentUserId) {
+    if (user_id === userId) {
       return res.status(400).json({ error: 'Cannot add yourself as beneficiary' });
     }
 
@@ -41,9 +55,9 @@ const addBeneficiary = async (req, res) => {
       return res.status(404).json({ error: 'User not found' });
     }
 
-    const user = await User.findById(currentUserId);
+    const user = await User.findById(userId);
     if (!user) {
-      return res.status(404).json({ error: 'Current user not found' });
+      return res.status(404).json({ error: 'User not found' });
     }
 
     const alreadyExists = user.beneficiaries.some(
@@ -62,7 +76,7 @@ const addBeneficiary = async (req, res) => {
 
     await user.save();
 
-    const populatedUser = await User.findById(currentUserId)
+    const populatedUser = await User.findById(userId)
       .populate('beneficiaries.user_id', 'name username');
 
     const beneficiaries = populatedUser.beneficiaries.map(b => ({
@@ -81,11 +95,16 @@ const addBeneficiary = async (req, res) => {
 
 const updateBeneficiaryComment = async (req, res) => {
   try {
-    const { userId } = req.params;
+    const { id, userId } = req.params;
     const { comment } = req.body;
-    const currentUserId = req.user.userId;
+    const isAdmin = req.user.role === 'admin';
+    const isOwnProfile = id === req.user.userId;
 
-    const user = await User.findById(currentUserId);
+    if (!isAdmin && !isOwnProfile) {
+      return res.status(403).json({ error: 'Access denied' });
+    }
+
+    const user = await User.findById(id);
     if (!user) {
       return res.status(404).json({ error: 'User not found' });
     }
@@ -101,7 +120,7 @@ const updateBeneficiaryComment = async (req, res) => {
     beneficiary.comment = comment || '';
     await user.save();
 
-    const populatedUser = await User.findById(currentUserId)
+    const populatedUser = await User.findById(id)
       .populate('beneficiaries.user_id', 'name username');
 
     const beneficiaries = populatedUser.beneficiaries.map(b => ({
@@ -120,10 +139,15 @@ const updateBeneficiaryComment = async (req, res) => {
 
 const removeBeneficiary = async (req, res) => {
   try {
-    const { userId } = req.params;
-    const currentUserId = req.user.userId;
+    const { id, userId } = req.params;
+    const isAdmin = req.user.role === 'admin';
+    const isOwnProfile = id === req.user.userId;
 
-    const user = await User.findById(currentUserId);
+    if (!isAdmin && !isOwnProfile) {
+      return res.status(403).json({ error: 'Access denied' });
+    }
+
+    const user = await User.findById(id);
     if (!user) {
       return res.status(404).json({ error: 'User not found' });
     }
