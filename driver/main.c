@@ -320,13 +320,18 @@ int main(int argc, char *argv[])
                         BYTE remaining_attempts;
                         int verify_result = verify_pin_on_card(pin, &remaining_attempts);
 
-                        // DEBUG: Reconnect after PIN verification
-                        fprintf(stderr, "DEBUG: Reconnecting after PIN verification\n");
-                        if (!reconnect_card()) {
-                            fprintf(stderr, "DEBUG: Reconnect failed after PIN verification\n");
+                        // DEBUG: Force reconnect after PIN verification (EXCLUSIVE mode)
+                        fprintf(stderr, "DEBUG: Force reconnecting after PIN verification\n");
+                        disconnect_card();
+                        LONG rv = SCardConnect(hContext, readers, SCARD_SHARE_EXCLUSIVE,
+                                             SCARD_PROTOCOL_T0 | SCARD_PROTOCOL_T1,
+                                             &hCard, &dwActiveProtocol);
+                        if (rv != SCARD_S_SUCCESS) {
+                            fprintf(stderr, "DEBUG: Force reconnect failed: 0x%08lX\n", rv);
                             card_present = 0;
                             continue;
                         }
+                        fprintf(stderr, "DEBUG: Reconnected with protocol: %lu\n", dwActiveProtocol);
 
                         if (verify_result) {
                             print_ui("Authentication successful!\n\nFetching transactions...", version, (char *)card_id, user_name);
