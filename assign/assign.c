@@ -2,7 +2,6 @@
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
-#include <openssl/evp.h>
 #include "card.h"
 
 int main(int argc, char *argv[])
@@ -74,34 +73,14 @@ int main(int argc, char *argv[])
     }
     puk[SIZE_PUK] = '\0';
 
-    printf("Generating simple keypair (32 bytes)...\n");
-    unsigned char private_key_raw[32];
-    unsigned char public_key_raw[32];
+    printf("Generating simple key (4 bytes)...\n");
+    unsigned char key_raw[4];
 
-    for (i = 0; i < 32; i++) {
-        private_key_raw[i] = rand() & 0xFF;
+    for (i = 0; i < 4; i++) {
+        key_raw[i] = rand() & 0xFF;
     }
 
-    EVP_MD_CTX *mdctx = EVP_MD_CTX_new();
-    if (!mdctx) {
-        printf("Error: Failed to create hash context\n");
-        disconnect_card();
-        cleanup_card();
-        return 1;
-    }
-
-    if (EVP_DigestInit_ex(mdctx, EVP_sha256(), NULL) != 1 ||
-        EVP_DigestUpdate(mdctx, private_key_raw, 32) != 1 ||
-        EVP_DigestFinal_ex(mdctx, public_key_raw, NULL) != 1) {
-        printf("Error: Failed to generate public key\n");
-        EVP_MD_CTX_free(mdctx);
-        disconnect_card();
-        cleanup_card();
-        return 1;
-    }
-    EVP_MD_CTX_free(mdctx);
-
-    int private_key_len = 32;
+    int private_key_len = 4;
 
     printf("Assigning card ID: %s\n", argv[1]);
     printf("Generated PUK: %s\n", puk);
@@ -127,16 +106,16 @@ int main(int argc, char *argv[])
         cleanup_card();
         return 1;
     }
-    if (!write_private_key(private_key_raw, private_key_len)) {
-        printf("Error: Failed to write private key to card\n");
+    if (!write_private_key(key_raw, private_key_len)) {
+        printf("Error: Failed to write key to card\n");
         disconnect_card();
         cleanup_card();
         return 1;
     }
 
-    printf("Public key (hex):\n");
-    for (i = 0; i < 32; i++) {
-        printf("%02x", public_key_raw[i]);
+    printf("Card key (hex):\n");
+    for (i = 0; i < 4; i++) {
+        printf("%02x", key_raw[i]);
     }
     printf("\n");
 

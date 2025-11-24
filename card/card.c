@@ -348,9 +348,8 @@ void sign_challenge()
 {
     int i;
     uint8_t challenge[4];
-    uint8_t private_key[32];
-    uint8_t signature[32];
-    sha256_ctx_t sha_ctx;
+    uint8_t key[4];
+    uint8_t signature[4];
 
     if (p3 != 4) {
         sw1 = 0x6c;
@@ -366,30 +365,26 @@ void sign_challenge()
     uint16_t key_size = ((uint16_t)eeprom_read_byte((uint8_t*)EEPROM_PRIVATE_KEY_SIZE_ADDR) << 8) |
                         (uint16_t)eeprom_read_byte((uint8_t*)(EEPROM_PRIVATE_KEY_SIZE_ADDR + 1));
 
-    if (key_size != 32) {
+    if (key_size != 4) {
         sw1 = 0x6a;
         sw2 = 0x88;
         return;
     }
 
-    for (i = 0; i < 32; i++) {
-        private_key[i] = eeprom_read_byte((uint8_t*)(EEPROM_PRIVATE_KEY_DATA_ADDR + i));
+    for (i = 0; i < 4; i++) {
+        key[i] = eeprom_read_byte((uint8_t*)(EEPROM_PRIVATE_KEY_DATA_ADDR + i));
     }
 
-    uint8_t hash_input[36];
-    memcpy(hash_input, challenge, 4);
-    memcpy(hash_input + 4, private_key, 32);
+    for (i = 0; i < 4; i++) {
+        signature[i] = challenge[i] ^ key[i];
+    }
 
-    sha256_init(&sha_ctx);
-    sha256_lastBlock(&sha_ctx, hash_input, 288);
-    sha256_ctx2hash((sha256_hash_t*)signature, &sha_ctx);
-
-    for (i = 0; i < 32; i++) {
+    for (i = 0; i < 4; i++) {
         sendbytet0(signature[i]);
     }
 
     sw1 = 0x90;
-    sw2 = 32;
+    sw2 = 4;
 }
 
 int main(void)
