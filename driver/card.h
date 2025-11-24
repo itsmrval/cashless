@@ -7,6 +7,7 @@
 #include <pcsclite.h>
 #include <winscard.h>
 #endif
+#include <stddef.h>
 
 #define SIZE_CARD_ID 24
 #define SIZE_PIN 4
