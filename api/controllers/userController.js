@@ -5,17 +5,21 @@ const Transaction = require('../models/Transaction');
 exports.login = async (req, res) => {
   try {
     const { username, password } = req.body;
-    
+
     if (!username || !password) {
       return res.status(400).json({ error: 'Username and password required' });
     }
 
-    const user = await User.findOne({ username, password });
+    const user = await User.findOne({ username });
     if (!user) {
       return res.status(401).json({ error: 'Invalid credentials' });
     }
 
-    // Trouver la carte de l'utilisateur
+    const isValidPassword = await user.comparePassword(password);
+    if (!isValidPassword) {
+      return res.status(401).json({ error: 'Invalid credentials' });
+    }
+
     const card = await Card.findOne({ user_id: user._id });
     if (card && card.status === 'blocked') {
       return res.status(403).json({ error: 'Carte bloquée, connexion impossible.' });
@@ -88,20 +92,17 @@ exports.createUser = async (req, res) => {
 
 exports.updateUser = async (req, res) => {
   try {
-    const updateData = {};
-    if (req.body.name) updateData.name = req.body.name;
-    if (req.body.role) updateData.role = req.body.role;
-    if (req.body.username) updateData.username = req.body.username;
-    if (req.body.password) updateData.password = req.body.password;
-
-    const user = await User.findByIdAndUpdate(
-      req.params.id,
-      updateData,
-      { new: true, runValidators: true }
-    );
+    const user = await User.findById(req.params.id);
     if (!user) {
       return res.status(404).json({ error: 'User not found' });
     }
+
+    if (req.body.name) user.name = req.body.name;
+    if (req.body.role) user.role = req.body.role;
+    if (req.body.username) user.username = req.body.username;
+    if (req.body.password) user.password = req.body.password;
+
+    await user.save();
     res.json(user);
   } catch (error) {
     res.status(400).json({ error: error.message });
