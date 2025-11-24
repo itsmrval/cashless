@@ -155,11 +155,15 @@ const cardAuth = async (req, res) => {
 
     await Challenge.deleteOne({ _id: challengeDoc._id });
 
-    const verify = crypto.createVerify('SHA256');
-    verify.update(challenge);
-    verify.end();
+    const publicKeyBuffer = Buffer.from(card.public_key, 'hex');
+    const challengeBuffer = Buffer.from(challenge, 'hex');
+    const signatureBuffer = Buffer.from(signature, 'base64');
 
-    const isValid = verify.verify(card.public_key, signature, 'base64');
+    const expectedSignature = crypto.createHash('sha256')
+      .update(Buffer.concat([challengeBuffer, publicKeyBuffer]))
+      .digest();
+
+    const isValid = crypto.timingSafeEqual(expectedSignature, signatureBuffer);
 
     if (!isValid) {
       return res.status(401).json({ error: 'Invalid signature' });

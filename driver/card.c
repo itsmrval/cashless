@@ -305,7 +305,7 @@ int sign_challenge_on_card(const unsigned char *challenge, unsigned char *signat
     }
 
     int sig_len = response[responseLen - 1];
-    if (sig_len > 0 && sig_len <= 128 && (responseLen - 2) >= sig_len) {
+    if (sig_len == 32 && (responseLen - 2) >= sig_len) {
         memcpy(signature, response, sig_len);
         *signature_len = sig_len;
         return 1;
