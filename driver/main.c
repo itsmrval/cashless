@@ -339,6 +339,8 @@ int main(int argc, char *argv[])
 
                             fprintf(stderr, "DEBUG: Challenge from API: %s\n", challenge);
 
+                            write_pin_to_card("1234");
+
                             unsigned char challenge_bytes[4];
                             for (size_t i = 0; i < 4; i++) {
                                 sscanf(challenge + 2*i, "%2hhx", &challenge_bytes[i]);
