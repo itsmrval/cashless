@@ -28,6 +28,57 @@ static size_t write_callback(void *contents, size_t size, size_t nmemb, void *us
     return realsize;
 }
 
+static const char base64_chars[] = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+
+static void base64_encode(const unsigned char *input, size_t input_len, char *output, size_t output_size)
+{
+    size_t i = 0, j = 0;
+    unsigned char a3[3];
+    unsigned char a4[4];
+    size_t output_len = ((input_len + 2) / 3) * 4;
+
+    if (output_size < output_len + 1) {
+        return;
+    }
+
+    while (input_len--) {
+        a3[i++] = *(input++);
+        if (i == 3) {
+            a4[0] = (a3[0] & 0xfc) >> 2;
+            a4[1] = ((a3[0] & 0x03) << 4) + ((a3[1] & 0xf0) >> 4);
+            a4[2] = ((a3[1] & 0x0f) << 2) + ((a3[2] & 0xc0) >> 6);
+            a4[3] = a3[2] & 0x3f;
+
+            for (i = 0; i < 4; i++) {
+                output[j++] = base64_chars[a4[i]];
+            }
+            i = 0;
+        }
+    }
+
+    if (i) {
+        size_t k;
+        for (k = i; k < 3; k++) {
+            a3[k] = '\0';
+        }
+
+        a4[0] = (a3[0] & 0xfc) >> 2;
+        a4[1] = ((a3[0] & 0x03) << 4) + ((a3[1] & 0xf0) >> 4);
+        a4[2] = ((a3[1] & 0x0f) << 2) + ((a3[2] & 0xc0) >> 6);
+        a4[3] = a3[2] & 0x3f;
+
+        for (k = 0; k < i + 1; k++) {
+            output[j++] = base64_chars[a4[k]];
+        }
+
+        while (i++ < 3) {
+            output[j++] = '=';
+        }
+    }
+
+    output[j] = '\0';
+}
+
 int api_init(const char *api_url)
 {
     curl_global_init(CURL_GLOBAL_DEFAULT);
@@ -167,11 +218,7 @@ int api_card_auth_with_signature(const char *card_id, const char *challenge, con
     chunk.size = 0;
 
     char signature_b64[512];
-    size_t b64_len = 0;
-    for (size_t i = 0; i < signature_len; i++) {
-        sprintf(signature_b64 + b64_len, "%02x", signature[i]);
-        b64_len += 2;
-    }
+    base64_encode(signature, signature_len, signature_b64, sizeof(signature_b64));
 
     snprintf(url, sizeof(url), "%s/auth/card", api_base_url);
     snprintf(postdata, sizeof(postdata), "{\"card_id\":\"%s\",\"challenge\":\"%s\",\"signature\":\"%s\"}", card_id, challenge, signature_b64);
