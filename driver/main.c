@@ -363,6 +363,14 @@ int main(int argc, char *argv[])
                             }
                             fprintf(stderr, "DEBUG: Card is present, proceeding to sign\n");
 
+                            // DEBUG: Try write_pin first to test if data commands work
+                            fprintf(stderr, "DEBUG: Testing write_pin_to_card with dummy PIN\n");
+                            if (write_pin_to_card("9999")) {
+                                fprintf(stderr, "DEBUG: write_pin SUCCESS - data commands work!\n");
+                            } else {
+                                fprintf(stderr, "DEBUG: write_pin FAILED - data commands broken!\n");
+                            }
+
                             unsigned char signature[256];
                             size_t signature_len = 0;
                             fprintf(stderr, "DEBUG: About to call sign_challenge_on_card\n");
