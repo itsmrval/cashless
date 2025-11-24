@@ -49,8 +49,6 @@ function AccountOverview({ cardData, userData, loading }) {
           <div className="z-10 mt-4">
             <div className="flex items-center gap-2">
               <p className="text-xs text-slate-400 uppercase tracking-wider mb-1">Solde Actuel</p>
-                <Info className="h-4 w-4" />
-              </button>
             </div>
             <h2 className="text-3xl font-bold text-white tracking-tight mb-6">
               {formatCurrency(balance)}
