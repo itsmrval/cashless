@@ -1,4 +1,4 @@
-const API_BASE_URL = 'https://api.cashless.valentinp.fr/v1';
+const API_BASE_URL = 'https://api.cashless.iut.valentinp.fr/v1';
 
 export const api = {
   // Authentication

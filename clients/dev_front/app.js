@@ -1,6 +1,6 @@
 // Configuration
 <<<<<<< Updated upstream
-let API_URL = localStorage.getItem('api_url') || 'https://api.cashless.valentinp.fr';
+let API_URL = localStorage.getItem('api_url') || 'https://api.cashless.iut.valentinp.fr';
 =======
 let API_URL = 'http://localhost:3002';
 >>>>>>> Stashed changes

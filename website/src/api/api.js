@@ -1,4 +1,4 @@
-const API_BASE_URL = 'https://api.cashless.valentinp.fr';
+const API_BASE_URL = 'https://api.cashless.iut.valentinp.fr';
 
 const getAuthHeaders = () => {
   const token = localStorage.getItem('cashless_token');
