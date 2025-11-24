@@ -270,8 +270,7 @@ int verify_puk_on_card(const char *puk, const char *new_pin, BYTE *remaining_att
 int sign_challenge_on_card(const unsigned char *challenge, unsigned char *signature, size_t *signature_len)
 {
     LONG rv;
-    fprintf(stderr, "DEBUG: TEST - using INS 0x09 to verify firmware\n");
-    BYTE cmd_sign[5 + 4] = {0x80, 0x09, 0x00, 0x00, 4};
+    BYTE cmd_sign[5 + 4] = {0x80, 0x0B, 0x00, 0x00, 4};
     BYTE response[258];
     DWORD responseLen;
     SCARD_IO_REQUEST pioSendPci;
