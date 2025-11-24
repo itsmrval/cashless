@@ -8,15 +8,73 @@ import {
   CreditCard,
   ShoppingBag,
   RefreshCw,
-  Loader2
+  Loader2,
+  Send,
+  X,
+  AlertCircle,
+  CheckCircle
 } from 'lucide-react';
+import { api } from '../api/api';
 
 function TransactionsList({ transactions = [], userId, loading, onRefresh }) {
   const [filter, setFilter] = useState('all'); // 'all', 'credit', 'debit'
   const normalizedUserId = userId ? String(userId) : null;
+  
+  // Transaction modal
+  const [showTransactionModal, setShowTransactionModal] = useState(false);
+  const [users, setUsers] = useState([]);
+  const [loadingUsers, setLoadingUsers] = useState(false);
+  const [newTransaction, setNewTransaction] = useState({ destination_user_id: '', operation: '' });
+  const [transactionError, setTransactionError] = useState('');
+  const [transactionSuccess, setTransactionSuccess] = useState('');
+  const [submitting, setSubmitting] = useState(false);
 
   const formatCurrency = (amount) => {
     return new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR' }).format(amount / 100);
+  };
+
+  const loadUsers = async () => {
+    setLoadingUsers(true);
+    try {
+      const usersData = await api.getAllUsers();
+      setUsers(usersData.filter(u => String(u._id) !== normalizedUserId));
+    } catch (err) {
+      console.error('Error loading users:', err);
+    } finally {
+      setLoadingUsers(false);
+    }
+  };
+
+  const handleOpenTransactionModal = () => {
+    setShowTransactionModal(true);
+    loadUsers();
+    setTransactionError('');
+    setTransactionSuccess('');
+  };
+
+  const handleCreateTransaction = async (e) => {
+    e.preventDefault();
+    setTransactionError('');
+    setTransactionSuccess('');
+    setSubmitting(true);
+
+    try {
+      const operationCents = Math.round(parseFloat(newTransaction.operation) * 100);
+      await api.createTransaction({
+        destination_user_id: newTransaction.destination_user_id,
+        operation: operationCents
+      });
+      setTransactionSuccess('Transaction effectuée avec succès !');
+      setNewTransaction({ destination_user_id: '', operation: '' });
+      setTimeout(() => {
+        setShowTransactionModal(false);
+        if (onRefresh) onRefresh();
+      }, 1500);
+    } catch (err) {
+      setTransactionError(err.message || 'Erreur lors de la transaction');
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   const formatDate = (date) => {
@@ -41,12 +99,8 @@ function TransactionsList({ transactions = [], userId, loading, onRefresh }) {
 
   const getTransactionType = (trans) => {
     if (!normalizedUserId) return 'neutral';
-    const destinationId = typeof trans.destination_user_id === 'object'
-      ? (trans.destination_user_id?._id || trans.destination_user_id?.id || trans.destination_user_id?.userId)
-      : trans.destination_user_id;
-    const sourceId = typeof trans.source_user_id === 'object'
-      ? (trans.source_user_id?._id || trans.source_user_id?.id || trans.source_user_id?.userId)
-      : trans.source_user_id;
+    const destinationId = trans.destination_user?.id || trans.destination_user?._id;
+    const sourceId = trans.source_user?.id || trans.source_user?._id;
 
     if (destinationId && String(destinationId) === normalizedUserId) return 'credit';
     if (sourceId && String(sourceId) === normalizedUserId) return 'debit';
@@ -95,6 +149,13 @@ function TransactionsList({ transactions = [], userId, loading, onRefresh }) {
           <p className="text-base text-slate-500 mt-1">Vos dernières opérations bancaires</p>
         </div>
         <div className="flex items-center gap-3">
+          <button
+            onClick={handleOpenTransactionModal}
+            className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-lg hover:from-blue-700 hover:to-indigo-700 shadow-lg font-medium transition-all"
+          >
+            <Send className="h-4 w-4" />
+            Envoyer
+          </button>
           <select
             value={filter}
             onChange={(e) => setFilter(e.target.value)}
@@ -144,7 +205,10 @@ function TransactionsList({ transactions = [], userId, loading, onRefresh }) {
                     </div>
                     <div>
                       <p className="text-sm font-bold text-slate-800 group-hover:text-blue-600 transition-colors">
-                        {tx.type === 'credit' ? 'Reçu' : 'Envoyé'} 
+                        {tx.type === 'credit' 
+                          ? `De ${tx.source_user?.name || 'Inconnu'}` 
+                          : `Vers ${tx.destination_user?.name || 'Inconnu'}`
+                        }
                       </p>
                       <p className="text-xs text-slate-400 font-medium mt-0.5">
                         {formatDate(tx.date)}
@@ -175,6 +239,103 @@ function TransactionsList({ transactions = [], userId, loading, onRefresh }) {
           </div>
         )}
       </div>
+
+      {/* Transaction Modal */}
+      {showTransactionModal && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-in fade-in">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full mx-4 animate-in zoom-in">
+            <div className="flex items-center justify-between p-6 border-b border-slate-200 bg-gradient-to-r from-slate-50 to-blue-50">
+              <div className="flex items-center gap-3">
+                <div className="p-2 bg-blue-100 rounded-lg">
+                  <Send className="h-5 w-5 text-blue-600" />
+                </div>
+                <h3 className="text-lg font-bold text-slate-900">Envoyer de l'argent</h3>
+              </div>
+              <button
+                onClick={() => setShowTransactionModal(false)}
+                className="p-2 hover:bg-slate-100 rounded-lg transition-colors"
+              >
+                <X className="h-5 w-5 text-slate-500" />
+              </button>
+            </div>
+            
+            <form onSubmit={handleCreateTransaction} className="p-6 space-y-6">
+              {transactionError && (
+                <div className="bg-red-50 border-l-4 border-red-500 text-red-700 px-4 py-3 rounded-lg flex items-center gap-2">
+                  <AlertCircle className="h-4 w-4 flex-shrink-0" />
+                  <span className="text-sm">{transactionError}</span>
+                </div>
+              )}
+              {transactionSuccess && (
+                <div className="bg-emerald-50 border-l-4 border-emerald-500 text-emerald-700 px-4 py-3 rounded-lg flex items-center gap-2">
+                  <CheckCircle className="h-4 w-4 flex-shrink-0" />
+                  <span className="text-sm">{transactionSuccess}</span>
+                </div>
+              )}
+              
+              <div>
+                <label className="block text-sm font-semibold text-slate-700 mb-2">
+                  Destinataire <span className="text-red-500">*</span>
+                </label>
+                {loadingUsers ? (
+                  <div className="flex items-center justify-center py-3">
+                    <Loader2 className="h-5 w-5 animate-spin text-blue-600" />
+                  </div>
+                ) : (
+                  <select
+                    value={newTransaction.destination_user_id}
+                    onChange={(e) => setNewTransaction({ ...newTransaction, destination_user_id: e.target.value })}
+                    className="w-full px-4 py-3 border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"
+                    required
+                  >
+                    <option value="">Sélectionner un utilisateur</option>
+                    {users.map(user => (
+                      <option key={user._id} value={user._id}>{user.name} (@{user.username})</option>
+                    ))}
+                  </select>
+                )}
+              </div>
+              
+              <div>
+                <label className="block text-sm font-semibold text-slate-700 mb-2">
+                  Montant (€) <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="number"
+                  step="0.01"
+                  min="0.01"
+                  value={newTransaction.operation}
+                  onChange={(e) => setNewTransaction({ ...newTransaction, operation: e.target.value })}
+                  className="w-full px-4 py-3 border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"
+                  placeholder="0.00"
+                  required
+                />
+              </div>
+              
+              <div className="flex gap-3">
+                <button
+                  type="submit"
+                  disabled={submitting}
+                  className="flex-1 px-6 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-xl hover:from-blue-700 hover:to-indigo-700 shadow-lg font-medium transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {submitting ? (
+                    <Loader2 className="h-5 w-5 animate-spin mx-auto" />
+                  ) : (
+                    'Envoyer'
+                  )}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setShowTransactionModal(false)}
+                  className="flex-1 px-6 py-3 bg-slate-100 text-slate-700 rounded-xl hover:bg-slate-200 font-medium transition-all"
+                >
+                  Annuler
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

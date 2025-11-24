@@ -50,8 +50,8 @@ function Dashboard() {
       // Filter transactions for current user
       const normalizedUserId = String(currentUserId);
       const userTransactions = transData.filter(t => {
-        const sourceId = normalizeId(t.source_user_id);
-        const destinationId = normalizeId(t.destination_user_id);
+        const sourceId = normalizeId(t.source_user?.id || t.source_user?._id);
+        const destinationId = normalizeId(t.destination_user?.id || t.destination_user?._id);
         return sourceId === normalizedUserId || destinationId === normalizedUserId;
       });
       setTransactions(userTransactions);
