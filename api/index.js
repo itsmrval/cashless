@@ -37,6 +37,10 @@ mongoose.connect(MONGO_URI)
   })
   .catch(err => console.error('MongoDB connection error:', err));
 
+app.get('/health', (req, res) => {
+  res.status(200).json({ status: 'ok' });
+});
+
 app.use('/v1/auth', authRoutes);
 app.use('/v1/user', userRoutes);
 app.use('/v1/card', cardRoutes);
