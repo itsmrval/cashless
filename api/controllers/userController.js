@@ -135,12 +135,10 @@ exports.getUserBalance = async (req, res) => {
         { destination_user_id: userId }
       ]
     })
-      .populate('source_user_id', '_id')
-      .populate('destination_user_id', '_id')
       .limit(50);
 
     const balance = transactions.reduce((sum, t) => {
-      if (t.source_user_id._id.toString() === userId.toString()) {
+      if (t.source_user_id.toString() === userId.toString()) {
         return sum - t.operation;
       } else {
         return sum + t.operation;
