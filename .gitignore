@@ -1,5 +1,5 @@
 # Configuration files with credentials
-driver/driver.conf
+atm.conf
 
 # Compiled binaries
 driver/driver

@@ -8,125 +8,166 @@ L'objectif est de permettre des recharges, paiements et transferts sécurisés e
 
 ```
 cashless/
-├── api/          # Node.js API
-├── card/         # Card firmware
-├── driver/       # Card reader driver
-├── assign/       # Card ID assignator tool 
+├── api/             # Main API that handle transactions and user accounts
+├── website/         # Frontend dashboard website
+├── card_software/   # Firmware that is flashed on cards 
+├── assignator/      # Simple tool that register the card in main API & assign ID
+├── clients/
+    ├── atm/         # ATM client that allow to setup a PIN code, see transactions
+    └── coffeeshop/  # Coffe shop client example that allow payments
 └── docker-compose.yml
 ```
 
-## Déploiement
+## Deployment
 
-### Environnement de développement
-
-```bash
-docker-compose up
-```
-
-Services disponibles:
-- API: `http://localhost:3002`
-- Frontend dev: `http://localhost:3001`
-
-### Configuration Ansible
+### Ansible configuration
 
 ```bash
 cd ansible
 cp group_vars/all.yml.example group_vars/all.yml
 ```
+Edit group vars to allow API calls
 
-### Créer une carte
+### Create a card
 
-**1. Flash uniquement (préparer plusieurs cartes):**
+**1. Flash card firmware:**
 ```bash
 cd ansible
 ansible-playbook flash_card.yml
 ```
-Flashe le firmware de la carte
+Plug a card into the arduino writter, then run the playbook.
 
-**2. Assign (créer et assigner à une carte déjà flashée):**
+**2. Assign (register the card into the API):**
 ```bash
 cd ansible
 ansible-playbook assign_card.yml
 ```
-Crée la carte dans l'API puis assigne le card_id à la carte physique.
+Plug a flashed card into the reader, then run the playbook.
 
-### Build & exécution du driver
+### Build and run clients
 
 ```bash
-cd driver
-make API_BASE_URL=http://localhost:3002/v1
-./driver
+cd clients/atm
+make
+./atm atm.conf
 ```
+Example for the ATM client
 
-## Endpoints API
+## API Endpoints
+
+### Authentication
+
+- `POST /v1/auth/login` - Authenticate a user `{username, password}` → `200` + JWT token (valid 24h)
+- `POST /v1/auth/register` - Register a new user `{username, password, name}` → `201`
+- `GET /v1/auth/challenge?card_id=<id>` - Generate cryptographic challenge for card authentication → `200`
+- `POST /v1/auth/card` - Authenticate a card by signature `{card_id, signature}` → `200` + JWT token (valid 1h)
 
 ### User
 
-- `GET /v1/user` - Liste les utilisateurs
-- `POST /v1/user` - Crée un utilisateur `{name: "John"}`
-- `GET /v1/user/:id` - Récupère les informations d'un utilisateur
-- `GET /v1/user?card_id=<id>` - Récupère un utilisateur à partir de l'id de carte 
-- `POST /v1/user/:id` - Met à jour un utilisateur `{name: "Jane"}`
-- `DELETE /v1/user/:id` - Supprime un utilisateur
+- `GET /v1/user` - List all users (admin only, JWT required) → `200`
+- `GET /v1/user?card_id=<id>` - Get user by card ID (JWT required) → `200`
+- `POST /v1/user` - Create a user `{name}` (admin only, JWT required) → `201`
+- `GET /v1/user/:id` - Get user information (admin or own profile, JWT required) → `200`
+- `PATCH /v1/user/:id` - Update a user `{name, ...}` (admin or own profile, JWT required) → `200`
+- `DELETE /v1/user/:id` - Delete a user (admin only, JWT required) → `200`
+- `GET /v1/user/:id/balance` - Calculate user balance from transactions (admin or own profile, JWT required) → `200`
 
 ### Card
 
-- `GET /v1/card` - Liste toutes les cartes
-- `POST /v1/card` - Crée une nouvelle carte en DB
-- `GET /v1/card/:card_id` - Récupère les infos d'une carte
-- `PATCH /v1/card/:card_id` - Met à jour `{comment: "...", status: "active|inactive|waiting_activation"}`
-- `POST /v1/card/:card_id/assign` - Assigne une carte à un user `{user_id: "..."}`
-- `DELETE /v1/card/:card_id/assign` - Désassigne une carte
-- `DELETE /v1/card/:card_id` - Supprime une carte
+- `GET /v1/card` - List all cards with user info (JWT required) → `200`
+- `POST /v1/card` - Create a new card `{comment, puk}` (optional, JWT required) → `201`
+- `GET /v1/card/:card_id` - Get card info with associated user (JWT required) → `200`
+- `PATCH /v1/card/:card_id` - Update `{comment, status: "active|inactive|waiting_activation", puk, public_key}` (JWT required) → `200`
+- `POST /v1/card/:card_id/assign` - Assign a card to user `{user_id}` (JWT required) → `200`
+- `DELETE /v1/card/:card_id/assign` - Unassign a card from its user (JWT required) → `200`
+- `DELETE /v1/card/:card_id` - Delete a card (JWT required) → `200`
 
-## Protocole carte à puce (APDU)
+### Transactions
 
-### Commandes supportées (CLA=0x80)
+- `GET /v1/transactions` - List transactions (JWT or card auth). Admin sees all, user sees only their own. Query `?userId=<id>` for admin → `200` (limited to 50 for user, 100 for admin)
+- `POST /v1/transactions` - Create a transaction `{destination_user_id, operation}` where `operation` is the amount. Card auth uses card's user, JWT can specify source if admin → `201`
+- `PATCH /v1/transactions/:transactionId/comment` - Update transaction comment `{comment}` (admin or source/destination user, JWT required) → `200`
 
-La carte communique via le protocole PC/SC avec des commandes APDU:
+### Beneficiaries
 
-| INS | Commande | P3 (Longueur) | Description | Réponse |
-|-----|----------|---------------|-------------|---------|
-| `0x01` | READ_CARD_ID | 24 bytes | Lit l'identifiant unique de la carte | 24 bytes + SW1/SW2 |
-| `0x02` | READ_VERSION | 1 byte | Lit la version du firmware | 1 byte + SW1/SW2 |
-| `0x03` | WRITE_PIN | 4 bytes | Écrit le PIN dans l'EEPROM | SW1/SW2 |
-| `0x04` | READ_PIN | 4 bytes | Lit le PIN depuis l'EEPROM | 4 bytes + SW1/SW2 |
-| `0x05` | ASSIGN_CARD_ID | 24 bytes | Assigne le card_id dans l'EEPROM (opération unique, échoue si déjà assigné) | SW1/SW2 |
+- `GET /v1/user/:id/beneficiaries` - List user's beneficiaries (admin or own profile, JWT required) → `200`
+- `POST /v1/user/:id/beneficiaries` - Add a beneficiary `{beneficiary_id, comment}` (optional, admin or own profile, JWT required) → `201`
+- `PATCH /v1/user/:id/beneficiaries/:userId` - Update beneficiary comment `{comment}` (admin or own profile, JWT required) → `200`
+- `DELETE /v1/user/:id/beneficiaries/:userId` - Remove a beneficiary (admin or own profile, JWT required) → `200`
 
-**Status:**
-- `0x90 0x00` - Succès
-- `0x6a 0x81` - Fonction non supportée (carte déjà assignée pour INS=0x05)
-- `0x6c XX` - Erreur de longueur, XX = longueur attendue
-- `0x6d 0x00` - Instruction non supportée
-- `0x6e 0x00` - Classe non supportée
+## Smart Card Protocol (APDU)
 
-### Stockage EEPROM
+### Supported Commands (CLA=0x80)
 
-| Adresse | Taille | Contenu |
-|---------|--------|---------|
-| `0x00-0x03` | 4 bytes | PIN (4 chiffres en format numérique 0-9) |
-| `0x04-0x1B` | 24 bytes | Card ID (identifiant unique, assigné via APDU 0x05) |
-| `0x1C` | 1 byte | Flag d'assignation (0x01 = assigné, autre = non assigné) |
+The card communicates via PC/SC protocol with APDU commands:
+
+| INS | Command | Data Size | Description |
+|-----|---------|-----------|-------------|
+| `0x01` | READ_CARD_ID | 24 bytes out | Read unique card ID from EEPROM |
+| `0x02` | READ_VERSION | 1 byte out | Read firmware version |
+| `0x03` | WRITE_PIN | 8 bytes in | Write PIN (4 bytes) + PUK (4 bytes) |
+| `0x06` | VERIFY_PIN | 4 bytes in | Verify PIN, returns remaining attempts |
+| `0x07` | VERIFY_PUK | 8 bytes in | Verify PUK (4 bytes) + set new PIN (4 bytes) |
+| `0x08` | ASSIGN_CARD | 28 bytes in | Assign card ID (24 bytes) + PUK (4 bytes) - one-time operation |
+| `0x09` | WRITE_PIN_ONLY | 4 bytes in | Write PIN only (4 bytes) |
+| `0x0A` | WRITE_PRIVATE_KEY_CHUNK | 1-65 bytes in | Write RSA private key chunk (index byte + up to 64 bytes data) |
+| `0x0B` | SIGN_CHALLENGE | 4 bytes out | Sign challenge with private key |
+| `0x0C` | SET_CHALLENGE | 4 bytes in | Set 4-byte challenge for signing |
+
+### Status Codes (SW1/SW2)
+
+| SW1 | SW2 | Meaning |
+|-----|-----|---------|
+| `0x90` | `0x00` | Success |
+| `0x6C` | `XX` | Wrong length, XX = expected size |
+| `0x6A` | `0x81` | Card already assigned |
+| `0x6A` | `0x82` | Memory offset error (private key write) |
+| `0x6A` | `0x84` | Invalid chunk index (must be ≤30) |
+| `0x6A` | `0x88` | Key size mismatch during signature |
+| `0x69` | `0x83` | PIN attempts exhausted (locked) |
+| `0x69` | `0x84` | PUK attempts exhausted (locked) |
+| `0x63` | `0xCn` | Authentication failed, n attempts remaining (n=0-3) |
+| `0x6D` | `0x00` | Invalid INS code |
+| `0x6E` | `0x00` | Invalid CLA code |
+
+### EEPROM Memory Layout
+
+| Address | Size | Content |
+|---------|------|---------|
+| `0x00-0x03` | 4 bytes | PIN |
+| `0x04-0x1B` | 24 bytes | Card ID (unique identifier) |
+| `0x1C` | 1 byte | Assigned flag (0xFF = unassigned) |
+| `0x1D` | 1 byte | PIN attempts remaining (max 3) |
+| `0x1E` | 1 byte | PUK attempts remaining (max 3) |
+| `0x1F-0x22` | 4 bytes | PUK (PIN Unblock Key) |
+| `0x23-0x24` | 2 bytes | Private key size (16-bit big-endian) |
+| `0x25+` | up to 1920 bytes | Private key data (31 chunks × 64 bytes max) |
 
 ### ATR (Answer-To-Reset)
 
 ```
-3B F0+[SIZE_ATR+1] 01 05 05 00 00 [ATR_STRING]
+3B F9 01 05 05 00 00 63 61 73 68 6C 65 73 73
 ```
 
-L'ATR identifie la carte avec la chaîne "cashless".
+Format breakdown:
+- `3B` - Initial byte (TS, direct convention)
+- `F9` - Format byte (indicates TA1, TB1, TC1, TD1 present + 8 data bytes)
+- `01 05 05 00 00` - Interface bytes (TA1, TB1, TC1, TD1)
+- `63 61 73 68 6C 65 73 73` - Historical bytes: "cashless" in ASCII
 
-### États de la carte
+Card identifies itself with the string "cashless".
 
-| État | Description | Action driver |
+### Card States
+
+| State | Description | Client Action |
 |------|-------------|---------------|
-| `waiting_activation` | Carte créée, PIN non configuré | Demande création PIN → activation |
-| `active` | Carte activée avec PIN | Demande PIN → authentification |
-| `inactive` | Carte désactivée | Affiche erreur, refuse accès |
+| `waiting_activation` | Card created, PIN not configured | Prompt for PIN setup → activation |
+| `active` | Card activated with PIN | Request PIN → authentication |
+| `inactive` | Card deactivated | Display error, deny access |
 
-## Configuration
-
-Modifie `driver/makefile` pour changer l'url de l'API
-```makefile
-API_BASE_URL=http://localhost:3002/v1
-```
+**PIN/PUK Security:**
+- Both PIN and PUK have 3 attempts before lockout
+- Failed attempts return `0x63 0xCn` where n = remaining attempts
+- When attempts reach 0: PIN returns `0x69 0x83`, PUK returns `0x69 0x84`
+- PUK can reset PIN when verified correctly
+- Successful verification resets attempt counter to 3
