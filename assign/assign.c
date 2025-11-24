@@ -2,11 +2,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
-#include <openssl/rsa.h>
-#include <openssl/pem.h>
 #include <openssl/evp.h>
-#include <openssl/bio.h>
-#include <openssl/bn.h>
 #include "card.h"
 
 int main(int argc, char *argv[])
@@ -112,9 +108,6 @@ int main(int argc, char *argv[])
 
     if (!reconnect_card()) {
         printf("Error: Failed to reconnect to card\n");
-        BIO_free(bio_pub);
-        RSA_free(rsa);
-        EVP_PKEY_free(pkey);
         disconnect_card();
         cleanup_card();
         return 1;
@@ -122,9 +115,6 @@ int main(int argc, char *argv[])
 
     if (!assign_card(argv[1], puk)) {
         printf("Error: Failed to assign card\n");
-        BIO_free(bio_pub);
-        RSA_free(rsa);
-        EVP_PKEY_free(pkey);
         disconnect_card();
         cleanup_card();
         return 1;
@@ -133,9 +123,6 @@ int main(int argc, char *argv[])
     printf("Writing private key to card...\n");
     if (!reconnect_card()) {
         printf("Error: Failed to reconnect to card\n");
-        BIO_free(bio_pub);
-        RSA_free(rsa);
-        EVP_PKEY_free(pkey);
         disconnect_card();
         cleanup_card();
         return 1;
