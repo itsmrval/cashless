@@ -279,14 +279,29 @@ int sign_challenge_on_card(const unsigned char *challenge, unsigned char *signat
     pioSendPci.dwProtocol = dwActiveProtocol;
     pioSendPci.cbPciLength = sizeof(SCARD_IO_REQUEST);
 
+    // DEBUG: Print protocol being used
+    fprintf(stderr, "DEBUG: sign_challenge - using protocol: %lu\n", dwActiveProtocol);
+
     LONG rv = SCardTransmit(hCard, &pioSendPci, command, sizeof(command),
                            NULL, response, &responseLen);
 
-    if (rv != SCARD_S_SUCCESS || responseLen < 2) {
+    // DEBUG: Check if SCardTransmit succeeded
+    if (rv != SCARD_S_SUCCESS) {
+        fprintf(stderr, "DEBUG: sign_challenge - SCardTransmit failed: 0x%08lX\n", rv);
         return 0;
     }
 
+    if (responseLen < 2) {
+        fprintf(stderr, "DEBUG: sign_challenge - responseLen too short: %lu\n", responseLen);
+        return 0;
+    }
+
+    // DEBUG: Print status word from card
+    fprintf(stderr, "DEBUG: sign_challenge - card response SW1=0x%02X SW2=0x%02X (responseLen=%lu)\n",
+            response[responseLen - 2], response[responseLen - 1], responseLen);
+
     if (response[responseLen - 2] != 0x90) {
+        fprintf(stderr, "DEBUG: sign_challenge - card returned error status\n");
         return 0;
     }
 

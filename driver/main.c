@@ -332,11 +332,17 @@ int main(int argc, char *argv[])
                                 continue;
                             }
 
+                            // DEBUG: Print received challenge
+                            fprintf(stderr, "DEBUG: Received challenge from API: %s (len=%zu)\n", challenge, strlen(challenge));
+
                             unsigned char challenge_bytes[64];
                             size_t challenge_len = strlen(challenge) / 2;
                             for (size_t i = 0; i < challenge_len; i++) {
                                 sscanf(challenge + 2*i, "%2hhx", &challenge_bytes[i]);
                             }
+
+                            // DEBUG: Print challenge length
+                            fprintf(stderr, "DEBUG: challenge_len=%zu (should be 32)\n", challenge_len);
 
                             unsigned char signature[256];
                             size_t signature_len = 0;
