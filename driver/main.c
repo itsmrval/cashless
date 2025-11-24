@@ -320,14 +320,14 @@ int main(int argc, char *argv[])
                         BYTE remaining_attempts;
                         int verify_result = verify_pin_on_card(pin, &remaining_attempts);
 
-                        // DEBUG: Force reconnect to try different protocol
-                        fprintf(stderr, "DEBUG: PIN verify done, result=%d, forcing reconnect\n", verify_result);
-                        disconnect_card();
-                        if (!reconnect_card()) {
-                            fprintf(stderr, "DEBUG: Reconnect failed after PIN\n");
+                        // DEBUG: Try fresh connect after PIN (like original)
+                        fprintf(stderr, "DEBUG: PIN verify done, result=%d, trying connect\n", verify_result);
+                        if (!connect_card()) {
+                            fprintf(stderr, "DEBUG: Connect failed after PIN\n");
                             card_present = 0;
                             continue;
                         }
+                        fprintf(stderr, "DEBUG: Connected successfully after PIN\n");
 
                         if (verify_result) {
                             print_ui("Authentication successful!\n\nFetching transactions...", version, (char *)card_id, user_name);
