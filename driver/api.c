@@ -518,9 +518,6 @@ int fetch_transactions(const char *card_id, const char *token, int *balance, Tra
     snprintf(url, sizeof(url), "%s/transactions", api_base_url);
     snprintf(auth_header, sizeof(auth_header), "Authorization: Bearer %s", token);
 
-    fprintf(stderr, "DEBUG: Fetching transactions from %s\n", url);
-    fprintf(stderr, "DEBUG: Token: %.50s...\n", token);
-
     curl = curl_easy_init();
     if (curl) {
         struct curl_slist *headers = NULL;
@@ -537,8 +534,6 @@ int fetch_transactions(const char *card_id, const char *token, int *balance, Tra
         if (res == CURLE_OK) {
             long response_code;
             curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &response_code);
-
-            fprintf(stderr, "DEBUG: Transactions response (HTTP %ld): %s\n", response_code, chunk.memory);
 
             if (response_code == 200) {
                 *transaction_count = 0;
@@ -669,7 +664,6 @@ int fetch_transactions(const char *card_id, const char *token, int *balance, Tra
     free(chunk.memory);
 
     if (user_id[0] == '\0') {
-        fprintf(stderr, "DEBUG: Failed to fetch user ID\n");
         *balance = 0;
         return 1;  // Still return success for transactions
     }
@@ -679,8 +673,6 @@ int fetch_transactions(const char *card_id, const char *token, int *balance, Tra
     chunk.size = 0;
 
     snprintf(url, sizeof(url), "%s/user/%s/balance", api_base_url, user_id);
-
-    fprintf(stderr, "DEBUG: Fetching balance from %s\n", url);
 
     curl = curl_easy_init();
     if (curl) {
@@ -699,23 +691,17 @@ int fetch_transactions(const char *card_id, const char *token, int *balance, Tra
             long response_code;
             curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &response_code);
 
-            fprintf(stderr, "DEBUG: Balance response (HTTP %ld): %s\n", response_code, chunk.memory);
-
             if (response_code == 200) {
                 char *balance_start = strstr(chunk.memory, "\"balance\":");
                 if (balance_start) {
                     *balance = atoi(balance_start + 10);
-                    fprintf(stderr, "DEBUG: Parsed balance: %d\n", *balance);
                 } else {
-                    fprintf(stderr, "DEBUG: No balance field found in response\n");
                     *balance = 0;
                 }
             } else {
-                fprintf(stderr, "DEBUG: Balance request failed with HTTP %ld\n", response_code);
                 *balance = 0;
             }
         } else {
-            fprintf(stderr, "DEBUG: Balance request CURL error: %s\n", curl_easy_strerror(res));
             *balance = 0;
         }
 
