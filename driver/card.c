@@ -285,38 +285,28 @@ int sign_challenge_on_card(const unsigned char *challenge, unsigned char *signat
     }
 
     responseLen = sizeof(response);
-    fprintf(stderr, "DEBUG: Step 1: Setting challenge %02x%02x%02x%02x\n",
-            challenge[0], challenge[1], challenge[2], challenge[3]);
     rv = SCardTransmit(hCard, &pioSendPci, cmd_set_challenge, 9,
                       NULL, response, &responseLen);
 
     if (rv != SCARD_S_SUCCESS) {
-        fprintf(stderr, "DEBUG: Set challenge failed: 0x%08lX\n", rv);
         return 0;
     }
 
     if (responseLen < 2 || response[responseLen - 2] != 0x90) {
-        fprintf(stderr, "DEBUG: Set challenge error SW1=0x%02X SW2=0x%02X\n",
-                response[responseLen - 2], response[responseLen - 1]);
         return 0;
     }
 
     responseLen = sizeof(response);
-    fprintf(stderr, "DEBUG: Step 2: Getting signature\n");
     rv = SCardTransmit(hCard, &pioSendPci, cmd_get_signature, 5,
                       NULL, response, &responseLen);
 
     if (rv != SCARD_S_SUCCESS) {
-        fprintf(stderr, "DEBUG: Get signature failed: 0x%08lX\n", rv);
         return 0;
     }
 
     if (responseLen < 2) {
-        fprintf(stderr, "DEBUG: responseLen too short: %lu\n", responseLen);
         return 0;
     }
-
-    fprintf(stderr, "DEBUG: Card response SW1=0x%02X SW2=0x%02X responseLen=%lu\n", response[responseLen - 2], response[responseLen - 1], responseLen);
 
     if (response[responseLen - 2] != 0x90) {
         return 0;
@@ -326,12 +316,9 @@ int sign_challenge_on_card(const unsigned char *challenge, unsigned char *signat
     if (sig_len == 4) {
         memcpy(signature, response, sig_len);
         *signature_len = sig_len;
-        fprintf(stderr, "DEBUG: Signature bytes: %02x%02x%02x%02x\n",
-                signature[0], signature[1], signature[2], signature[3]);
         return 1;
     }
 
-    fprintf(stderr, "DEBUG: Unexpected signature length: %d\n", sig_len);
     return 0;
 }
 

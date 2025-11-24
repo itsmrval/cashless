@@ -337,21 +337,11 @@ int main(int argc, char *argv[])
                                 continue;
                             }
 
-                            fprintf(stderr, "DEBUG: Challenge from API: %s\n", challenge);
-
-                            fprintf(stderr, "DEBUG: Calling write_pin\n");
-                            if (write_pin_to_card("1234")) {
-                                fprintf(stderr, "DEBUG: write_pin OK\n");
-                            } else {
-                                fprintf(stderr, "DEBUG: write_pin FAILED\n");
-                            }
-
                             unsigned char challenge_bytes[4];
                             for (size_t i = 0; i < 4; i++) {
                                 sscanf(challenge + 2*i, "%2hhx", &challenge_bytes[i]);
                             }
 
-                            fprintf(stderr, "DEBUG: Calling sign_challenge_on_card\n");
                             unsigned char signature[256];
                             size_t signature_len = 0;
                             if (!sign_challenge_on_card(challenge_bytes, signature, &signature_len)) {
