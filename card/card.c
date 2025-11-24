@@ -347,23 +347,23 @@ void write_private_key_chunk()
 void sign_challenge()
 {
     int i;
-    uint8_t challenge[32];
+    uint8_t challenge[4];
     sha256_hash_t hash;
     sha256_ctx_t sha_ctx;
 
-    if (p3 != 32) {
+    if (p3 != 4) {
         sw1 = 0x6c;
-        sw2 = 32;
+        sw2 = 4;
         return;
     }
 
     sendbytet0(ins);
-    for (i = 0; i < 32; i++) {
+    for (i = 0; i < 4; i++) {
         challenge[i] = recbytet0();
     }
 
     sha256_init(&sha_ctx);
-    sha256_lastBlock(&sha_ctx, challenge, 256);
+    sha256_lastBlock(&sha_ctx, challenge, 32);
     sha256_ctx2hash(&hash, &sha_ctx);
 
     uint16_t key_size = ((uint16_t)eeprom_read_byte((uint8_t*)EEPROM_PRIVATE_KEY_SIZE_ADDR) << 8) |

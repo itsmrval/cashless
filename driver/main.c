@@ -320,14 +320,10 @@ int main(int argc, char *argv[])
                         BYTE remaining_attempts;
                         int verify_result = verify_pin_on_card(pin, &remaining_attempts);
 
-                        // DEBUG: Try fresh connect after PIN (like original)
-                        fprintf(stderr, "DEBUG: PIN verify done, result=%d, trying connect\n", verify_result);
                         if (!connect_card()) {
-                            fprintf(stderr, "DEBUG: Connect failed after PIN\n");
                             card_present = 0;
                             continue;
                         }
-                        fprintf(stderr, "DEBUG: Connected successfully after PIN\n");
 
                         if (verify_result) {
                             print_ui("Authentication successful!\n\nFetching transactions...", version, (char *)card_id, user_name);
@@ -341,39 +337,13 @@ int main(int argc, char *argv[])
                                 continue;
                             }
 
-                            // DEBUG: Print received challenge
-                            fprintf(stderr, "DEBUG: Received challenge from API: %s (len=%zu)\n", challenge, strlen(challenge));
-
-                            unsigned char challenge_bytes[64];
-                            size_t challenge_len = strlen(challenge) / 2;
-                            for (size_t i = 0; i < challenge_len; i++) {
+                            unsigned char challenge_bytes[4];
+                            for (size_t i = 0; i < 4; i++) {
                                 sscanf(challenge + 2*i, "%2hhx", &challenge_bytes[i]);
-                            }
-
-                            // DEBUG: Print challenge length
-                            fprintf(stderr, "DEBUG: challenge_len=%zu (should be 32)\n", challenge_len);
-
-                            // DEBUG: Check if card is still present
-                            fprintf(stderr, "DEBUG: Checking if card is still connected before signing...\n");
-                            if (!is_card_present()) {
-                                fprintf(stderr, "DEBUG: Card is NOT present before signing!\n");
-                                print_ui("Error: Card disconnected\n\nPlease remove your card.", version, (char *)card_id, user_name);
-                                card_present = 0;
-                                continue;
-                            }
-                            fprintf(stderr, "DEBUG: Card is present, proceeding to sign\n");
-
-                            // DEBUG: Try write_pin first to test if data commands work
-                            fprintf(stderr, "DEBUG: Testing write_pin_to_card with dummy PIN\n");
-                            if (write_pin_to_card("9999")) {
-                                fprintf(stderr, "DEBUG: write_pin SUCCESS - data commands work!\n");
-                            } else {
-                                fprintf(stderr, "DEBUG: write_pin FAILED - data commands broken!\n");
                             }
 
                             unsigned char signature[256];
                             size_t signature_len = 0;
-                            fprintf(stderr, "DEBUG: About to call sign_challenge_on_card\n");
                             if (!sign_challenge_on_card(challenge_bytes, signature, &signature_len)) {
                                 print_ui("Error: Failed to sign challenge on card\n\nPlease remove your card.", version, (char *)card_id, user_name);
                                 card_present = 1;

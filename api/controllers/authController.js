@@ -112,7 +112,7 @@ const getChallenge = async (req, res) => {
       return res.status(403).json({ error: 'Card has no public key registered' });
     }
 
-    const challenge = crypto.randomBytes(32).toString('hex');
+    const challenge = crypto.randomBytes(4).toString('hex');
 
     await Challenge.create({ challenge, card_id });
 

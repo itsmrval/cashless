@@ -69,12 +69,11 @@ int reconnect_card()
         return 1;
     }
 
-    // DEBUG: Use SCardReconnect instead of disconnect/connect to avoid sharing violation
-    fprintf(stderr, "DEBUG: reconnect_card - using SCardReconnect\n");
-    rv = SCardReconnect(hCard, SCARD_SHARE_EXCLUSIVE,
-                       SCARD_PROTOCOL_T0 | SCARD_PROTOCOL_T1,
-                       SCARD_RESET_CARD, &dwActiveProtocol);
-    fprintf(stderr, "DEBUG: Reconnected with protocol: %lu, rv=0x%08lX\n", dwActiveProtocol, rv);
+    disconnect_card();
+
+    rv = SCardConnect(hContext, readers, SCARD_SHARE_EXCLUSIVE,
+                     SCARD_PROTOCOL_T0 | SCARD_PROTOCOL_T1,
+                     &hCard, &dwActiveProtocol);
 
     return (rv == SCARD_S_SUCCESS);
 }
@@ -270,12 +269,8 @@ int verify_puk_on_card(const char *puk, const char *new_pin, BYTE *remaining_att
 
 int sign_challenge_on_card(const unsigned char *challenge, unsigned char *signature, size_t *signature_len)
 {
-    // DEBUG TEST: Find exact size limit - try different sizes
     LONG rv;
-    int test_size = 24;  // Test with 24 bytes
-    BYTE cmd_sign[5 + 32] = {0x80, 0x0B, 0x00, 0x00, 0};
-    cmd_sign[4] = test_size;  // Set Lc
-    fprintf(stderr, "DEBUG: TEST - trying INS 0x0B with %d bytes data\n", test_size);
+    BYTE cmd_sign[5 + 4] = {0x80, 0x0B, 0x00, 0x00, 4};
     BYTE response[258];
     DWORD responseLen;
     SCARD_IO_REQUEST pioSendPci;
@@ -284,34 +279,19 @@ int sign_challenge_on_card(const unsigned char *challenge, unsigned char *signat
     pioSendPci.dwProtocol = dwActiveProtocol;
     pioSendPci.cbPciLength = sizeof(SCARD_IO_REQUEST);
 
-    for (i = 0; i < test_size; i++) {
+    for (i = 0; i < 4; i++) {
         cmd_sign[5 + i] = challenge[i];
     }
 
     responseLen = sizeof(response);
-
-    int total_size = 5 + test_size;
-    fprintf(stderr, "DEBUG: Calling SCardTransmit, total command size=%d\n", total_size);
-    rv = SCardTransmit(hCard, &pioSendPci, cmd_sign, total_size,
+    rv = SCardTransmit(hCard, &pioSendPci, cmd_sign, sizeof(cmd_sign),
                       NULL, response, &responseLen);
 
-    // DEBUG: Check if SCardTransmit succeeded
-    if (rv != SCARD_S_SUCCESS) {
-        fprintf(stderr, "DEBUG: sign_challenge - SCardTransmit failed: 0x%08lX\n", rv);
+    if (rv != SCARD_S_SUCCESS || responseLen < 2) {
         return 0;
     }
-
-    if (responseLen < 2) {
-        fprintf(stderr, "DEBUG: sign_challenge - responseLen too short: %lu\n", responseLen);
-        return 0;
-    }
-
-    // DEBUG: Print status word from card
-    fprintf(stderr, "DEBUG: sign_challenge - card response SW1=0x%02X SW2=0x%02X (responseLen=%lu)\n",
-            response[responseLen - 2], response[responseLen - 1], responseLen);
 
     if (response[responseLen - 2] != 0x90) {
-        fprintf(stderr, "DEBUG: sign_challenge - card returned error status\n");
         return 0;
     }
 
