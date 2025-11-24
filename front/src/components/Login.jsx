@@ -1,27 +1,26 @@
 import React, { useState } from 'react';
-import { api } from '../api';
+import { useAuth } from '../contexts/AuthContext';
 import { User, Lock, Loader2, AlertCircle } from 'lucide-react';
 
-function Login({ onLogin }) {
+// Il ne reçoit plus de props
+function Login() {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
-  const [error, setError] = useState('');
-  const [loading, setLoading] = useState(false);
+  const [localError, setLocalError] = useState(''); // Pour les erreurs API
+
+  // Utiliser le contexte
+  const { login, isLoading } = useAuth(); // isLoading global de AuthContext
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setError('');
-    setLoading(true);
+    setLocalError(''); // Réinitialiser l'erreur locale
     try {
-      const data = await api.login(username.trim(), password);
-      onLogin(data.card, data.user);
-      
-     
-
+      // Appelle la fonction login du contexte
+      await login(username.trim(), password);
+      // La redirection est gérée dans le contexte !
     } catch (err) {
-      setError(err.message || 'Erreur lors de la connexion');
-    } finally {
-      setLoading(false);
+      // Attrape l'erreur si l'API échoue
+      setLocalError(err.message || 'Erreur lors de la connexion');
     }
   };
 
@@ -52,7 +51,7 @@ function Login({ onLogin }) {
             className="w-full pl-10 pr-4 py-3 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition"
             placeholder="votre.nom (ex: demo)"
             required
-            disabled={loading}
+            disabled={isLoading}
             autoComplete="username"
           />
         </div>
@@ -75,27 +74,27 @@ function Login({ onLogin }) {
             className="w-full pl-10 pr-4 py-3 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition"
             placeholder="•••••••• (ex: 123)"
             required
-            disabled={loading}
+            disabled={isLoading}
             autoComplete="current-password"
           />
         </div>
       </div>
 
       {/* --- Message d'Erreur --- */}
-      {error && (
+      {localError && (
         <div className="flex items-center gap-2 bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm">
           <AlertCircle className="h-5 w-5 flex-shrink-0" />
-          <span>{error}</span>
+          <span>{localError}</span>
         </div>
       )}
 
       {/* --- Bouton de Connexion --- */}
       <button
         type="submit"
-        disabled={loading}
+        disabled={isLoading} // Utilise isLoading du contexte
         className="w-full flex justify-center items-center bg-blue-600 text-white py-3 rounded-lg font-semibold hover:bg-blue-700 transition disabled:bg-slate-400 disabled:cursor-not-allowed shadow-md shadow-blue-500/20 hover:shadow-lg hover:shadow-blue-500/30"
       >
-        {loading ? (
+        {isLoading ? ( // Utilise isLoading du contexte
           <Loader2 className="h-5 w-5 animate-spin" />
         ) : (
           'Se connecter'

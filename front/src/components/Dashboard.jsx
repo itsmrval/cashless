@@ -1,35 +1,34 @@
+// src/components/Dashboard.jsx
 import React, { useState } from 'react';
-import AccountOverview from './dashboard/AccountOverview';
-import TransactionsList from './dashboard/TransactionsList';
-import CardManagement from './dashboard/CardManagement';
-import MainLayout from './layout/MainLayout';
+import { useAuth } from '../contexts/AuthContext'; // Importez useAuth
+import AccountOverview from './AccountOverview';
+import TransactionsList from './TransactionsList';
+import CardManagement from './CardManagement';
+import MainLayout from './MainLayout';
 
-/*
- * NOTE: 
- * Son unique rôle est de gérer l'onglet actif et de fournir les données
- * au MainLayout et aux composants enfants.
- */
-function Dashboard({ cardData, userData, onCardUpdate }) {
+function Dashboard() {
   const [activeTab, setActiveTab] = useState('overview');
+  // Récupérer les données directement du contexte !
+  const { user, card, updateCardData } = useAuth();
 
   return (
     <MainLayout
-      userName={userData?.name}
+      userName={user?.name}
       activeTab={activeTab}
       setActiveTab={setActiveTab}
     >
       {/* Le contenu de l'onglet actif est affiché ici par MainLayout */}
       {activeTab === 'overview' && (
-        <AccountOverview cardData={cardData} userData={userData} />
+        <AccountOverview cardData={card} userData={user} />
       )}
       {activeTab === 'transactions' && (
-        <TransactionsList cardId={cardData?._id} />
+        <TransactionsList cardId={card?._id} />
       )}
       {activeTab === 'card' && (
         <CardManagement 
-          cardData={cardData} 
-          userData={userData} 
-          onCardUpdate={onCardUpdate}
+          cardData={card} 
+          userData={user} 
+          onCardUpdate={updateCardData} // Utilise la fonction du contexte
         />
       )}
     </MainLayout>
