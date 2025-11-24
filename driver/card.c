@@ -269,14 +269,23 @@ int verify_puk_on_card(const char *puk, const char *new_pin, BYTE *remaining_att
 
 int sign_challenge_on_card(const unsigned char *challenge, unsigned char *signature, size_t *signature_len)
 {
-    BYTE command[5 + 32] = {0x80, 0x0B, 0x00, 0x00, 0x20};
-    memcpy(command + 5, challenge, 32);
-
+    LONG rv;
+    BYTE cmd_sign[5 + 4] = {0x80, 0x0B, 0x00, 0x00, 4};
     BYTE response[258];
-    DWORD responseLen = sizeof(response);
+    DWORD responseLen;
+    SCARD_IO_REQUEST pioSendPci;
+    int i;
 
-    LONG rv = SCardTransmit(hCard, SCARD_PCI_T0, command, sizeof(command),
-                           NULL, response, &responseLen);
+    pioSendPci.dwProtocol = dwActiveProtocol;
+    pioSendPci.cbPciLength = sizeof(SCARD_IO_REQUEST);
+
+    for (i = 0; i < 4; i++) {
+        cmd_sign[5 + i] = challenge[i];
+    }
+
+    responseLen = sizeof(response);
+    rv = SCardTransmit(hCard, &pioSendPci, cmd_sign, sizeof(cmd_sign),
+                      NULL, response, &responseLen);
 
     if (rv != SCARD_S_SUCCESS || responseLen < 2) {
         return 0;

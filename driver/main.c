@@ -329,7 +329,38 @@ int main(int argc, char *argv[])
                             print_ui("Authentication successful!\n\nFetching transactions...", version, (char *)card_id, user_name);
 
                             char user_token[512];
-                            if (!api_card_login((char *)card_id, pin, user_token, sizeof(user_token))) {
+                            char challenge[128];
+
+                            if (!api_get_challenge((char *)card_id, challenge, sizeof(challenge))) {
+                                print_ui("Error: Failed to get challenge from API\n\nPlease remove your card.", version, (char *)card_id, user_name);
+                                card_present = 1;
+                                continue;
+                            }
+
+                            unsigned char challenge_bytes[4];
+                            for (size_t i = 0; i < 4; i++) {
+                                sscanf(challenge + 2*i, "%2hhx", &challenge_bytes[i]);
+                            }
+
+                            unsigned char signature[256];
+                            size_t signature_len = 0;
+                            if (!sign_challenge_on_card(challenge_bytes, signature, &signature_len)) {
+                                print_ui("Error: Failed to sign challenge on card\n\nPlease remove your card.", version, (char *)card_id, user_name);
+                                card_present = 1;
+                                continue;
+                            }
+
+                            if (!reconnect_card()) {
+                                if (!connect_card()) {
+                                    card_present = 0;
+                                    continue;
+                                }
+                                print_ui("Error: Failed to reconnect to card\n\nPlease remove your card.", version, (char *)card_id, user_name);
+                                card_present = 1;
+                                continue;
+                            }
+
+                            if (!api_card_auth_with_signature((char *)card_id, challenge, signature, signature_len, user_token, sizeof(user_token))) {
                                 print_ui("Error: Failed to authenticate with API\n\nPlease remove your card.", version, (char *)card_id, user_name);
                                 card_present = 1;
                                 continue;
