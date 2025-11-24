@@ -1,13 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { api } from '../../api/api';
-import { 
-  CreditCard, 
-  Plus, 
-  RefreshCw, 
-  Loader2, 
-  AlertCircle, 
-  CheckCircle, 
-  Edit2, 
+import {
+  CreditCard,
+  Plus,
+  RefreshCw,
+  Loader2,
+  AlertCircle,
+  CheckCircle,
+  Edit2,
   Trash2,
   UserCheck,
   UserX,
@@ -15,8 +15,7 @@ import {
   Eye,
   Search,
   Filter,
-  Key,
-  Shield
+  Key
 } from 'lucide-react';
 
 export default function AdminCardManagement() {
@@ -150,7 +149,7 @@ export default function AdminCardManagement() {
       case 'active': return 'bg-emerald-50 text-emerald-700 border-emerald-200';
       case 'inactive': return 'bg-red-50 text-red-700 border-red-200';
       case 'waiting_activation': return 'bg-amber-50 text-amber-700 border-amber-200';
-      case 'pin_missing': return 'bg-orange-50 text-orange-700 border-orange-200';
+      case 'blocked': return 'bg-orange-50 text-orange-700 border-orange-200';
       default: return 'bg-slate-50 text-slate-700 border-slate-200';
     }
   };
@@ -160,7 +159,7 @@ export default function AdminCardManagement() {
       case 'active': return 'Active';
       case 'inactive': return 'Inactive';
       case 'waiting_activation': return 'En attente';
-      case 'pin_missing': return 'PIN manquant';
+      case 'blocked': return 'Bloquée';
       default: return status;
     }
   };
@@ -182,7 +181,7 @@ export default function AdminCardManagement() {
     active: cards.filter(c => c.status === 'active').length,
     inactive: cards.filter(c => c.status === 'inactive').length,
     waiting_activation: cards.filter(c => c.status === 'waiting_activation').length,
-    pin_missing: cards.filter(c => c.status === 'pin_missing').length,
+    blocked: cards.filter(c => c.status === 'blocked').length,
   };
 
   if (loading) {
@@ -354,14 +353,14 @@ export default function AdminCardManagement() {
                 En attente ({statusCounts.waiting_activation})
               </button>
               <button
-                onClick={() => setStatusFilter('pin_missing')}
+                onClick={() => setStatusFilter('blocked')}
                 className={`px-4 py-2 rounded-xl font-medium text-sm whitespace-nowrap transition-all ${
-                  statusFilter === 'pin_missing'
+                  statusFilter === 'blocked'
                     ? 'bg-orange-600 text-white shadow-lg'
                     : 'bg-white text-slate-600 hover:bg-slate-50 border border-slate-200'
                 }`}
               >
-                PIN manquant ({statusCounts.pin_missing})
+                Bloquées ({statusCounts.blocked})
               </button>
               <button
                 onClick={() => setStatusFilter('inactive')}
@@ -401,8 +400,8 @@ export default function AdminCardManagement() {
                   
                   <div className="space-y-1">
                     <p className="text-[10px] text-slate-400 uppercase tracking-wider">Numéro de carte</p>
-                    <p className="font-mono text-sm text-white tracking-wider">
-                      •••• {card._id.substring(card._id.length - 4)}
+                    <p className="font-mono text-xs text-white tracking-wider break-all">
+                      {card._id}
                     </p>
                   </div>
                 </div>
@@ -437,22 +436,15 @@ export default function AdminCardManagement() {
                 )}
 
                 {/* Security Info */}
-                <div className="grid grid-cols-2 gap-2">
+                {card.puk && (
                   <div className="bg-slate-50 rounded-lg p-2">
                     <div className="flex items-center gap-1 mb-0.5">
                       <Key className="h-3 w-3 text-slate-500" />
                       <p className="text-[10px] text-slate-500 font-medium">PUK</p>
                     </div>
-                    <p className="text-xs font-mono font-bold text-slate-900">{card.puk || '-'}</p>
+                    <p className="text-xs font-mono font-bold text-slate-900">{card.puk}</p>
                   </div>
-                  <div className="bg-slate-50 rounded-lg p-2">
-                    <div className="flex items-center gap-1 mb-0.5">
-                      <Shield className="h-3 w-3 text-slate-500" />
-                      <p className="text-[10px] text-slate-500 font-medium">PIN</p>
-                    </div>
-                    <p className="text-xs font-mono font-bold text-slate-900">{card.pin || '-'}</p>
-                  </div>
-                </div>
+                )}
 
                 {/* Public Key */}
                 {card.public_key && (
@@ -583,7 +575,7 @@ export default function AdminCardManagement() {
                     <option value="waiting_activation">En attente</option>
                     <option value="active">Active</option>
                     <option value="inactive">Inactive</option>
-                    <option value="pin_missing">PIN Manquant</option>
+                    <option value="blocked">Bloquée</option>
                   </select>
                 </div>
               )}

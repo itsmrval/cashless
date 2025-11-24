@@ -11,7 +11,8 @@ import {
   LogOut,
   Settings,
   Menu,
-  X
+  X,
+  ArrowLeft
 } from 'lucide-react';
 
 function AdminSidebar() {
@@ -89,6 +90,14 @@ function AdminSidebar() {
 
         {/* Footer */}
         <div className="p-4 border-t border-slate-700 space-y-2">
+          <Link
+            to="/"
+            onClick={() => setMobileMenuOpen(false)}
+            className="flex items-center gap-3 w-full px-4 py-3 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white transition-colors shadow-lg"
+          >
+            <ArrowLeft className="h-5 w-5" />
+            <span className="font-medium">Retour Utilisateur</span>
+          </Link>
           <button
             onClick={() => {
               setIsSettingsOpen(true);

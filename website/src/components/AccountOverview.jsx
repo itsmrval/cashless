@@ -145,20 +145,16 @@ function AccountOverview({ cardData, userData, loading }) {
               </span>
             </div>
 
-            <div className="grid grid-cols-2 gap-4 pt-2 border-t border-slate-50">
-              <div className="flex flex-col">
-                <span className="text-xs text-slate-400 uppercase tracking-wide mb-1">Code PUK</span>
-                <span className="text-slate-800 font-mono font-bold text-sm bg-slate-50 px-2 py-1 rounded border border-slate-100 w-fit">
-                  {cardData?.puk || 'N/A'}
-                </span>
+            {cardData?.puk && (
+              <div className="pt-2 border-t border-slate-50">
+                <div className="flex flex-col">
+                  <span className="text-xs text-slate-400 uppercase tracking-wide mb-1">Code PUK</span>
+                  <span className="text-slate-800 font-mono font-bold text-sm bg-slate-50 px-2 py-1 rounded border border-slate-100 w-fit">
+                    {cardData.puk}
+                  </span>
+                </div>
               </div>
-              <div className="flex flex-col">
-                <span className="text-xs text-slate-400 uppercase tracking-wide mb-1">Code PIN</span>
-                <span className="text-slate-800 font-mono font-bold text-sm bg-slate-50 px-2 py-1 rounded border border-slate-100 w-fit">
-                  {cardData?.pin || '****'}
-                </span>
-              </div>
-            </div>
+            )}
           </div>
         </div>
 
