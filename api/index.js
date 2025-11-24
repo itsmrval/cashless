@@ -22,12 +22,9 @@ mongoose.connect(MONGO_URI)
 
     const userCount = await User.countDocuments();
     if (userCount === 0) {
-      const defaultPassword = 'admin';
-      const hashedPassword = await bcrypt.hash(defaultPassword, 10);
-
       const adminUser = new User({
         username: 'admin',
-        password: hashedPassword,
+        password: 'admin',
         name: 'Administrator',
         role: 'admin'
       });
