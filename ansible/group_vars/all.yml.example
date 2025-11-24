@@ -1,7 +1,7 @@
 ---
-api_url: "http://127.0.0.1:2223"
+api_url: "https://api.cashless.iut.valentinp.fr"
 api_username: "admin"
 api_password: "admin"
-card_folder: "../card"
-assign_folder: "../assign"
+card_folder: "../card_software"
+assign_folder: "../assignator"
 card_comment: ""
