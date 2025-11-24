@@ -518,6 +518,9 @@ int fetch_transactions(const char *card_id, const char *token, int *balance, Tra
     snprintf(url, sizeof(url), "%s/transactions", api_base_url);
     snprintf(auth_header, sizeof(auth_header), "Authorization: Bearer %s", token);
 
+    fprintf(stderr, "DEBUG: Fetching transactions from %s\n", url);
+    fprintf(stderr, "DEBUG: Token: %.50s...\n", token);
+
     curl = curl_easy_init();
     if (curl) {
         struct curl_slist *headers = NULL;
@@ -534,6 +537,8 @@ int fetch_transactions(const char *card_id, const char *token, int *balance, Tra
         if (res == CURLE_OK) {
             long response_code;
             curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &response_code);
+
+            fprintf(stderr, "DEBUG: Transactions response (HTTP %ld): %s\n", response_code, chunk.memory);
 
             if (response_code == 200) {
                 char *balance_start = strstr(chunk.memory, "\"balance\":");
