@@ -3,6 +3,21 @@ import React, { createContext, useContext, useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { api } from '../api/api'; // Assurez-vous que le chemin vers votre API est correct
 
+const normalizeUser = (userData) => {
+  if (!userData) return null;
+  const normalizedId = userData.id || userData._id || userData.userId || null;
+  if (!normalizedId) {
+    return { ...userData };
+  }
+
+  return {
+    ...userData,
+    id: userData.id || normalizedId,
+    _id: userData._id || normalizedId,
+    userId: userData.userId || normalizedId
+  };
+};
+
 // 1. Créer le contexte
 const AuthContext = createContext(null);
 
@@ -18,9 +33,20 @@ export function AuthProvider({ children }) {
     try {
       const storedUser = localStorage.getItem('cashless_user');
       const storedCard = localStorage.getItem('cashless_card');
-      if (storedUser && storedCard) {
-        setUser(JSON.parse(storedUser));
-        setCard(JSON.parse(storedCard));
+      const storedToken = localStorage.getItem('cashless_token');
+
+      if (storedUser && storedToken) {
+        const parsedUser = JSON.parse(storedUser);
+        const normalizedUser = normalizeUser(parsedUser);
+        setUser(normalizedUser);
+        localStorage.setItem('cashless_user', JSON.stringify(normalizedUser));
+        if (storedCard && storedCard !== 'undefined') {
+           setCard(JSON.parse(storedCard));
+        }
+      } else {
+        localStorage.removeItem('cashless_user');
+        localStorage.removeItem('cashless_card');
+        localStorage.removeItem('cashless_token');
       }
     } catch (error) {
       console.error("Impossible de réhydrater la session", error);
@@ -34,16 +60,26 @@ export function AuthProvider({ children }) {
   const login = async (username, password) => {
     const data = await api.login(username, password); // Laisse l'erreur se propager
     
+    console.log('Login data:', data); // Debug
+
+    const normalizedUser = normalizeUser(data.user);
+
     // Enregistrer l'état et dans localStorage
-    setUser(data.user);
+    setUser(normalizedUser);
     setCard(data.card);
-    localStorage.setItem('cashless_user', JSON.stringify(data.user));
+    localStorage.setItem('cashless_user', JSON.stringify(normalizedUser));
     localStorage.setItem('cashless_card', JSON.stringify(data.card));
+    // Token is already set by api.login
 
     // Redirection basée sur le rôle (votre objectif !)
-    if (data.user.role === 'admin') {
+    const userRole = normalizedUser?.role?.toLowerCase();
+    console.log('User role:', userRole); // Debug
+    
+    if (userRole === 'admin') {
+      console.log('Redirecting to /admin'); // Debug
       navigate('/admin');
     } else {
+      console.log('Redirecting to /'); // Debug
       navigate('/');
     }
   };
@@ -54,6 +90,7 @@ export function AuthProvider({ children }) {
     setCard(null);
     localStorage.removeItem('cashless_user');
     localStorage.removeItem('cashless_card');
+    localStorage.removeItem('cashless_token');
     navigate('/login');
   };
 
@@ -68,12 +105,19 @@ export function AuthProvider({ children }) {
     user,
     card,
     isAuthenticated: !!user,
-    isAdmin: user?.role === 'admin',
+    isAdmin: user?.role?.toLowerCase() === 'admin',
     isLoading, // Utile pour ne pas afficher le site avant de savoir si on est connecté
     login,
     logout,
     updateCardData, // Fournit la fonction pour mettre à jour la carte
   };
+
+  console.log('AuthContext value:', { 
+    user, 
+    isAuthenticated: !!user, 
+    isAdmin: user?.role?.toLowerCase() === 'admin',
+    role: user?.role 
+  }); // Debug
 
   // Ne rend rien tant que l'état initial n'est pas chargé
   if (isLoading) {

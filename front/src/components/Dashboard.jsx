@@ -1,15 +1,66 @@
 // src/components/Dashboard.jsx
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext'; // Importez useAuth
 import AccountOverview from './AccountOverview';
 import TransactionsList from './TransactionsList';
 import CardManagement from './CardManagement';
 import MainLayout from './MainLayout';
+import { api } from '../api/api';
 
 function Dashboard() {
   const [activeTab, setActiveTab] = useState('overview');
+  const [balance, setBalance] = useState(0);
+  const [transactions, setTransactions] = useState([]);
+  const [loading, setLoading] = useState(true);
   // Récupérer les données directement du contexte !
   const { user, card, updateCardData } = useAuth();
+
+  const userId = user?.id || user?._id || user?.userId || null;
+
+  useEffect(() => {
+    if (!userId) {
+      setLoading(false);
+      setBalance(0);
+      setTransactions([]);
+      return;
+    }
+    loadDashboardData(userId);
+  }, [userId]);
+
+  const normalizeId = (value) => {
+    if (!value) return null;
+    if (typeof value === 'object') {
+      return value._id || value.id || value.userId || value.toString?.() || null;
+    }
+    return String(value);
+  };
+
+  const loadDashboardData = async (currentUserId = userId) => {
+    if (!currentUserId) {
+      setLoading(false);
+      return;
+    }
+    setLoading(true);
+    try {
+      const [balanceData, transData] = await Promise.all([
+        api.getUserBalance(currentUserId).catch(() => ({ balance: 0 })),
+        api.getTransactions().catch(() => [])
+      ]);
+      setBalance(balanceData.balance || 0);
+      // Filter transactions for current user
+      const normalizedUserId = String(currentUserId);
+      const userTransactions = transData.filter(t => {
+        const sourceId = normalizeId(t.source_user_id);
+        const destinationId = normalizeId(t.destination_user_id);
+        return sourceId === normalizedUserId || destinationId === normalizedUserId;
+      });
+      setTransactions(userTransactions);
+    } catch (err) {
+      console.error('Error loading dashboard data:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <MainLayout
@@ -19,10 +70,19 @@ function Dashboard() {
     >
       {/* Le contenu de l'onglet actif est affiché ici par MainLayout */}
       {activeTab === 'overview' && (
-        <AccountOverview cardData={card} userData={user} />
+        <AccountOverview 
+          cardData={{ ...card, balance }} 
+          userData={user} 
+          loading={loading}
+        />
       )}
       {activeTab === 'transactions' && (
-        <TransactionsList cardId={card?._id} />
+        <TransactionsList 
+          transactions={transactions}
+          userId={userId}
+          loading={loading}
+          onRefresh={loadDashboardData}
+        />
       )}
       {activeTab === 'card' && (
         <CardManagement 

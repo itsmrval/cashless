@@ -19,6 +19,7 @@ import Dashboard from './components/Dashboard'; // Votre ancien Dashboard
 import AdminDashboard from './pages/admin/AdminDashboard';
 import AdminUserManagement from './components/AdminUserManagement';
 import AdminCardManagement from './pages/admin/AdminCardManagement';
+import AdminTransactions from './pages/admin/AdminTransactions';
 
 function App() {
   const { isAuthenticated } = useAuth();
@@ -45,6 +46,7 @@ function App() {
         <Route index element={<AdminDashboard />} />
         <Route path="users" element={<AdminUserManagement />} />
         <Route path="cards" element={<AdminCardManagement />} />
+        <Route path="transactions" element={<AdminTransactions />} />
       </Route>
 
       {/* Redirection par défaut si aucune route ne correspond */}

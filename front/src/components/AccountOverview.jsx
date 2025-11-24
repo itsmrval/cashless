@@ -1,13 +1,21 @@
 import React from 'react';
-import { CreditCard, User, Wallet, ShieldCheck, Wifi } from 'lucide-react';
+import { CreditCard, User, Wallet, ShieldCheck, Wifi, Loader2 } from 'lucide-react';
 
-function AccountOverview({ cardData, userData }) {
+function AccountOverview({ cardData, userData, loading }) {
   const balance = cardData?.balance || 0;
   
   // Fonction utilitaire pour formater l'argent
   const formatCurrency = (amount) => {
-    return new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR' }).format(amount);
+    return new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR' }).format(amount / 100);
   };
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-12">
+        <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
+      </div>
+    );
+  }
 
   return (
     <div className="max-w-5xl mx-auto p-4 space-y-8 font-sans">
