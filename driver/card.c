@@ -269,19 +269,21 @@ int verify_puk_on_card(const char *puk, const char *new_pin, BYTE *remaining_att
 
 int sign_challenge_on_card(const unsigned char *challenge, unsigned char *signature, size_t *signature_len)
 {
-    // Try Case 3 APDU (send data only): CLA INS P1 P2 Lc [data]
+    LONG rv;
     BYTE command[5 + 32] = {0x80, 0x0B, 0x00, 0x00, 0x20};
-    memcpy(command + 5, challenge, 32);
-
     BYTE response[258];
-    DWORD responseLen = sizeof(response);
+    DWORD responseLen;
+    SCARD_IO_REQUEST pioSendPci;
 
     // DEBUG: Print global state before setup
     fprintf(stderr, "DEBUG: sign_challenge - hCard=%p dwActiveProtocol=%lu\n", (void*)hCard, dwActiveProtocol);
 
-    SCARD_IO_REQUEST pioSendPci;
     pioSendPci.dwProtocol = dwActiveProtocol;
     pioSendPci.cbPciLength = sizeof(SCARD_IO_REQUEST);
+
+    memcpy(command + 5, challenge, 32);
+
+    responseLen = sizeof(response);
 
     // DEBUG: Print protocol and command details
     fprintf(stderr, "DEBUG: sign_challenge - pioSendPci.dwProtocol=%lu pioSendPci.cbPciLength=%lu\n",
@@ -292,8 +294,8 @@ int sign_challenge_on_card(const unsigned char *challenge, unsigned char *signat
     fprintf(stderr, "DEBUG: sign_challenge - first challenge bytes: %02X %02X %02X %02X\n",
             command[5], command[6], command[7], command[8]);
 
-    LONG rv = SCardTransmit(hCard, &pioSendPci, command, sizeof(command),
-                           NULL, response, &responseLen);
+    rv = SCardTransmit(hCard, &pioSendPci, command, sizeof(command),
+                      NULL, response, &responseLen);
 
     // DEBUG: Check if SCardTransmit succeeded
     if (rv != SCARD_S_SUCCESS) {
