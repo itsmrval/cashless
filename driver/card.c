@@ -275,6 +275,7 @@ int sign_challenge_on_card(const unsigned char *challenge, unsigned char *signat
     BYTE response[258];
     DWORD responseLen;
     SCARD_IO_REQUEST pioSendPci;
+    int i;
 
     // DEBUG: Print global state before setup
     fprintf(stderr, "DEBUG: sign_challenge - hCard=%p dwActiveProtocol=%lu\n", (void*)hCard, dwActiveProtocol);
@@ -282,7 +283,10 @@ int sign_challenge_on_card(const unsigned char *challenge, unsigned char *signat
     pioSendPci.dwProtocol = dwActiveProtocol;
     pioSendPci.cbPciLength = sizeof(SCARD_IO_REQUEST);
 
-    memcpy(command + 5, challenge, 32);
+    // Use loop like write_pin instead of memcpy
+    for (i = 0; i < 32; i++) {
+        command[5 + i] = challenge[i];
+    }
 
     responseLen = sizeof(response);
 
