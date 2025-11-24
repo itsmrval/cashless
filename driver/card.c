@@ -277,12 +277,22 @@ int sign_challenge_on_card(const unsigned char *challenge, unsigned char *signat
     BYTE response[258];
     DWORD responseLen = sizeof(response);
 
+    // DEBUG: Print global state before setup
+    fprintf(stderr, "DEBUG: sign_challenge - hCard=%p dwActiveProtocol=%lu\n", (void*)hCard, dwActiveProtocol);
+
     SCARD_IO_REQUEST pioSendPci;
     pioSendPci.dwProtocol = dwActiveProtocol;
     pioSendPci.cbPciLength = sizeof(SCARD_IO_REQUEST);
 
-    // DEBUG: Print protocol being used
-    fprintf(stderr, "DEBUG: sign_challenge - using protocol: %lu\n", dwActiveProtocol);
+    // DEBUG: Print protocol and command details
+    fprintf(stderr, "DEBUG: sign_challenge - pioSendPci.dwProtocol=%lu pioSendPci.cbPciLength=%lu\n",
+            pioSendPci.dwProtocol, pioSendPci.cbPciLength);
+    fprintf(stderr, "DEBUG: sign_challenge - command size: %zu\n", sizeof(command));
+    fprintf(stderr, "DEBUG: sign_challenge - command header: %02X %02X %02X %02X %02X\n",
+            command[0], command[1], command[2], command[3], command[4]);
+    fprintf(stderr, "DEBUG: sign_challenge - first challenge bytes: %02X %02X %02X %02X\n",
+            command[5], command[6], command[7], command[8]);
+    fprintf(stderr, "DEBUG: sign_challenge - Le byte: %02X\n", command[37]);
 
     LONG rv = SCardTransmit(hCard, &pioSendPci, command, sizeof(command),
                            NULL, response, &responseLen);
