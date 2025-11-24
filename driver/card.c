@@ -275,7 +275,11 @@ int sign_challenge_on_card(const unsigned char *challenge, unsigned char *signat
     BYTE response[258];
     DWORD responseLen = sizeof(response);
 
-    LONG rv = SCardTransmit(hCard, SCARD_PCI_T0, command, sizeof(command),
+    SCARD_IO_REQUEST pioSendPci;
+    pioSendPci.dwProtocol = dwActiveProtocol;
+    pioSendPci.cbPciLength = sizeof(SCARD_IO_REQUEST);
+
+    LONG rv = SCardTransmit(hCard, &pioSendPci, command, sizeof(command),
                            NULL, response, &responseLen);
 
     if (rv != SCARD_S_SUCCESS || responseLen < 2) {
