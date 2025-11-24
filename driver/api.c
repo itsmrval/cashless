@@ -550,8 +550,16 @@ int fetch_transactions(const char *card_id, const char *token, int *balance, Tra
                     while (*transaction_count < max_transactions) {
                         char *obj_start = strchr(trans_start, '{');
                         if (!obj_start) break;
-                        char *obj_end = strchr(obj_start, '}');
-                        if (!obj_end) break;
+
+                        // Find matching closing brace by counting nesting level
+                        char *obj_end = obj_start + 1;
+                        int brace_count = 1;
+                        while (*obj_end && brace_count > 0) {
+                            if (*obj_end == '{') brace_count++;
+                            else if (*obj_end == '}') brace_count--;
+                            if (brace_count > 0) obj_end++;
+                        }
+                        if (brace_count != 0) break;
 
                         char *operation_str = strstr(obj_start, "\"operation\":");
                         char *source_user_str = strstr(obj_start, "\"source_user\":");
