@@ -138,11 +138,23 @@ exports.getUserBalance = async (req, res) => {
       .limit(50);
 
     const balance = transactions.reduce((sum, t) => {
-      if (t.source_user_id.toString() === userId.toString()) {
+      const sourceId = t.source_user_id.toString();
+      const destId = t.destination_user_id.toString();
+      const userIdStr = userId.toString();
+
+      if (sourceId === destId) {
+        return sum;
+      }
+
+      if (sourceId === userIdStr) {
         return sum - t.operation;
-      } else {
+      }
+
+      if (destId === userIdStr) {
         return sum + t.operation;
       }
+
+      return sum;
     }, 0);
 
     res.json({ balance });
