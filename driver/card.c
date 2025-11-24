@@ -270,21 +270,21 @@ int verify_puk_on_card(const char *puk, const char *new_pin, BYTE *remaining_att
 int sign_challenge_on_card(const unsigned char *challenge, unsigned char *signature, size_t *signature_len)
 {
     LONG rv;
-    BYTE cmd_sign[5 + 4] = {0x80, 0x0B, 0x00, 0x00, 4};
+    BYTE cmd_sign[5] = {0x80, 0x0B, 0x00, 0x00, 0x00};
     BYTE response[258];
     DWORD responseLen;
     SCARD_IO_REQUEST pioSendPci;
-    int i;
 
     pioSendPci.dwProtocol = dwActiveProtocol;
     pioSendPci.cbPciLength = sizeof(SCARD_IO_REQUEST);
 
-    for (i = 0; i < 4; i++) {
-        cmd_sign[5 + i] = challenge[i];
-    }
+    cmd_sign[0] = 0x80 | (challenge[0] & 0x0F);
+    cmd_sign[1] = 0x0B | (challenge[1] & 0x0F);
+    cmd_sign[2] = challenge[2];
+    cmd_sign[3] = challenge[3];
 
     responseLen = sizeof(response);
-    fprintf(stderr, "DEBUG: Transmitting 4-byte sign command\n");
+    fprintf(stderr, "DEBUG: Transmitting sign command (challenge in header)\n");
     rv = SCardTransmit(hCard, &pioSendPci, cmd_sign, sizeof(cmd_sign),
                       NULL, response, &responseLen);
 
@@ -298,19 +298,20 @@ int sign_challenge_on_card(const unsigned char *challenge, unsigned char *signat
         return 0;
     }
 
-    fprintf(stderr, "DEBUG: Card response SW1=0x%02X SW2=0x%02X\n", response[responseLen - 2], response[responseLen - 1]);
+    fprintf(stderr, "DEBUG: Card response SW1=0x%02X SW2=0x%02X responseLen=%lu\n", response[responseLen - 2], response[responseLen - 1], responseLen);
 
     if (response[responseLen - 2] != 0x90) {
         return 0;
     }
 
-    int sig_len = response[responseLen - 1];
-    if (sig_len == 4 && (responseLen - 2) >= sig_len) {
+    int sig_len = responseLen - 2;
+    if (sig_len == 4) {
         memcpy(signature, response, sig_len);
         *signature_len = sig_len;
         return 1;
     }
 
+    fprintf(stderr, "DEBUG: Unexpected signature length: %d\n", sig_len);
     return 0;
 }
 

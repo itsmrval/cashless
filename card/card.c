@@ -348,16 +348,18 @@ void sign_challenge()
     uint8_t key[4];
     uint8_t signature[4];
 
-    if (p3 != 4) {
+    if (p3 != 0) {
         sw1 = 0x6c;
-        sw2 = 4;
+        sw2 = 0;
         return;
     }
 
+    challenge[0] = (cla & 0x0F);
+    challenge[1] = (ins & 0x0F);
+    challenge[2] = p1;
+    challenge[3] = p2;
+
     sendbytet0(ins);
-    for (i = 0; i < 4; i++) {
-        challenge[i] = recbytet0();
-    }
 
     uint16_t key_size = ((uint16_t)eeprom_read_byte((uint8_t*)EEPROM_PRIVATE_KEY_SIZE_ADDR) << 8) |
                         (uint16_t)eeprom_read_byte((uint8_t*)(EEPROM_PRIVATE_KEY_SIZE_ADDR + 1));
