@@ -113,6 +113,7 @@ The card communicates via PC/SC protocol with APDU commands:
 | `0x0A` | WRITE_PRIVATE_KEY_CHUNK | 1-65 bytes in | Write RSA private key chunk (index byte + up to 64 bytes data) |
 | `0x0B` | SIGN_CHALLENGE | 4 bytes out | Sign challenge with private key |
 | `0x0C` | SET_CHALLENGE | 4 bytes in | Set 4-byte challenge for signing |
+| `0x0D` | GET_REMAINING_ATTEMPTS | 2 bytes out | Query remaining PIN/PUK attempts without consuming them |
 
 ### Status Codes (SW1/SW2)
 

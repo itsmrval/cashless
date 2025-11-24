@@ -62,6 +62,7 @@ function App() {
         <Route path="transactions" element={<Dashboard />} />
         <Route path="beneficiaries" element={<Dashboard />} />
         <Route path="card" element={<Dashboard />} />
+        <Route path="settings" element={<Dashboard />} />
       </Route>
 
       {/* --- Routes Admin Protégées --- */}

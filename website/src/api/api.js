@@ -245,8 +245,11 @@ export const api = {
   },
 
   // Transactions
-  getTransactions: async () => {
-    const response = await fetch(`${API_BASE_URL}/v1/transactions`, { headers: getAuthHeaders() });
+  getTransactions: async (userId = null) => {
+    const url = userId
+      ? `${API_BASE_URL}/v1/transactions?userId=${userId}`
+      : `${API_BASE_URL}/v1/transactions`;
+    const response = await fetch(url, { headers: getAuthHeaders() });
     if (!response.ok) throw new Error("Erreur lors de la récupération des transactions");
     return response.json();
   },

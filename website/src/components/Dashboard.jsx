@@ -5,8 +5,8 @@ import AccountOverview from './AccountOverview';
 import TransactionsList from './TransactionsList';
 import CardManagement from './CardManagement';
 import BeneficiariesManager from './BeneficiariesManager';
+import Settings from './Settings';
 import MainLayout from './MainLayout';
-import SettingsModal from './SettingsModal';
 import { api } from '../api/api';
 
 function Dashboard() {
@@ -17,14 +17,13 @@ function Dashboard() {
   const getTabFromPath = (pathname) => {
     if (pathname === '/') return 'overview';
     const tab = pathname.substring(1);
-    return ['overview', 'transactions', 'beneficiaries', 'card'].includes(tab) ? tab : 'overview';
+    return ['overview', 'transactions', 'beneficiaries', 'card', 'settings'].includes(tab) ? tab : 'overview';
   };
 
   const [activeTab, setActiveTab] = useState(getTabFromPath(location.pathname));
   const [balance, setBalance] = useState(0);
   const [transactions, setTransactions] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
 
   const userId = user?.id || user?._id || user?.userId || null;
 
@@ -69,7 +68,7 @@ function Dashboard() {
           console.error('Failed to fetch balance:', err);
           return { balance: 0 };
         }),
-        api.getTransactions().catch(err => {
+        api.getTransactions(currentUserId).catch(err => {
           console.error('Failed to fetch transactions:', err);
           return [];
         })
@@ -84,48 +83,44 @@ function Dashboard() {
   };
 
   return (
-    <>
-      <MainLayout
-        userName={user?.name}
-        activeTab={activeTab}
-        setActiveTab={handleTabChange}
-        onSettingsClick={() => setIsSettingsOpen(true)}
-      >
-        {/* Le contenu de l'onglet actif est affiché ici par MainLayout */}
-        {activeTab === 'overview' && (
-          <AccountOverview
-            cardData={{ ...card, balance }}
-            userData={user}
-            loading={loading}
-          />
-        )}
-        {activeTab === 'transactions' && (
-          <TransactionsList
-            transactions={transactions}
-            userId={userId}
-            loading={loading}
-            onRefresh={loadDashboardData}
-          />
-        )}
-        {activeTab === 'beneficiaries' && (
-          <BeneficiariesManager />
-        )}
-        {activeTab === 'card' && (
-          <CardManagement
-            cardData={card}
-            userData={user}
-            onCardUpdate={updateCardData}
-          />
-        )}
-      </MainLayout>
-
-      <SettingsModal
-        isOpen={isSettingsOpen}
-        onClose={() => setIsSettingsOpen(false)}
-        user={user}
-        onUserUpdate={updateUserData}
-      />
-    </>
+    <MainLayout
+      userName={user?.name}
+      activeTab={activeTab}
+      setActiveTab={handleTabChange}
+    >
+      {/* Le contenu de l'onglet actif est affiché ici par MainLayout */}
+      {activeTab === 'overview' && (
+        <AccountOverview
+          cardData={{ ...card, balance }}
+          userData={user}
+          loading={loading}
+        />
+      )}
+      {activeTab === 'transactions' && (
+        <TransactionsList
+          transactions={transactions}
+          userId={userId}
+          loading={loading}
+          onRefresh={loadDashboardData}
+        />
+      )}
+      {activeTab === 'beneficiaries' && (
+        <BeneficiariesManager />
+      )}
+      {activeTab === 'card' && (
+        <CardManagement
+          cardData={card}
+          userData={user}
+          onCardUpdate={updateCardData}
+        />
+      )}
+      {activeTab === 'settings' && (
+        <Settings
+          user={user}
+          onUserUpdate={updateUserData}
+        />
+      )}
+    </MainLayout>
   );
 }
 

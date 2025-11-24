@@ -12,14 +12,15 @@ const navItems = [
   { id: 'transactions', label: 'Transactions', icon: ArrowLeftRight },
   { id: 'beneficiaries', label: 'Bénéficiaires', icon: Users },
   { id: 'card', label: 'Ma carte', icon: CreditCard },
+  { id: 'settings', label: 'Paramètres', icon: Settings },
 ];
 
-function Sidebar({ activeTab, setActiveTab, userName, onSettingsClick }) {
+function Sidebar({ activeTab, setActiveTab, userName }) {
   const userInitial = userName ? userName[0].toUpperCase() : 'U';
 
   return (
     <aside className="w-72 bg-white rounded-xl shadow-sm border border-slate-100 p-5 flex flex-col h-full">
-      
+
       {/* --- Section Utilisateur --- */}
       <div className="mb-8">
         <div className="flex items-center gap-3">
@@ -53,17 +54,6 @@ function Sidebar({ activeTab, setActiveTab, userName, onSettingsClick }) {
           );
         })}
       </nav>
-
-      {/* --- Section Paramètres (Poussée en bas) --- */}
-      <div className="mt-6 border-t border-slate-200 pt-4">
-        <button
-          onClick={onSettingsClick}
-          className="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-slate-600 font-medium hover:bg-slate-50 hover:text-slate-900 transition-colors"
-        >
-          <Settings size={20} className="text-slate-400" />
-          <span>Paramètres</span>
-        </button>
-      </div>
     </aside>
   );
 }

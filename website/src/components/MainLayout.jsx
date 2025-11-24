@@ -5,7 +5,7 @@ import Sidebar from './Sidebar';
  * NOTE: C'est un pur composant de layout.
  * - Il crée simplement la grille Sidebar + Contenu.
  */
-export default function MainLayout({ children, userName, activeTab, setActiveTab, onSettingsClick }) {
+export default function MainLayout({ children, userName, activeTab, setActiveTab }) {
   return (
     /* * Cette grille est placée à l'intérieur de la balise <main> de App.jsx
      * et s'adapte aux écrans mobiles (lg:grid-cols-12)
@@ -18,7 +18,6 @@ export default function MainLayout({ children, userName, activeTab, setActiveTab
           activeTab={activeTab}
           setActiveTab={setActiveTab}
           userName={userName}
-          onSettingsClick={onSettingsClick}
         />
       </div>
 
