@@ -101,6 +101,13 @@ export function AuthProvider({ children }) {
     localStorage.setItem('cashless_card', JSON.stringify(newCardData));
   };
 
+  // Fonction pour mettre à jour les données utilisateur
+  const updateUserData = (newUserData) => {
+    const normalizedUser = normalizeUser(newUserData);
+    setUser(normalizedUser);
+    localStorage.setItem('cashless_user', JSON.stringify(normalizedUser));
+  };
+
   // Rendre le contexte disponible pour les enfants
   const value = {
     user,
@@ -111,6 +118,7 @@ export function AuthProvider({ children }) {
     login,
     logout,
     updateCardData, // Fournit la fonction pour mettre à jour la carte
+    updateUserData, // Fournit la fonction pour mettre à jour l'utilisateur
   };
 
   console.log('AuthContext value:', { 

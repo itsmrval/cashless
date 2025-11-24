@@ -2,20 +2,23 @@
 import React from 'react';
 import { Outlet, Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
-import { 
-  LayoutDashboard, 
-  Users, 
-  CreditCard, 
-  TrendingUp, 
+import SettingsModal from '../components/SettingsModal';
+import {
+  LayoutDashboard,
+  Users,
+  CreditCard,
+  TrendingUp,
   LogOut,
+  Settings,
   Menu,
   X
 } from 'lucide-react';
 
 function AdminSidebar() {
-  const { logout, user } = useAuth();
+  const { logout, user, updateUserData } = useAuth();
   const location = useLocation();
   const [mobileMenuOpen, setMobileMenuOpen] = React.useState(false);
+  const [isSettingsOpen, setIsSettingsOpen] = React.useState(false);
 
   const navItems = [
     { path: '/admin', label: 'Dashboard', icon: LayoutDashboard, exact: true },
@@ -85,7 +88,17 @@ function AdminSidebar() {
         </nav>
 
         {/* Footer */}
-        <div className="p-4 border-t border-slate-700">
+        <div className="p-4 border-t border-slate-700 space-y-2">
+          <button
+            onClick={() => {
+              setIsSettingsOpen(true);
+              setMobileMenuOpen(false);
+            }}
+            className="flex items-center gap-3 w-full px-4 py-3 rounded-lg bg-slate-700 hover:bg-slate-600 text-white transition-colors"
+          >
+            <Settings className="h-5 w-5" />
+            <span className="font-medium">Paramètres</span>
+          </button>
           <button
             onClick={logout}
             className="flex items-center gap-3 w-full px-4 py-3 rounded-lg bg-red-600 hover:bg-red-700 text-white transition-colors shadow-lg"
@@ -103,6 +116,14 @@ function AdminSidebar() {
           className="md:hidden fixed inset-0 bg-black bg-opacity-50 z-30"
         />
       )}
+
+      {/* Settings Modal */}
+      <SettingsModal
+        isOpen={isSettingsOpen}
+        onClose={() => setIsSettingsOpen(false)}
+        user={user}
+        onUserUpdate={updateUserData}
+      />
     </>
   );
 }

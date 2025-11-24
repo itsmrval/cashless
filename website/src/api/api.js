@@ -198,6 +198,32 @@ export const api = {
     return response.json();
   },
 
+  updatePassword: async (userId, currentPassword, newPassword) => {
+    const response = await fetch(`${API_BASE_URL}/v1/user/${userId}/password`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      body: JSON.stringify({ currentPassword, newPassword })
+    });
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.error || "Erreur lors de la mise à jour du mot de passe");
+    }
+    return response.json();
+  },
+
+  adminResetPassword: async (userId, newPassword) => {
+    const response = await fetch(`${API_BASE_URL}/v1/user/${userId}/reset-password`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      body: JSON.stringify({ newPassword })
+    });
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.error || "Erreur lors de la réinitialisation du mot de passe");
+    }
+    return response.json();
+  },
+
   deleteUser: async (userId) => {
     const response = await fetch(`${API_BASE_URL}/v1/user/${userId}`, {
       method: 'DELETE',

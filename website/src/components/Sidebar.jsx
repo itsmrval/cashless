@@ -4,7 +4,7 @@ import {
   ArrowLeftRight,
   CreditCard,
   Users,
-  LifeBuoy
+  Settings
 } from 'lucide-react';
 
 const navItems = [
@@ -14,7 +14,7 @@ const navItems = [
   { id: 'card', label: 'Ma carte', icon: CreditCard },
 ];
 
-function Sidebar({ activeTab, setActiveTab, userName }) {
+function Sidebar({ activeTab, setActiveTab, userName, onSettingsClick }) {
   const userInitial = userName ? userName[0].toUpperCase() : 'U';
 
   return (
@@ -54,15 +54,15 @@ function Sidebar({ activeTab, setActiveTab, userName }) {
         })}
       </nav>
 
-      {/* --- Section Support (Poussée en bas) --- */}
+      {/* --- Section Paramètres (Poussée en bas) --- */}
       <div className="mt-6 border-t border-slate-200 pt-4">
-        <a
-          href="#"
+        <button
+          onClick={onSettingsClick}
           className="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-slate-600 font-medium hover:bg-slate-50 hover:text-slate-900 transition-colors"
         >
-          <LifeBuoy size={20} className="text-slate-400" />
-          <span>Support</span>
-        </a>
+          <Settings size={20} className="text-slate-400" />
+          <span>Paramètres</span>
+        </button>
       </div>
     </aside>
   );
