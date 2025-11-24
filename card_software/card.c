@@ -110,6 +110,7 @@ void write_pin_only()
     }
 
     eeprom_update_byte((uint8_t*)EEPROM_PIN_ATTEMPTS_ADDR, MAX_PIN_ATTEMPTS);
+    eeprom_update_byte((uint8_t*)EEPROM_PUK_ATTEMPTS_ADDR, MAX_PUK_ATTEMPTS);
 
     eeprom_busy_wait();
 
@@ -248,6 +249,20 @@ void verify_puk()
     }
 }
 
+void get_remaining_attempts()
+{
+    if (p3 != 2) {
+        sw1 = 0x6c;
+        sw2 = 2;
+        return;
+    }
+
+    sendbytet0(ins);
+    sendbytet0(eeprom_read_byte((uint8_t*)EEPROM_PIN_ATTEMPTS_ADDR));
+    sendbytet0(eeprom_read_byte((uint8_t*)EEPROM_PUK_ATTEMPTS_ADDR));
+    sw1 = 0x90;
+}
+
 uint8_t card_id_buffer[SIZE_CARD_ID];
 uint8_t private_key_chunk_buffer[SIZE_PRIVATE_KEY_CHUNK];
 
@@ -286,6 +301,7 @@ void assign_card()
         eeprom_update_byte((uint8_t*)(EEPROM_PUK_ADDR + i), puk_buffer[i]);
     }
 
+    eeprom_update_byte((uint8_t*)EEPROM_PIN_ATTEMPTS_ADDR, MAX_PIN_ATTEMPTS);
     eeprom_update_byte((uint8_t*)EEPROM_PUK_ATTEMPTS_ADDR, MAX_PUK_ATTEMPTS);
     eeprom_update_byte((uint8_t*)EEPROM_ASSIGNED_FLAG_ADDR, 0x00);
 
@@ -452,6 +468,9 @@ int main(void)
                 break;
             case 0x0C:
                 set_challenge();
+                break;
+            case 0x0D:
+                get_remaining_attempts();
                 break;
             default:
                 sw1 = 0x6d;
