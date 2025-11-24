@@ -176,6 +176,7 @@ int api_get_challenge(const char *card_id, char *challenge_buffer, size_t buffer
             long response_code;
             curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &response_code);
 
+            fprintf(stderr, "DEBUG: Challenge API response (HTTP %ld): %s\n", response_code, chunk.memory);
             if (response_code == 200) {
                 char *challenge_start = strstr(chunk.memory, "\"challenge\":\"");
                 if (challenge_start) {
@@ -186,6 +187,7 @@ int api_get_challenge(const char *card_id, char *challenge_buffer, size_t buffer
                         if (challenge_len < buffer_size) {
                             strncpy(challenge_buffer, challenge_start, challenge_len);
                             challenge_buffer[challenge_len] = '\0';
+                            fprintf(stderr, "DEBUG: Extracted challenge: %s\n", challenge_buffer);
                             success = 1;
                         }
                     }
@@ -223,6 +225,9 @@ int api_card_auth_with_signature(const char *card_id, const char *challenge, con
     snprintf(url, sizeof(url), "%s/auth/card", api_base_url);
     snprintf(postdata, sizeof(postdata), "{\"card_id\":\"%s\",\"challenge\":\"%s\",\"signature\":\"%s\"}", card_id, challenge, signature_b64);
 
+    fprintf(stderr, "DEBUG: Sending to %s\n", url);
+    fprintf(stderr, "DEBUG: POST data: %s\n", postdata);
+
     curl = curl_easy_init();
     if (curl) {
         struct curl_slist *headers = NULL;
@@ -240,6 +245,8 @@ int api_card_auth_with_signature(const char *card_id, const char *challenge, con
         if (res == CURLE_OK) {
             long response_code;
             curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &response_code);
+
+            fprintf(stderr, "DEBUG: Auth API response (HTTP %ld): %s\n", response_code, chunk.memory);
 
             if (response_code == 200) {
                 char *token_start = strstr(chunk.memory, "\"token\":\"");

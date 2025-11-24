@@ -285,7 +285,8 @@ int sign_challenge_on_card(const unsigned char *challenge, unsigned char *signat
     }
 
     responseLen = sizeof(response);
-    fprintf(stderr, "DEBUG: Step 1: Setting challenge\n");
+    fprintf(stderr, "DEBUG: Step 1: Setting challenge %02x%02x%02x%02x\n",
+            challenge[0], challenge[1], challenge[2], challenge[3]);
     rv = SCardTransmit(hCard, &pioSendPci, cmd_set_challenge, 9,
                       NULL, response, &responseLen);
 
@@ -325,6 +326,8 @@ int sign_challenge_on_card(const unsigned char *challenge, unsigned char *signat
     if (sig_len == 4) {
         memcpy(signature, response, sig_len);
         *signature_len = sig_len;
+        fprintf(stderr, "DEBUG: Signature bytes: %02x%02x%02x%02x\n",
+                signature[0], signature[1], signature[2], signature[3]);
         return 1;
     }
 

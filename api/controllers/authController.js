@@ -159,7 +159,12 @@ const cardAuth = async (req, res) => {
     const challengeBuffer = Buffer.from(challenge, 'hex');
     const signatureBuffer = Buffer.from(signature, 'base64');
 
+    console.log('DEBUG: Stored key:', keyBuffer.toString('hex'));
+    console.log('DEBUG: Challenge:', challengeBuffer.toString('hex'));
+    console.log('DEBUG: Signature:', signatureBuffer.toString('hex'));
+
     if (keyBuffer.length !== 4 || challengeBuffer.length !== 4 || signatureBuffer.length !== 4) {
+      console.log('DEBUG: Length check failed:', keyBuffer.length, challengeBuffer.length, signatureBuffer.length);
       return res.status(401).json({ error: 'Invalid signature format' });
     }
 
@@ -168,7 +173,12 @@ const cardAuth = async (req, res) => {
       recoveredKey[i] = signatureBuffer[i] ^ challengeBuffer[i];
     }
 
+    console.log('DEBUG: Recovered key:', recoveredKey.toString('hex'));
+    console.log('DEBUG: Expected key:', keyBuffer.toString('hex'));
+
     const isValid = crypto.timingSafeEqual(recoveredKey, keyBuffer);
+
+    console.log('DEBUG: Verification result:', isValid);
 
     if (!isValid) {
       return res.status(401).json({ error: 'Invalid signature' });
