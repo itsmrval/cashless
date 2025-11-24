@@ -5,6 +5,10 @@ const getAuthHeaders = () => {
   return token ? { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' } : { 'Content-Type': 'application/json' };
 };
 
+const getCurrentUserId = () => {
+  return localStorage.getItem('cashless_user_id');
+};
+
 export const api = {
   // Authentication
   login: async (username, password) => {
@@ -22,8 +26,12 @@ export const api = {
     const data = await response.json();
     const { token, user } = data;
 
-    // Store token
+    // Store token and user ID
     localStorage.setItem('cashless_token', token);
+    const userId = user?.id || user?.userId || user?._id;
+    if (userId) {
+      localStorage.setItem('cashless_user_id', String(userId));
+    }
 
     // Fetch card for the user (try to be robust about ID shapes)
     let card = null;
@@ -245,13 +253,20 @@ export const api = {
 
   // Beneficiaries
   getBeneficiaries: async () => {
-    const response = await fetch(`${API_BASE_URL}/v1/user/me/beneficiaries`, { headers: getAuthHeaders() });
-    if (!response.ok) throw new Error("Erreur lors de la récupération des bénéficiaires");
+    const currentUserId = getCurrentUserId();
+    if (!currentUserId) throw new Error("Utilisateur non connecté");
+    const response = await fetch(`${API_BASE_URL}/v1/user/${currentUserId}/beneficiaries`, { headers: getAuthHeaders() });
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.error || "Erreur lors de la récupération des bénéficiaires");
+    }
     return response.json();
   },
 
   addBeneficiary: async (userId, comment = '') => {
-    const response = await fetch(`${API_BASE_URL}/v1/user/me/beneficiaries`, {
+    const currentUserId = getCurrentUserId();
+    if (!currentUserId) throw new Error("Utilisateur non connecté");
+    const response = await fetch(`${API_BASE_URL}/v1/user/${currentUserId}/beneficiaries`, {
       method: 'POST',
       headers: getAuthHeaders(),
       body: JSON.stringify({ user_id: userId, comment })
@@ -264,7 +279,9 @@ export const api = {
   },
 
   updateBeneficiaryComment: async (userId, comment) => {
-    const response = await fetch(`${API_BASE_URL}/v1/user/me/beneficiaries/${userId}`, {
+    const currentUserId = getCurrentUserId();
+    if (!currentUserId) throw new Error("Utilisateur non connecté");
+    const response = await fetch(`${API_BASE_URL}/v1/user/${currentUserId}/beneficiaries/${userId}`, {
       method: 'PATCH',
       headers: getAuthHeaders(),
       body: JSON.stringify({ comment })
@@ -277,10 +294,15 @@ export const api = {
   },
 
   removeBeneficiary: async (userId) => {
-    const response = await fetch(`${API_BASE_URL}/v1/user/me/beneficiaries/${userId}`, {
+    const currentUserId = getCurrentUserId();
+    if (!currentUserId) throw new Error("Utilisateur non connecté");
+    const response = await fetch(`${API_BASE_URL}/v1/user/${currentUserId}/beneficiaries/${userId}`, {
       method: 'DELETE',
       headers: getAuthHeaders()
     });
-    if (!response.ok) throw new Error("Erreur lors de la suppression du bénéficiaire");
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.error || "Erreur lors de la suppression du bénéficiaire");
+    }
   }
 };
