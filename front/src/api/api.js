@@ -63,6 +63,8 @@ export const api = {
 
     // Allow admins to log in even if they have no card assigned.
     // Regular users still require a card and it must not be blocked.
+    // MODIFICATION: On autorise la connexion même sans carte ou si elle est bloquée
+    /*
     if (!card) {
       const isAdmin = (typeof user.role === 'string' && user.role.toLowerCase() === 'admin') ||
                       (typeof user.username === 'string' && user.username.toLowerCase() === 'admin');
@@ -79,6 +81,7 @@ export const api = {
        // The original code threw an error.
        throw new Error('Votre carte est bloquée');
     }
+    */
 
     return { user, card, token };
   },

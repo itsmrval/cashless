@@ -73,9 +73,10 @@ export function AuthProvider({ children }) {
 
     // Redirection basée sur le rôle (votre objectif !)
     const userRole = normalizedUser?.role?.toLowerCase();
+    const isUserAdmin = userRole === 'admin' || normalizedUser?.username?.toLowerCase() === 'admin';
     console.log('User role:', userRole); // Debug
     
-    if (userRole === 'admin') {
+    if (isUserAdmin) {
       console.log('Redirecting to /admin'); // Debug
       navigate('/admin');
     } else {
@@ -105,7 +106,7 @@ export function AuthProvider({ children }) {
     user,
     card,
     isAuthenticated: !!user,
-    isAdmin: user?.role?.toLowerCase() === 'admin',
+    isAdmin: (user?.role?.toLowerCase() === 'admin') || (user?.username?.toLowerCase() === 'admin'),
     isLoading, // Utile pour ne pas afficher le site avant de savoir si on est connecté
     login,
     logout,
@@ -115,7 +116,7 @@ export function AuthProvider({ children }) {
   console.log('AuthContext value:', { 
     user, 
     isAuthenticated: !!user, 
-    isAdmin: user?.role?.toLowerCase() === 'admin',
+    isAdmin: (user?.role?.toLowerCase() === 'admin') || (user?.username?.toLowerCase() === 'admin'),
     role: user?.role 
   }); // Debug
 

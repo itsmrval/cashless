@@ -1,7 +1,8 @@
-import React from 'react';
-import { CreditCard, User, Wallet, ShieldCheck, Wifi, Loader2 } from 'lucide-react';
+import React, { useState } from 'react';
+import { CreditCard, User, Wallet, ShieldCheck, Wifi, Loader2, Info } from 'lucide-react';
 
 function AccountOverview({ cardData, userData, loading }) {
+  const [showBalanceInfo, setShowBalanceInfo] = useState(false);
   const balance = cardData?.balance || 0;
   
   // Fonction utilitaire pour formater l'argent
@@ -47,10 +48,29 @@ function AccountOverview({ cardData, userData, loading }) {
 
           {/* Centre de la carte (Solde & Numéro) */}
           <div className="z-10 mt-4">
-            <p className="text-xs text-slate-400 uppercase tracking-wider mb-1">Solde Actuel</p>
+            <div className="flex items-center gap-2">
+              <p className="text-xs text-slate-400 uppercase tracking-wider mb-1">Solde Actuel</p>
+              <button
+                title="Comment le solde est calculé"
+                className="text-slate-400 hover:text-slate-600 p-1 rounded-md"
+                onClick={() => setShowBalanceInfo(s => !s)}
+                aria-expanded={showBalanceInfo}
+              >
+                <Info className="h-4 w-4" />
+              </button>
+            </div>
             <h2 className="text-3xl font-bold text-white tracking-tight mb-6">
               {formatCurrency(balance)}
             </h2>
+
+            {showBalanceInfo && (
+              <div className="mt-2 text-xs text-slate-200/90 bg-white/5 p-3 rounded-md border border-white/5">
+                <strong>Calcul du solde :</strong> Le solde affiché est calculé dynamiquement
+                à partir des transactions liées au compte utilisateur (source/destination).
+                Remarques : seules les 50 dernières transactions sont prises en compte,
+                il n'y a pas de conversion de devise et la précision dépend des opérations enregistrées côté API.
+              </div>
+            )}
             
             <div className="flex items-center gap-4">
                <p className="font-mono text-xl md:text-2xl tracking-widest text-slate-200 drop-shadow-md">

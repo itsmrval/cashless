@@ -7,14 +7,12 @@ import { useAuth } from '../contexts/AuthContext';
 export default function AdminRoute({ children }) {
   const { isAuthenticated, isAdmin, user } = useAuth();
 
-  console.log('AdminRoute check:', { isAuthenticated, isAdmin, user }); // Debug
-
   if (!isAuthenticated) {
     return <Navigate to="/login" replace />;
   }
   if (!isAdmin) {
     // Si connecté mais pas admin, redirige vers le dashboard utilisateur
-    console.log('User is not admin, redirecting to /'); // Debug
+
     return <Navigate to="/" replace />; 
   }
 

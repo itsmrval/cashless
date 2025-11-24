@@ -9,6 +9,7 @@ import {
   Filter,
   TrendingUp
 } from 'lucide-react';
+import { Info } from 'lucide-react';
 
 export default function AdminTransactions() {
   const [transactions, setTransactions] = useState([]);
@@ -17,6 +18,7 @@ export default function AdminTransactions() {
   const [error, setError] = useState('');
   const [selectedUser, setSelectedUser] = useState('');
   const [userBalance, setUserBalance] = useState(null);
+  const [showBalanceInfo, setShowBalanceInfo] = useState(false);
 
   useEffect(() => {
     loadData();
@@ -136,8 +138,23 @@ export default function AdminTransactions() {
             <div className="flex items-center gap-2 text-sm font-medium text-blue-700 mb-2">
               <TrendingUp className="h-4 w-4" />
               Solde de {users.find(u => u._id === selectedUser)?.name}
+              <button
+                title="Comment le solde est calculé"
+                className="text-blue-400 hover:text-blue-600 p-1 rounded-md ml-2"
+                onClick={() => setShowBalanceInfo(s => !s)}
+                aria-expanded={showBalanceInfo}
+              >
+                <Info className="h-4 w-4" />
+              </button>
             </div>
             <p className="text-3xl font-bold text-blue-900">{formatCurrency(userBalance)}</p>
+            {showBalanceInfo && (
+              <div className="mt-3 text-xs text-slate-700 bg-white/40 p-3 rounded-md border border-blue-50">
+                Le solde est calculé dynamiquement à partir des transactions associées
+                à l'utilisateur (source/destination). Seules les 50 dernières transactions
+                sont prises en compte — le résultat peut donc être incomplet selon l'historique.
+              </div>
+            )}
           </div>
         )}
       </div>
