@@ -3,9 +3,6 @@
 #include <avr/eeprom.h>
 #include <avr/pgmspace.h>
 #include <string.h>
-#include "crypto/bigint.h"
-#include "crypto/rsa_basic.h"
-#include "crypto/sha256.h"
 
 extern void sendbytet0(uint8_t b);
 extern uint8_t recbytet0(void);
