@@ -102,7 +102,7 @@ function CardManagement({ cardData, userData, onCardUpdate }) {
       {/* --- En-tête et Actions --- */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div>
-          <h2 className="text-3xl font-bold text-slate-900">Gestion de la Carte</h2>
+          <h2 className="text-3xl font-bold text-slate-900">Gestion de la carte</h2>
           <p className="text-base text-slate-500 mt-1">Gérez les informations et la sécurité de votre carte.</p>
         </div>
         <div className="flex items-center gap-3 flex-shrink-0">
@@ -199,7 +199,7 @@ function CardManagement({ cardData, userData, onCardUpdate }) {
            <Lock className="h-5 w-5 text-slate-600" />
         </div>
         <div>
-          <h3 className="text-base font-semibold text-slate-800">Sécurité et Code PUK</h3>
+          <h3 className="text-base font-semibold text-slate-800">Sécurité</h3>
           <p className="text-sm text-slate-600 mt-1">
             Votre code PUK est enregistré en sécurité dans nos systèmes. En cas de perte ou d'oubli, veuillez contacter le support client pour le récupérer.
           </p>
