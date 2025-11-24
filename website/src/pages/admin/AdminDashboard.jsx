@@ -68,7 +68,7 @@ export default function AdminDashboard() {
   return (
     <div className="p-6 space-y-6">
       <div>
-        <h1 className="text-3xl font-bold text-slate-900">Tableau de Bord Administrateur</h1>
+        <h1 className="text-3xl font-bold text-slate-900">Administration</h1>
         <p className="text-slate-500 mt-1">Vue d'ensemble du système Cashless</p>
       </div>
 
@@ -89,7 +89,7 @@ export default function AdminDashboard() {
         <div className="bg-white rounded-xl shadow-sm border border-slate-100 p-6">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm text-slate-500 font-medium">Cartes Totales</p>
+              <p className="text-sm text-slate-500 font-medium">Cartes totales</p>
               <p className="text-3xl font-bold text-slate-900 mt-2">{stats.totalCards}</p>
             </div>
             <div className="p-3 bg-indigo-50 rounded-lg">
@@ -101,7 +101,7 @@ export default function AdminDashboard() {
         <div className="bg-white rounded-xl shadow-sm border border-slate-100 p-6">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm text-slate-500 font-medium">Cartes Actives</p>
+              <p className="text-sm text-slate-500 font-medium">Cartes actives</p>
               <p className="text-3xl font-bold text-slate-900 mt-2">{stats.activeCards}</p>
             </div>
             <div className="p-3 bg-emerald-50 rounded-lg">
@@ -127,7 +127,7 @@ export default function AdminDashboard() {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Recent Users */}
         <div className="bg-white rounded-xl shadow-sm border border-slate-100 p-6">
-          <h3 className="text-lg font-semibold text-slate-900 mb-4">Derniers Utilisateurs</h3>
+          <h3 className="text-lg font-semibold text-slate-900 mb-4">Utilisateurs</h3>
           {stats.recentUsers.length > 0 ? (
             <div className="space-y-3">
               {stats.recentUsers.map(user => (
@@ -149,7 +149,7 @@ export default function AdminDashboard() {
 
         {/* Recent Cards */}
         <div className="bg-white rounded-xl shadow-sm border border-slate-100 p-6">
-          <h3 className="text-lg font-semibold text-slate-900 mb-4">Dernières Cartes</h3>
+          <h3 className="text-lg font-semibold text-slate-900 mb-4">Cartes</h3>
           {stats.recentCards.length > 0 ? (
             <div className="space-y-3">
               {stats.recentCards.map(card => (

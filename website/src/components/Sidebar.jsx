@@ -12,7 +12,6 @@ const navItems = [
   { id: 'transactions', label: 'Transactions', icon: ArrowLeftRight },
   { id: 'beneficiaries', label: 'Bénéficiaires', icon: Users },
   { id: 'card', label: 'Ma carte', icon: CreditCard },
-  { id: 'settings', label: 'Paramètres', icon: Settings },
 ];
 
 function Sidebar({ activeTab, setActiveTab, userName }) {
@@ -54,6 +53,21 @@ function Sidebar({ activeTab, setActiveTab, userName }) {
           );
         })}
       </nav>
+
+      {/* --- Section Paramètres (Poussée en bas) --- */}
+      <div className="mt-6 border-t border-slate-200 pt-4">
+        <button
+          onClick={() => setActiveTab('settings')}
+          className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-all duration-200 ${
+            activeTab === 'settings'
+              ? 'bg-blue-50 text-blue-700 font-bold shadow-inner-sm border border-blue-100'
+              : 'text-slate-600 font-medium hover:bg-slate-50 hover:text-slate-900'
+          }`}
+        >
+          <Settings size={20} className={activeTab === 'settings' ? 'text-blue-600' : 'text-slate-400'} />
+          <span>Paramètres</span>
+        </button>
+      </div>
     </aside>
   );
 }

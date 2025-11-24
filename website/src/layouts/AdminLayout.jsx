@@ -53,7 +53,7 @@ function AdminSidebar() {
         {/* Header */}
         <div className="p-6 border-b border-slate-700">
           <h2 className="text-2xl font-bold bg-gradient-to-r from-blue-400 to-indigo-400 bg-clip-text text-transparent">
-            Cashless Admin
+            Cashless
           </h2>
           <p className="text-xs text-slate-400 mt-1">{user?.name || 'Administrateur'}</p>
         </div>
