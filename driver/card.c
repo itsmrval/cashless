@@ -270,10 +270,12 @@ int verify_puk_on_card(const char *puk, const char *new_pin, BYTE *remaining_att
 
 int sign_challenge_on_card(const unsigned char *challenge, unsigned char *signature, size_t *signature_len)
 {
-    // DEBUG TEST: Try INS 0x0B with small data (4 bytes) to test size limit
+    // DEBUG TEST: Find exact size limit - try different sizes
     LONG rv;
-    BYTE cmd_sign[5 + 4] = {0x80, 0x0B, 0x00, 0x00, 4};  // TEST: INS 0x0B with only 4 bytes
-    fprintf(stderr, "DEBUG: TEST - using INS 0x0B with 4 bytes instead of 32\n");
+    int test_size = 16;  // Test with 16 bytes
+    BYTE cmd_sign[5 + 32] = {0x80, 0x0B, 0x00, 0x00, 0};
+    cmd_sign[4] = test_size;  // Set Lc
+    fprintf(stderr, "DEBUG: TEST - trying INS 0x0B with %d bytes data\n", test_size);
     BYTE response[258];
     DWORD responseLen;
     SCARD_IO_REQUEST pioSendPci;
@@ -282,14 +284,15 @@ int sign_challenge_on_card(const unsigned char *challenge, unsigned char *signat
     pioSendPci.dwProtocol = dwActiveProtocol;
     pioSendPci.cbPciLength = sizeof(SCARD_IO_REQUEST);
 
-    for (i = 0; i < 4; i++) {  // Only 4 bytes for test
+    for (i = 0; i < test_size; i++) {
         cmd_sign[5 + i] = challenge[i];
     }
 
     responseLen = sizeof(response);
 
-    fprintf(stderr, "DEBUG: Calling SCardTransmit with cmd_sign, size=%zu\n", sizeof(cmd_sign));
-    rv = SCardTransmit(hCard, &pioSendPci, cmd_sign, sizeof(cmd_sign),
+    int total_size = 5 + test_size;
+    fprintf(stderr, "DEBUG: Calling SCardTransmit, total command size=%d\n", total_size);
+    rv = SCardTransmit(hCard, &pioSendPci, cmd_sign, total_size,
                       NULL, response, &responseLen);
 
     // DEBUG: Check if SCardTransmit succeeded
