@@ -363,15 +363,19 @@ async function loadBalance(userId) {
 
 function renderTransactions() {
     const tbody = document.querySelector('#transactions-table tbody');
-    tbody.innerHTML = transactions.map(trans => `
-        <tr>
-            <td>${new Date(trans.date).toLocaleString()}</td>
-            <td>${trans.source_user_name || '-'}</td>
-            <td>${trans.destination_user_name || '-'}</td>
-            <td>${(trans.operation / 100).toFixed(2)}€</td>
-            <td>${trans.source_card_id ? trans.source_card_id.substring(0, 8) + '...' : '-'}</td>
-        </tr>
-    `).join('');
+    tbody.innerHTML = transactions.map(trans => {
+        const sourceUser = users.find(u => u._id === trans.source_user_id);
+        const destUser = users.find(u => u._id === trans.destination_user_id);
+        return `
+            <tr>
+                <td>${new Date(trans.date).toLocaleString()}</td>
+                <td>${sourceUser ? sourceUser.name : trans.source_user_id || '-'}</td>
+                <td>${destUser ? destUser.name : trans.destination_user_id || '-'}</td>
+                <td>${(trans.operation / 100).toFixed(2)}€</td>
+                <td>${trans.source_card_id ? trans.source_card_id.substring(0, 8) + '...' : '-'}</td>
+            </tr>
+        `;
+    }).join('');
 }
 
 function populateTransactionUserFilter() {

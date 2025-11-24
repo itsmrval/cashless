@@ -18,19 +18,10 @@ const getTransactions = async (req, res) => {
 
       if (isAdmin && !requestedUserId) {
         const transactions = await Transaction.find()
-          .populate('source_user_id', 'name')
-          .populate('destination_user_id', 'name')
           .sort({ date: -1 })
           .limit(100);
 
-        return res.json(transactions.map(t => ({
-          _id: t._id,
-          operation: t.operation,
-          source_user_name: t.source_user_id ? t.source_user_id.name : null,
-          destination_user_name: t.destination_user_id ? t.destination_user_id.name : null,
-          source_card_id: t.source_card_id,
-          date: t.date
-        })));
+        return res.json(transactions);
       }
 
       if (isAdmin && requestedUserId) {
@@ -48,19 +39,10 @@ const getTransactions = async (req, res) => {
         { destination_user_id: targetUserId }
       ]
     })
-      .populate('source_user_id', 'name')
-      .populate('destination_user_id', 'name')
       .sort({ date: -1 })
       .limit(50);
 
-    res.json(transactions.map(t => ({
-      _id: t._id,
-      operation: t.operation,
-      source_user_name: t.source_user_id ? t.source_user_id.name : null,
-      destination_user_name: t.destination_user_id ? t.destination_user_id.name : null,
-      source_card_id: t.source_card_id,
-      date: t.date
-    })));
+    res.json(transactions);
   } catch (error) {
     console.error('Transaction error:', error);
     res.status(500).json({ error: 'Internal server error' });
