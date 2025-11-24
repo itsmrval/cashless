@@ -205,6 +205,16 @@ document.getElementById('user-role-confirm').addEventListener('click', async () 
 document.getElementById('refresh-users').addEventListener('click', loadUsers);
 
 // Cards
+document.getElementById('create-card-form').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const comment = document.getElementById('card-comment').value;
+    const puk = document.getElementById('card-puk').value;
+    await apiCall('/v1/card', 'POST', { comment, puk });
+    document.getElementById('card-comment').value = '';
+    document.getElementById('card-puk').value = '';
+    loadCards();
+});
+
 async function loadCards() {
     cards = await apiCall('/v1/card');
     renderCards();
