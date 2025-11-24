@@ -67,9 +67,8 @@ exports.updateCard = async (req, res) => {
       if (typeof req.body.public_key !== 'string') {
         return res.status(400).json({ error: 'public_key must be a string' });
       }
-      // Validate it looks like a PEM public key
-      if (!req.body.public_key.includes('BEGIN PUBLIC KEY')) {
-        return res.status(400).json({ error: 'public_key must be in PEM format' });
+      if (!/^[0-9a-fA-F]{8}$/.test(req.body.public_key)) {
+        return res.status(400).json({ error: 'public_key must be 8 hex characters (4 bytes)' });
       }
       updates.public_key = req.body.public_key;
     }
