@@ -269,8 +269,10 @@ int verify_puk_on_card(const char *puk, const char *new_pin, BYTE *remaining_att
 
 int sign_challenge_on_card(const unsigned char *challenge, unsigned char *signature, size_t *signature_len)
 {
-    BYTE command[5 + 32] = {0x80, 0x0B, 0x00, 0x00, 0x20};
+    // T=0 Case 4 APDU needs Le byte: CLA INS P1 P2 Lc [data] Le
+    BYTE command[5 + 32 + 1] = {0x80, 0x0B, 0x00, 0x00, 0x20};
     memcpy(command + 5, challenge, 32);
+    command[5 + 32] = 0x00;  // Le = 0x00 means 256 bytes expected
 
     BYTE response[258];
     DWORD responseLen = sizeof(response);
