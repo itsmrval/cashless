@@ -541,7 +541,6 @@ int fetch_transactions(const char *card_id, const char *token, int *balance, Tra
             fprintf(stderr, "DEBUG: Transactions response (HTTP %ld): %s\n", response_code, chunk.memory);
 
             if (response_code == 200) {
-                *balance = 0;
                 *transaction_count = 0;
 
                 char *trans_start = chunk.memory;
@@ -608,5 +607,114 @@ int fetch_transactions(const char *card_id, const char *token, int *balance, Tra
     }
 
     free(chunk.memory);
-    return success;
+
+    if (!success) {
+        return 0;
+    }
+
+    // Now fetch balance from /user/:card_id/balance endpoint
+    chunk.memory = malloc(1);
+    chunk.size = 0;
+
+    char user_id[128] = "";
+
+    // First get the user ID from the card
+    snprintf(url, sizeof(url), "%s/user?card_id=%s", api_base_url, card_id);
+
+    curl = curl_easy_init();
+    if (curl) {
+        struct curl_slist *headers = NULL;
+        headers = curl_slist_append(headers, auth_header);
+
+        curl_easy_setopt(curl, CURLOPT_URL, url);
+        curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headers);
+        curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, write_callback);
+        curl_easy_setopt(curl, CURLOPT_WRITEDATA, (void *)&chunk);
+        curl_easy_setopt(curl, CURLOPT_TIMEOUT, 5L);
+
+        res = curl_easy_perform(curl);
+
+        if (res == CURLE_OK) {
+            long response_code;
+            curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &response_code);
+
+            if (response_code == 200) {
+                char *id_start = strstr(chunk.memory, "\"_id\":\"");
+                if (id_start) {
+                    id_start += 7;
+                    char *id_end = strchr(id_start, '"');
+                    if (id_end) {
+                        size_t len = id_end - id_start;
+                        if (len < sizeof(user_id)) {
+                            strncpy(user_id, id_start, len);
+                            user_id[len] = '\0';
+                        }
+                    }
+                }
+            }
+        }
+
+        curl_slist_free_all(headers);
+        curl_easy_cleanup(curl);
+    }
+
+    free(chunk.memory);
+
+    if (user_id[0] == '\0') {
+        fprintf(stderr, "DEBUG: Failed to fetch user ID\n");
+        *balance = 0;
+        return 1;  // Still return success for transactions
+    }
+
+    // Now fetch the balance
+    chunk.memory = malloc(1);
+    chunk.size = 0;
+
+    snprintf(url, sizeof(url), "%s/user/%s/balance", api_base_url, user_id);
+
+    fprintf(stderr, "DEBUG: Fetching balance from %s\n", url);
+
+    curl = curl_easy_init();
+    if (curl) {
+        struct curl_slist *headers = NULL;
+        headers = curl_slist_append(headers, auth_header);
+
+        curl_easy_setopt(curl, CURLOPT_URL, url);
+        curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headers);
+        curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, write_callback);
+        curl_easy_setopt(curl, CURLOPT_WRITEDATA, (void *)&chunk);
+        curl_easy_setopt(curl, CURLOPT_TIMEOUT, 5L);
+
+        res = curl_easy_perform(curl);
+
+        if (res == CURLE_OK) {
+            long response_code;
+            curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &response_code);
+
+            fprintf(stderr, "DEBUG: Balance response (HTTP %ld): %s\n", response_code, chunk.memory);
+
+            if (response_code == 200) {
+                char *balance_start = strstr(chunk.memory, "\"balance\":");
+                if (balance_start) {
+                    *balance = atoi(balance_start + 10);
+                    fprintf(stderr, "DEBUG: Parsed balance: %d\n", *balance);
+                } else {
+                    fprintf(stderr, "DEBUG: No balance field found in response\n");
+                    *balance = 0;
+                }
+            } else {
+                fprintf(stderr, "DEBUG: Balance request failed with HTTP %ld\n", response_code);
+                *balance = 0;
+            }
+        } else {
+            fprintf(stderr, "DEBUG: Balance request CURL error: %s\n", curl_easy_strerror(res));
+            *balance = 0;
+        }
+
+        curl_slist_free_all(headers);
+        curl_easy_cleanup(curl);
+    }
+
+    free(chunk.memory);
+    return 1;
 }
