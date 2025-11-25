@@ -251,35 +251,47 @@ def get_user_balance(card_token):
             'Content-Type': 'application/json'
         }
         
+        print(f"DEBUG get_user_balance: Récupération info user - URL: {url}")
         response = requests.get(url, headers=headers, timeout=5)
+        print(f"DEBUG get_user_balance: Réponse user - Code: {response.status_code}")
         
         if response.status_code != 200:
+            print(f"DEBUG get_user_balance: ERREUR - Status {response.status_code}")
             return {
                 'success': False,
-                'error': 'Failed to fetch user info'
+                'error': f'Failed to fetch user info: {response.status_code}'
             }
         
         user_data = response.json()
         user_id = user_data.get('_id')
+        print(f"DEBUG get_user_balance: User ID: {user_id}")
         
         if not user_id:
+            print(f"DEBUG get_user_balance: ERREUR - Pas d'ID utilisateur")
             return {
                 'success': False,
-                'error': 'Invalid user data'
+                'error': 'Invalid user data - no user_id'
             }
         
         # Récupérer le balance
         balance_url = f"{API_BASE_URL}/user/{user_id}/balance"
+        print(f"DEBUG get_user_balance: Récupération balance - URL: {balance_url}")
         balance_response = requests.get(balance_url, headers=headers, timeout=5)
+        print(f"DEBUG get_user_balance: Réponse balance - Code: {balance_response.status_code}")
+        print(f"DEBUG get_user_balance: Réponse balance brute: {balance_response.text}")
         
         if balance_response.status_code != 200:
+            print(f"DEBUG get_user_balance: ERREUR - Status {balance_response.status_code}")
             return {
                 'success': False,
-                'error': 'Failed to fetch balance'
+                'error': f'Failed to fetch balance: {balance_response.status_code}'
             }
         
         balance_data = balance_response.json()
-        balance = float(balance_data.get('balance', 0)) / 100.0
+        balance_centimes = balance_data.get('balance', 0)
+        balance = float(balance_centimes) / 100.0
+        
+        print(f"DEBUG get_user_balance: Balance en centimes: {balance_centimes}, en euros: {balance}€")
         
         return {
             'success': True,
@@ -287,6 +299,7 @@ def get_user_balance(card_token):
         }
         
     except Exception as e:
+        print(f"DEBUG get_user_balance: EXCEPTION - {str(e)}")
         return {
             'success': False,
             'error': str(e)
@@ -336,27 +349,27 @@ def create_transaction(card_token, amount, merchant_name):
         
         if response.status_code == 201:
             transaction_data = response.json()
-            print(f"DEBUG: Transaction créée: {transaction_data}")
+            print(f"DEBUG: Transaction créée avec succès")
+            print(f"DEBUG: Transaction ID: {transaction_data.get('_id')}")
+            print(f"DEBUG: Operation: {transaction_data.get('operation')} centimes")
             
-            # L'API retourne le nouveau solde directement dans la réponse
-            # Note: newBalance peut être dans balance ou newBalance selon l'API
-            new_balance_centimes = transaction_data.get('newBalance') or transaction_data.get('balance', 0)
-            new_balance = float(new_balance_centimes) / 100.0
-            
-            print(f"DEBUG: Nouveau solde de la transaction: {new_balance}€")
-            
-            # Attendre un peu et récupérer le solde depuis l'API pour confirmation
+            # L'API ne retourne PAS le newBalance dans la réponse de transaction
+            # On DOIT récupérer le solde depuis l'API
             import time
-            time.sleep(0.5)  # Attendre 500ms pour que l'API mette à jour
+            time.sleep(0.3)  # Attendre 300ms pour que l'API mette à jour
             
+            print(f"DEBUG: Récupération du nouveau solde depuis l'API...")
             balance_result = get_user_balance(card_token)
             
             if balance_result['success']:
-                confirmed_balance = balance_result['balance']
-                print(f"DEBUG: Solde confirmé par l'API: {confirmed_balance}€")
-                new_balance = confirmed_balance
+                new_balance = balance_result['balance']
+                print(f"DEBUG: Nouveau solde récupéré: {new_balance}€")
             else:
-                print(f"DEBUG: Utilisation du solde de la transaction: {new_balance}€")
+                print(f"DEBUG: ERREUR - Impossible de récupérer le solde: {balance_result.get('error')}")
+                return {
+                    'success': False,
+                    'error': f"Transaction créée mais impossible de récupérer le nouveau solde: {balance_result.get('error')}"
+                }
             
             return {
                 'success': True,
