@@ -326,18 +326,30 @@ def initialize_reader():
 
 
 if __name__ == '__main__':
-    if len(sys.argv) != 3:
-        print("Usage: python app.py <API_BASE_URL> <DEST_ID>")
+    if len(sys.argv) != 4:
+        print("Usage: python app.py <API_BASE_URL> <DEST_USERNAME> <DEST_PASSWORD>")
         print("\nExample:")
-        print("  python app.py https://api.cashless.iut.valentinp.fr/v1 6925915f6a63bc32613822c5")
+        print("  python app.py https://api.cashless.iut.valentinp.fr/v1 merchant_user merchant_pass")
         sys.exit(1)
 
     api_base_url = sys.argv[1]
-    dest_id = sys.argv[2]
+    dest_username = sys.argv[2]
+    dest_password = sys.argv[3]
 
-    # Initialize API module with command-line arguments
-    api.init(api_base_url, dest_id)
+    # Initialize API module with base URL
+    api.init(api_base_url)
     logger.info(f"API configured with base URL: {api_base_url}")
+
+    # Login as merchant to get token and user ID
+    logger.info(f"Authenticating merchant user: {dest_username}")
+    login_result = api.login_merchant(dest_username, dest_password)
+
+    if not login_result['success']:
+        logger.error(f"Failed to authenticate merchant: {login_result.get('error')}")
+        print(f"ERROR: Merchant authentication failed: {login_result.get('error')}")
+        sys.exit(1)
+
+    logger.info(f"Merchant authenticated successfully: {login_result['name']} (ID: {login_result['user_id']})")
 
     init_thread = threading.Thread(target=initialize_reader, daemon=True)
     init_thread.start()

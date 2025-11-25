@@ -1,8 +1,12 @@
 ---
 api_url: "https://api.cashless.iut.valentinp.fr"
-api_username: "admin"
-api_password: "admin"
+api_username: ""
+api_password: ""
+
 card_folder: "../card_software"
 assign_folder: "../assignator"
-socket_reader_folder: "../socket_reader"
 card_comment: ""
+socket_reader_folder: "../socket_reader"
+
+dest_username: ""
+dest_password: ""

@@ -11,20 +11,83 @@ logger = logging.getLogger(__name__)
 # Global variables to be set by init() or command-line
 API_BASE_URL = None
 DEST_ID = None
+MERCHANT_TOKEN = None
 
-def init(api_base_url, dest_id):
+def init(api_base_url, dest_id=None):
     """
     Initialize the API module with configuration.
 
     Args:
         api_base_url: Base URL for the API
-        dest_id: Destination user ID for transactions
+        dest_id: Destination user ID for transactions (optional, can be fetched via login)
     """
     global API_BASE_URL, DEST_ID
     API_BASE_URL = api_base_url
-    DEST_ID = dest_id
+    if dest_id:
+        DEST_ID = dest_id
     logger.info(f"API initialized with base URL: {API_BASE_URL}")
-    logger.info(f"Destination ID: {DEST_ID}")
+    if DEST_ID:
+        logger.info(f"Destination ID: {DEST_ID}")
+
+
+def login_merchant(username, password):
+    """
+    Login as merchant user to get authentication token and user ID.
+
+    Args:
+        username: Merchant username
+        password: Merchant password
+
+    Returns:
+        dict: {'success': bool, 'token': str, 'user_id': str, 'error': str}
+    """
+    global DEST_ID, MERCHANT_TOKEN
+
+    try:
+        url = f"{API_BASE_URL}/auth/login"
+        data = {
+            'username': username,
+            'password': password
+        }
+
+        response = requests.post(url, json=data, timeout=5)
+
+        if response.status_code == 200:
+            result = response.json()
+            MERCHANT_TOKEN = result['token']
+            DEST_ID = result['user']['id']
+
+            logger.info(f"Merchant login successful: {result['user']['name']} (ID: {DEST_ID})")
+
+            return {
+                'success': True,
+                'token': MERCHANT_TOKEN,
+                'user_id': DEST_ID,
+                'name': result['user']['name']
+            }
+        else:
+            try:
+                error_data = response.json()
+                error_msg = error_data.get('error', f'Status {response.status_code}')
+            except:
+                error_msg = f'Status {response.status_code}'
+
+            logger.error(f"Merchant login failed: {error_msg}")
+            return {
+                'success': False,
+                'error': f'Login failed: {error_msg}'
+            }
+
+    except requests.exceptions.Timeout:
+        return {
+            'success': False,
+            'error': 'Request timeout'
+        }
+    except Exception as e:
+        return {
+            'success': False,
+            'error': str(e)
+        }
 
 
 def get_challenge(card_id):
@@ -257,31 +320,43 @@ def create_transaction(card_token, card_id, amount, merchant_name, refund=False)
         if not DEST_ID:
             return {
                 'success': False,
-                'error': 'DEST_ID not configured in .env'
+                'error': 'DEST_ID not configured'
             }
-        
+
         url = f"{API_BASE_URL}/transactions"
-        headers = {
-            'Authorization': f'Bearer {card_token}',
-            'Content-Type': 'application/json'
-        }
-        
+
         if refund:
-            user_result = fetch_user_by_card(card_id)
+            # For refunds, use merchant token to send money back to user
+            if not MERCHANT_TOKEN:
+                return {
+                    'success': False,
+                    'error': 'Merchant not authenticated. Cannot process refund.'
+                }
+
+            user_result = fetch_user_by_card(card_id, card_token)
             if not user_result['success']:
                 return {
                     'success': False,
                     'error': f"Impossible de récupérer l'utilisateur: {user_result.get('error')}"
                 }
-            user_id = user_result['user']['id']
-            
+            user_id = user_result['user_id']
+
+            headers = {
+                'Authorization': f'Bearer {MERCHANT_TOKEN}',
+                'Content-Type': 'application/json'
+            }
+
             data = {
-                'source_user_id': DEST_ID,
                 'destination_user_id': user_id,
-                'operation': int(amount * 100),
-                'infinite_funds': True
+                'operation': int(amount * 100)
             }
         else:
+            # For normal payments, use card token (user pays merchant)
+            headers = {
+                'Authorization': f'Bearer {card_token}',
+                'Content-Type': 'application/json'
+            }
+
             data = {
                 'destination_user_id': DEST_ID,
                 'operation': int(amount * 100)
@@ -333,16 +408,27 @@ def create_transaction(card_token, card_id, amount, merchant_name, refund=False)
 
 
 if __name__ == '__main__':
-    if len(sys.argv) != 3:
-        print("Usage: python api.py <API_BASE_URL> <DEST_ID>")
+    if len(sys.argv) != 4:
+        print("Usage: python api.py <API_BASE_URL> <DEST_USERNAME> <DEST_PASSWORD>")
         print("\nExample:")
-        print("  python api.py https://api.cashless.iut.valentinp.fr/v1 6925915f6a63bc32613822c5")
+        print("  python api.py https://api.cashless.iut.valentinp.fr/v1 merchant_user merchant_pass")
         sys.exit(1)
 
     api_base_url = sys.argv[1]
-    dest_id = sys.argv[2]
+    dest_username = sys.argv[2]
+    dest_password = sys.argv[3]
 
-    init(api_base_url, dest_id)
+    init(api_base_url)
     print(f"API module configured successfully")
     print(f"API Base URL: {API_BASE_URL}")
-    print(f"Destination ID: {DEST_ID}")
+
+    print(f"\nAuthenticating merchant: {dest_username}")
+    result = login_merchant(dest_username, dest_password)
+
+    if result['success']:
+        print(f"✓ Merchant authenticated: {result['name']}")
+        print(f"✓ Merchant ID: {result['user_id']}")
+        print(f"✓ Token acquired")
+    else:
+        print(f"✗ Authentication failed: {result['error']}")
+        sys.exit(1)
