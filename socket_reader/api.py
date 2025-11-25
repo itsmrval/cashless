@@ -25,15 +25,12 @@ def get_challenge(card_id):
     try:
         url = f"{API_BASE_URL}/auth/challenge"
         params = {'card_id': card_id}
-        
-        print(f"DEBUG: Récupération challenge - URL: {url}?card_id={card_id}")
-        
+                
         response = requests.get(url, params=params, timeout=5)
                 
         if response.status_code == 200:
             data = response.json()
             if 'challenge' in data:
-                print(f"DEBUG: Challenge reçu: {data['challenge']}")
                 return {
                     'success': True,
                     'challenge': data['challenge']
@@ -63,17 +60,6 @@ def get_challenge(card_id):
 
 
 def card_auth_with_signature(card_id, challenge, signature):
-    """
-    Authentifie une carte avec une signature cryptographique.
-    
-    Args:
-        card_id: L'identifiant de la carte
-        challenge: Le challenge reçu de l'API (hex string)
-        signature: La signature générée par la carte (bytes)
-        
-    Returns:
-        dict: {'success': bool, 'token': str, 'error': str}
-    """
     try:
         url = f"{API_BASE_URL}/auth/card"
         headers = {'Content-Type': 'application/json'}
@@ -88,9 +74,7 @@ def card_auth_with_signature(card_id, challenge, signature):
         }
                 
         response = requests.post(url, json=data, headers=headers, timeout=5)
-        
-        print(f"DEBUG: Réponse brute: {response.text}")
-        
+                
         if response.status_code == 200:
             response_data = response.json()
             if 'token' in response_data:
@@ -152,12 +136,8 @@ def fetch_user_by_card(card_id, card_token):
         user_id = user_data['_id']
         full_name = user_data['name']
         
-        # Extraire le prénom (premier mot du nom complet)
         first_name = full_name.split()[0] if full_name else 'Utilisateur'
-        
-        print(f"DEBUG: User ID: {user_id}, Nom complet: {full_name}, Prénom: {first_name}")
-        
-        # Récupérer le balance
+                
         balance_url = f"{API_BASE_URL}/user/{user_id}/balance"
                 
         balance_response = requests.get(balance_url, headers=headers, timeout=5)
@@ -174,7 +154,6 @@ def fetch_user_by_card(card_id, card_token):
             }
         
         balance_data = balance_response.json()
-        print(f"DEBUG: Données balance reçues: {balance_data}")
         
         if 'balance' not in balance_data:
             return {
@@ -183,9 +162,7 @@ def fetch_user_by_card(card_id, card_token):
             }
         
         balance = float(balance_data['balance']) / 100.0  # Convertir centimes en euros
-        
-        print(f"DEBUG: User trouvé - Name: {first_name}, Balance: {balance}€")
-        
+                
         return {
             'success': True,
             'name': first_name,

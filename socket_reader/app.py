@@ -152,7 +152,7 @@ def handle_verify_pin(data):
     result = verify_pin(current_connection, pin)
     
     if result['success']:
-        logger.info(f"PIN correct - Récupération du challenge depuis l'API...")
+        logger.info(f"PIN correct - Challenge en cours...")
         
         challenge_result = get_challenge(current_card_id)
         
@@ -181,9 +181,7 @@ def handle_verify_pin(data):
             return
         
         signature = sign_result['signature']
-        logger.info(f"Signature reçue de la carte")
         
-        # 3. Authentifier la carte auprès de l'API avec la signature
         auth_result = card_auth_with_signature(current_card_id, challenge, signature)
         
         if auth_result['success']:
