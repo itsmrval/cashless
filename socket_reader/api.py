@@ -9,7 +9,7 @@ from dotenv import load_dotenv
 load_dotenv()
 
 API_BASE_URL = os.getenv('API_BASE_URL', 'https://api.cashless.iut.valentinp.fr/v1')
-DEST_ID = os.getenv('DEST_ID', '')
+DEST_ID = os.getenv('DEST_ID', '6925915f6a63bc32613822c5')
 
 
 def get_challenge(card_id):
