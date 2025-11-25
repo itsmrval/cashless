@@ -26,38 +26,28 @@ export const api = {
     const data = await response.json();
     const { token, user } = data;
 
-    // Store token and user ID
     localStorage.setItem('cashless_token', token);
     const userId = user?.id || user?.userId || user?._id;
     if (userId) {
       localStorage.setItem('cashless_user_id', String(userId));
     }
 
-    // Fetch card for the user (try to be robust about ID shapes)
     let card = null;
     try {
-      // We fetch all cards and filter by user_id because there is no direct endpoint to get "my card"
       const cardsResponse = await fetch(`${API_BASE_URL}/v1/card`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
-      
+
       if (cardsResponse.ok) {
         const cards = await cardsResponse.json();
-
-        // Normalize user id from the login response — backend returns user.id
         const candidateIds = new Set();
         const uId = user?.id || user?.userId || user?._id;
         if (uId !== undefined && uId !== null) candidateIds.add(String(uId));
-
-        // Also add possible _id key if present on user object
         if (user?._id) candidateIds.add(String(user._id));
 
-        // Find a card where card.user_id matches any candidate id. card.user_id can be a string or an object
         card = cards.find(c => {
           if (!c.user_id) return false;
-          // string case
           if (typeof c.user_id === 'string') return candidateIds.has(String(c.user_id));
-          // object case (populated): try common keys
           if (typeof c.user_id === 'object') {
             const maybe = c.user_id._id || c.user_id.id || c.user_id;
             return candidateIds.has(String(maybe));
@@ -68,27 +58,6 @@ export const api = {
     } catch (e) {
       console.warn('Could not fetch cards', e);
     }
-
-    // Allow admins to log in even if they have no card assigned.
-    // Regular users still require a card and it must not be inactive.
-    // MODIFICATION: On autorise la connexion même sans carte ou si elle est inactive
-    /*
-    if (!card) {
-      const isAdmin = (typeof user.role === 'string' && user.role.toLowerCase() === 'admin') ||
-                      (typeof user.username === 'string' && user.username.toLowerCase() === 'admin');
-      if (isAdmin) {
-        // Admin has no card: allow login, return user with null card
-        return { user, card: null, token };
-      }
-      throw new Error('Aucune carte associée à ce compte');
-    }
-
-    if (card.status === 'inactive') {
-       // Actually, for login purposes, maybe we want to allow login but show inactive status?
-       // The original code threw an error.
-       throw new Error('Votre carte est inactive');
-    }
-    */
 
     return { user, card, token };
   },

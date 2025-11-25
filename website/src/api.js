@@ -15,10 +15,6 @@ export const api = {
     }
     
     const data = await response.json();
-    
-    if (!data.card) {
-      throw new Error('Aucune carte associée à ce compte');
-    }
 
     return data;
   },

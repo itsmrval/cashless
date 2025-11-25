@@ -1,4 +1,3 @@
-// src/context/AuthContext.jsx
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { api } from '../api/api';
@@ -18,22 +17,17 @@ const normalizeUser = (userData) => {
   };
 };
 
-// 1. Créer le contexte
 const AuthContext = createContext(null);
 
-// 2. Créer le Fournisseur (Provider)
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
-  // Support pour plusieurs cartes
   const [cards, setCards] = useState([]);
   const [currentCardId, setCurrentCardId] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const navigate = useNavigate();
 
-  // Carte courante dérivée
   const card = cards.find(c => c._id === currentCardId) || cards[0] || null;
 
-  // Effet pour charger l'utilisateur depuis localStorage au démarrage
   useEffect(() => {
     try {
       const storedUser = localStorage.getItem('cashless_user');

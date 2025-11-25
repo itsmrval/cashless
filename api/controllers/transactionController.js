@@ -1,4 +1,5 @@
 const Transaction = require('../models/Transaction');
+const Card = require('../models/Card');
 const { calculateUserBalance } = require('./userController');
 
 const formatTransaction = (t) => ({
@@ -81,6 +82,16 @@ const createTransaction = async (req, res) => {
 
     const source_user_id = (isAdmin && bodySourceUserId) ? bodySourceUserId : req.user.userId;
     const source_card_id = isCardToken ? req.user.cardId : null;
+
+    if (source_card_id) {
+      const card = await Card.findById(source_card_id);
+      if (!card) {
+        return res.status(404).json({ error: 'Card not found' });
+      }
+      if (card.status !== 'active') {
+        return res.status(403).json({ error: 'Card must be active to perform transactions' });
+      }
+    }
 
     if (infinite_funds && !isAdmin) {
       return res.status(403).json({ error: 'Only admins can bypass balance checks' });
