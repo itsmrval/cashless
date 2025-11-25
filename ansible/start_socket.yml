@@ -15,8 +15,8 @@
             msg: |
               Socket reader server successfully started.
               Listening on: http://{{ socket_host }}:{{ socket_port }}
-              Log file: {{ log_file }}
-              PID file: {{ pid_file }}
+              Log file: {{ log_file_abs }}
+              PID file: {{ pid_file_abs }}
 
               To stop: ansible-playbook stop_socket.yml
 

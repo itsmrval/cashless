@@ -10,30 +10,30 @@
     msg: "Using {{ python_version.stdout }}"
 
 - name: Create Python virtual environment
-  command: python3 -m venv {{ venv_path }}
+  command: python3 -m venv {{ venv_path_abs }}
   args:
-    creates: "{{ venv_path }}/bin/activate"
+    creates: "{{ venv_path_abs }}/bin/activate"
 
 - name: Upgrade pip in virtual environment
   pip:
     name: pip
     state: latest
-    virtualenv: "{{ venv_path }}"
+    virtualenv: "{{ venv_path_abs }}"
 
 - name: Check requirements.txt modification time
   stat:
-    path: "{{ requirements_file }}"
+    path: "{{ requirements_file_abs }}"
   register: requirements_stat
 
 - name: Check requirements marker file
   stat:
-    path: "{{ venv_path }}/.requirements_installed"
+    path: "{{ venv_path_abs }}/.requirements_installed"
   register: marker_stat
 
 - name: Install Python dependencies
   pip:
-    requirements: "{{ requirements_file }}"
-    virtualenv: "{{ venv_path }}"
+    requirements: "{{ requirements_file_abs }}"
+    virtualenv: "{{ venv_path_abs }}"
   register: dependencies_installed
   when: >
     not marker_stat.stat.exists or
@@ -41,7 +41,7 @@
 
 - name: Update marker file
   file:
-    path: "{{ venv_path }}/.requirements_installed"
+    path: "{{ venv_path_abs }}/.requirements_installed"
     state: touch
     modification_time: preserve
     access_time: preserve
