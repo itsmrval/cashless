@@ -252,7 +252,7 @@ def get_user_balance(card_token, card_id):
         }
 
 
-def create_transaction(card_token, card_id, amount, merchant_name):
+def create_transaction(card_token, card_id, amount, merchant_name, refund=False):
     try:
         if not DEST_ID:
             return {
@@ -265,10 +265,27 @@ def create_transaction(card_token, card_id, amount, merchant_name):
             'Authorization': f'Bearer {card_token}',
             'Content-Type': 'application/json'
         }
-        data = {
-            'destination_user_id': DEST_ID,
-            'operation': int(amount * 100)
-        }
+        
+        if refund:
+            user_result = fetch_user_by_card(card_id)
+            if not user_result['success']:
+                return {
+                    'success': False,
+                    'error': f"Impossible de récupérer l'utilisateur: {user_result.get('error')}"
+                }
+            user_id = user_result['user']['id']
+            
+            data = {
+                'source_user_id': DEST_ID,
+                'destination_user_id': user_id,
+                'operation': int(amount * 100),
+                'infinite_funds': True
+            }
+        else:
+            data = {
+                'destination_user_id': DEST_ID,
+                'operation': int(amount * 100)
+            }
                 
         response = requests.post(url, json=data, headers=headers, timeout=5)
                 

@@ -279,6 +279,7 @@ def handle_create_transaction(data):
     
     amount = data.get('amount')
     merchant = data.get('merchant', 'CoffeeShop')
+    refund = data.get('refund', False)
     
     if not amount or amount <= 0:
         emit('transaction_result', {
@@ -288,18 +289,24 @@ def handle_create_transaction(data):
         logger.warning(f"Montant invalide reçu: {amount}")
         return
     
-    result = create_transaction(current_card_token, current_card_id, amount, merchant)
+    if refund:
+        logger.info(f"Remboursement de {amount}€ demandé pour la carte {current_card_id}")
+    
+    result = create_transaction(current_card_token, current_card_id, amount, merchant, refund)
     
     if result['success']:
+        if refund:
+            logger.info(f"Remboursement réussi: {amount}€ - Nouveau solde: {result['new_balance']}€")
         emit('transaction_result', {
             'success': True,
             'transaction_id': result.get('transaction_id'),
             'new_balance': result['new_balance'],
-            'message': 'Transaction effectuée avec succès'
+            'refund': refund,
+            'message': 'Remboursement effectué avec succès' if refund else 'Transaction effectuée avec succès'
         })
     
     else:
-        logger.error(f"Erreur transaction: {result.get('error')}")
+        logger.error(f"Erreur {'remboursement' if refund else 'transaction'}: {result.get('error')}")
         emit('transaction_result', {
             'success': False,
             'error': result.get('error', 'Erreur inconnue')

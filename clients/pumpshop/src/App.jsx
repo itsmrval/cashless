@@ -178,21 +178,6 @@ function App() {
       }
     });
 
-    newSocket.on('transaction_result', (result) => {
-      console.log('Résultat de transaction reçu:', result);
-      
-      if (result.success) {
-        console.log('Transaction réussie - Nouveau solde:', result.new_balance);
-        setBalance(result.new_balance);
-        setNewBalanceAmount(result.new_balance);
-      } else {
-        console.error('Erreur transaction:', result.error);
-        setMessage(`Erreur de paiement: ${result.error}`);
-        setMessageType('error');
-        setTimeout(() => setMessage(''), 3000);
-      }
-    });
-
     newSocket.on('card_removed', (data) => {
       console.log('Carte retirée via Socket.IO:', data);
       resetState();
@@ -373,23 +358,57 @@ function App() {
     setTpeMode('preauth');
     setTpeMessage('Pré-autorisation...');
     
-    // Simuler le temps de traitement
-    setTimeout(() => {
-      // Bloquer le montant sur le compte
+    if (socket && socket.connected) {
+      console.log(`Envoi de la pré-autorisation: ${amount.toFixed(2)}€`);
+      
       setPreAuthAmount(amount);
-      setBalance(prev => prev - amount);
-      setIsPreAuthActive(true);
       
-      setTpeMode('success');
-      setTpeMessage(`${amount.toFixed(2)}€ bloqués`);
+      socket.emit('create_transaction', {
+        amount: amount,
+        merchant: 'PumpShop'
+      });
       
-      console.log(`Pré-autorisation de ${amount.toFixed(2)}€ acceptée`);
+      socket.once('transaction_result', (result) => {
+        if (result.success) {
+          console.log(`Pré-autorisation de ${amount.toFixed(2)}€ acceptée`);
+          setBalance(result.new_balance);
+          setIsPreAuthActive(true);
+          setTpeMode('success');
+          setTpeMessage(`${amount.toFixed(2)}€ prélevés`);
+          
+          setTimeout(() => {
+            startFueling(selectedFuel, amount);
+          }, 1500);
+        } else {
+          console.error('Erreur pré-autorisation:', result.error);
+          setIsPreAuthActive(false);
+          setPreAuthAmount(0);
+          setTpeMode('error');
+          
+          if (result.error && result.error.includes('Insufficient')) {
+            setTpeMessage('Solde insuffisant');
+            setShowInsufficientBalance(true);
+          } else {
+            setTpeMessage('Erreur');
+          }
+          
+          setTimeout(() => {
+            setTpeMode('idle');
+            setTpeMessage('');
+            setSelectedFuel(null);
+          }, 3000);
+        }
+      });
       
-      // Démarrer le ravitaillement après 1.5s
+    } else {
+      console.error('Socket non connecté pour la pré-autorisation');
+      setTpeMode('error');
+      setTpeMessage('Connexion perdue');
       setTimeout(() => {
-        startFueling(selectedFuel, amount);
-      }, 1500);
-    }, 2000);
+        setTpeMode('idle');
+        setTpeMessage('');
+      }, 2000);
+    }
   };
 
   // Arrêter le ravitaillement manuellement
@@ -404,43 +423,52 @@ function App() {
     }
   };
 
-  // Finaliser le ravitaillement et envoyer la transaction
+  // Finaliser le ravitaillement et rembourser la différence
   const finalizeFueling = () => {
     const actualAmount = currentLiters * selectedFuel.price;
+    const refundToSend = preAuthAmount - actualAmount;
     
-    console.log('Création de la transaction via Socket.IO...');
+    console.log(`Finalisation: consommé ${actualAmount.toFixed(2)}€, à rembourser ${refundToSend.toFixed(2)}€`);
     
-    // Envoyer la transaction au serveur via Socket.IO (comme coffeeshop)
-    if (socket && socket.connected) {
+    setPaymentAmount(actualAmount);
+    setRefundAmount(refundToSend);
+    setLiters(currentLiters);
+    setIsPreAuthActive(false);
+    setIsFueling(false);
+    
+    if (refundToSend > 0 && socket && socket.connected) {
+      console.log(`Envoi du remboursement: ${refundToSend.toFixed(2)}€`);
+      
       socket.emit('create_transaction', {
-        amount: actualAmount,
-        merchant: 'PumpShop'
+        amount: refundToSend,
+        merchant: 'PumpShop',
+        refund: true
       });
       
-      // Afficher les infos de paiement
-      setPaymentAmount(actualAmount);
-      setRefundAmount(preAuthAmount - actualAmount);
-      setLiters(currentLiters);
-      setIsPreAuthActive(false);
+      socket.once('transaction_result', (result) => {
+        if (result.success && result.refund) {
+          console.log('Remboursement réussi - Nouveau solde:', result.new_balance);
+          setBalance(result.new_balance);
+          setNewBalanceAmount(result.new_balance);
+        } else if (!result.success) {
+          console.error('Erreur remboursement:', result.error);
+          setMessage(`Erreur de remboursement: ${result.error}`);
+          setMessageType('error');
+          setTimeout(() => setMessage(''), 5000);
+        }
+      });
       
-      setIsFueling(false);
-      setShowPaymentSuccess(true);
-      
-      console.log(`Transaction envoyée: ${actualAmount.toFixed(2)}€`);
-      
-      // Le nouveau solde sera mis à jour par l'événement 'transaction_result'
+    } else if (refundToSend <= 0) {
+      console.log('Pas de remboursement nécessaire');
+      setNewBalanceAmount(balance);
     } else {
-      console.error('Socket non connecté pour la transaction');
-      setMessage('Erreur: connexion perdue');
+      console.error('Socket non connecté pour le remboursement');
+      setMessage('Attention: remboursement non envoyé');
       setMessageType('error');
-      setTimeout(() => setMessage(''), 3000);
-      
-      // Remettre le solde original en cas d'erreur
-      setBalance(prev => prev + preAuthAmount);
-      setIsPreAuthActive(false);
-      setIsFueling(false);
-      return;
+      setTimeout(() => setMessage(''), 5000);
     }
+    
+    setShowPaymentSuccess(true);
     
     setTimeout(() => {
       setShowPaymentSuccess(false);
