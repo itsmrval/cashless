@@ -1,0 +1,52 @@
+[
+  {
+    "id": "sp95",
+    "name": "Sans Plomb 95",
+    "shortName": "SP95",
+    "price": 1.789,
+    "color": "#22c55e",
+    "colorClass": "bg-green-500",
+    "borderClass": "border-green-400",
+    "icon": "⛽"
+  },
+  {
+    "id": "sp98",
+    "name": "Sans Plomb 98",
+    "shortName": "SP98",
+    "price": 1.899,
+    "color": "#3b82f6",
+    "colorClass": "bg-blue-500",
+    "borderClass": "border-blue-400",
+    "icon": "⛽"
+  },
+  {
+    "id": "e85",
+    "name": "Éthanol E85",
+    "shortName": "E85",
+    "price": 0.849,
+    "color": "#eab308",
+    "colorClass": "bg-yellow-500",
+    "borderClass": "border-yellow-400",
+    "icon": "🌿"
+  },
+  {
+    "id": "diesel",
+    "name": "Gazole",
+    "shortName": "Diesel",
+    "price": 1.659,
+    "color": "#1f2937",
+    "colorClass": "bg-gray-800",
+    "borderClass": "border-gray-600",
+    "icon": "🛢️"
+  },
+  {
+    "id": "diesel-plus",
+    "name": "Gazole Premium",
+    "shortName": "Diesel+",
+    "price": 1.759,
+    "color": "#6366f1",
+    "colorClass": "bg-indigo-500",
+    "borderClass": "border-indigo-400",
+    "icon": "✨"
+  }
+]
