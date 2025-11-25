@@ -520,8 +520,6 @@ int fetch_transactions(const char *card_id, const char *card_token, const char *
     snprintf(card_auth_header, sizeof(card_auth_header), "Authorization: Bearer %s", card_token);
     snprintf(driver_auth_header, sizeof(driver_auth_header), "Authorization: Bearer %s", driver_token);
 
-    fprintf(stderr, "[DEBUG] Fetching transactions from: %s\n", url);
-
     curl = curl_easy_init();
     if (curl) {
         struct curl_slist *headers = NULL;
@@ -539,17 +537,12 @@ int fetch_transactions(const char *card_id, const char *card_token, const char *
             long response_code;
             curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &response_code);
 
-            fprintf(stderr, "[DEBUG] Transactions endpoint returned HTTP %ld\n", response_code);
-
             if (response_code == 200) {
-                fprintf(stderr, "[DEBUG] Response: %s\n", chunk.memory);
                 *transaction_count = 0;
 
-                // Look for the "transactions" field in the response
                 char *trans_array = strstr(chunk.memory, "\"transactions\":");
                 if (trans_array) {
-                    trans_array += 15; // Skip past "transactions":
-                    // Skip whitespace
+                    trans_array += 15;
                     while (*trans_array == ' ' || *trans_array == '\n' || *trans_array == '\r' || *trans_array == '\t') {
                         trans_array++;
                     }
@@ -561,7 +554,6 @@ int fetch_transactions(const char *card_id, const char *card_token, const char *
                         char *obj_start = strchr(trans_start, '{');
                         if (!obj_start) break;
 
-                        // Find matching closing brace by counting nesting level
                         char *obj_end = obj_start + 1;
                         int brace_count = 1;
                         while (*obj_end && brace_count > 0) {
@@ -615,20 +607,10 @@ int fetch_transactions(const char *card_id, const char *card_token, const char *
                         trans_start = obj_end + 1;
                     }
 
-                    fprintf(stderr, "[DEBUG] Successfully parsed %d transactions\n", *transaction_count);
                     success = 1;
-                    } else {
-                        fprintf(stderr, "[DEBUG] ERROR: Transactions array does not start with '['\n");
                     }
-                } else {
-                    fprintf(stderr, "[DEBUG] ERROR: Could not find 'transactions' field in response\n");
                 }
-            } else {
-                fprintf(stderr, "[DEBUG] ERROR: Transactions request returned HTTP %ld\n", response_code);
-                fprintf(stderr, "[DEBUG] Response: %s\n", chunk.memory);
             }
-        } else {
-            fprintf(stderr, "[DEBUG] ERROR: Transactions CURL error: %s\n", curl_easy_strerror(res));
         }
 
         curl_slist_free_all(headers);
@@ -638,20 +620,15 @@ int fetch_transactions(const char *card_id, const char *card_token, const char *
     free(chunk.memory);
 
     if (!success) {
-        fprintf(stderr, "[DEBUG] ERROR: Failed to fetch transactions, returning 0\n");
         return 0;
     }
 
-    // Now fetch balance from /user/:card_id/balance endpoint
     chunk.memory = malloc(1);
     chunk.size = 0;
 
     char user_id[128] = "";
 
-    // First get the user ID from the card
     snprintf(url, sizeof(url), "%s/user?card_id=%s", api_base_url, card_id);
-
-    fprintf(stderr, "[DEBUG] Fetching user ID from: %s\n", url);
 
     curl = curl_easy_init();
     if (curl) {
@@ -670,10 +647,7 @@ int fetch_transactions(const char *card_id, const char *card_token, const char *
             long response_code;
             curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &response_code);
 
-            fprintf(stderr, "[DEBUG] User endpoint returned HTTP %ld\n", response_code);
-
             if (response_code == 200) {
-                fprintf(stderr, "[DEBUG] Response: %s\n", chunk.memory);
                 char *id_start = strstr(chunk.memory, "\"_id\":\"");
                 if (id_start) {
                     id_start += 7;
@@ -683,18 +657,10 @@ int fetch_transactions(const char *card_id, const char *card_token, const char *
                         if (len < sizeof(user_id)) {
                             strncpy(user_id, id_start, len);
                             user_id[len] = '\0';
-                            fprintf(stderr, "[DEBUG] Found user ID: %s\n", user_id);
                         }
                     }
-                } else {
-                    fprintf(stderr, "[DEBUG] ERROR: Could not find _id in response\n");
                 }
-            } else {
-                fprintf(stderr, "[DEBUG] ERROR: User request returned HTTP %ld\n", response_code);
-                fprintf(stderr, "[DEBUG] Response: %s\n", chunk.memory);
             }
-        } else {
-            fprintf(stderr, "[DEBUG] ERROR: User CURL error: %s\n", curl_easy_strerror(res));
         }
 
         curl_slist_free_all(headers);
@@ -704,18 +670,14 @@ int fetch_transactions(const char *card_id, const char *card_token, const char *
     free(chunk.memory);
 
     if (user_id[0] == '\0') {
-        fprintf(stderr, "[DEBUG] ERROR: Could not get user ID, setting balance to 0\n");
         *balance = 0;
-        return 1;  // Still return success for transactions
+        return 1;
     }
 
-    // Now fetch the balance
     chunk.memory = malloc(1);
     chunk.size = 0;
 
     snprintf(url, sizeof(url), "%s/user/%s/balance", api_base_url, user_id);
-
-    fprintf(stderr, "[DEBUG] Fetching balance from: %s\n", url);
 
     curl = curl_easy_init();
     if (curl) {
@@ -734,25 +696,17 @@ int fetch_transactions(const char *card_id, const char *card_token, const char *
             long response_code;
             curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &response_code);
 
-            fprintf(stderr, "[DEBUG] Balance endpoint returned HTTP %ld\n", response_code);
-
             if (response_code == 200) {
-                fprintf(stderr, "[DEBUG] Response: %s\n", chunk.memory);
                 char *balance_start = strstr(chunk.memory, "\"balance\":");
                 if (balance_start) {
                     *balance = atoi(balance_start + 10);
-                    fprintf(stderr, "[DEBUG] Found balance: %d\n", *balance);
                 } else {
-                    fprintf(stderr, "[DEBUG] ERROR: Could not find balance in response\n");
                     *balance = 0;
                 }
             } else {
-                fprintf(stderr, "[DEBUG] ERROR: Balance request returned HTTP %ld\n", response_code);
-                fprintf(stderr, "[DEBUG] Response: %s\n", chunk.memory);
                 *balance = 0;
             }
         } else {
-            fprintf(stderr, "[DEBUG] ERROR: Balance CURL error: %s\n", curl_easy_strerror(res));
             *balance = 0;
         }
 
@@ -761,6 +715,5 @@ int fetch_transactions(const char *card_id, const char *card_token, const char *
     }
 
     free(chunk.memory);
-    fprintf(stderr, "[DEBUG] fetch_transactions completed successfully\n");
     return 1;
 }
