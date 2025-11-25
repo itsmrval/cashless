@@ -54,6 +54,12 @@ ansible-playbook assign_card.yml
 ```
 Plug a flashed card into the reader, then run the playbook.
 
+**APDU Commands Used by Assignator:**
+- `READ_CARD_ID (0x01)` - Verify card is unassigned (returns all zeros)
+- `READ_VERSION (0x02)` - Check firmware version
+- `ASSIGN_CARD (0x08)` - Write card ID and PUK to card (one-time operation)
+- `WRITE_PRIVATE_KEY_CHUNK (0x0A)` - Write cryptographic private key for challenge signing
+
 ### Socket Reader
 
 WebSocket service that broadcasts real-time card insertion/removal events to connected clients.
@@ -71,8 +77,17 @@ ansible-playbook stop_socket.yml
 
 The service runs on `https://0.0.0.0:8001` and supports:
 - Real-time card detection events (`card_inserted`, `card_removed`)
-- PIN verification via WebSocket
+- PIN verification via WebSocket (`verify_pin` event)
+- Transaction creation via WebSocket (`create_transaction` event)
+- Challenge signing and cryptographic authentication
 - SSL/TLS encrypted communication
+
+**APDU Commands Used by Socket Reader:**
+- `READ_CARD_ID (0x01)` - Detect and read card ID
+- `READ_VERSION (0x02)` - Check card firmware version
+- `IS_PIN_DEFINED (0x0E)` - Verify if card is activated
+- `VERIFY_PIN (0x06)` - Authenticate user locally on card
+- `SET_CHALLENGE (0x0C)` + `SIGN_CHALLENGE (0x0B)` - Cryptographic authentication with API
 
 See [socket_reader/README.md](socket_reader/README.md) for WebSocket API documentation.
 
@@ -83,7 +98,19 @@ cd clients/atm
 make
 ./atm atm.conf
 ```
-Example for the ATM client
+Example for the ATM client.
+
+**APDU Commands Used by ATM Client:**
+- `READ_CARD_ID (0x01)` - Detect and read card ID
+- `READ_VERSION (0x02)` - Check card firmware version
+- `WRITE_PIN_ONLY (0x09)` - Setup PIN during activation
+- `WRITE_PIN (0x03)` - Setup PIN and PUK during initial configuration
+- `VERIFY_PIN (0x06)` - Authenticate user locally on card
+- `VERIFY_PUK (0x07)` - Unblock card with PUK and set new PIN
+- `GET_REMAINING_ATTEMPTS (0x0D)` - Check remaining PIN/PUK attempts
+- `SET_CHALLENGE (0x0C)` + `SIGN_CHALLENGE (0x0B)` - Cryptographic authentication with API
+
+The ATM client provides a complete card management interface including PIN setup, PUK-based unlock, and transaction viewing.
 
 ## API Endpoints
 
@@ -146,6 +173,7 @@ The card communicates via PC/SC protocol with APDU commands:
 | `0x0B` | SIGN_CHALLENGE | 4 bytes out | Sign challenge with private key (requires PIN verification) |
 | `0x0C` | SET_CHALLENGE | 4 bytes in | Set 4-byte challenge for signing (requires PIN verification) |
 | `0x0D` | GET_REMAINING_ATTEMPTS | 2 bytes out | Query remaining PIN/PUK attempts without consuming them |
+| `0x0E` | IS_PIN_DEFINED | 1 byte out | Check if PIN is defined (0x00=not defined, 0x01=defined) |
 
 ### Status Codes (SW1/SW2)
 
