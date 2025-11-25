@@ -242,22 +242,52 @@ function App() {
       setTimeout(() => setMessage(''), 3000);
       return;
     }
-    if (balance < product.price) {
-      // Afficher l'animation de refus
-      setRejectedAmount(product.price);
-      setRejectedBalance(balance);
-      setShowPaymentRejectedAnimation(true);
+    
+    // Demander le solde actuel à l'API avant de vérifier
+    console.log('Demande du solde actuel à l\'API...');
+    if (socket && socket.connected) {
+      socket.emit('get_balance');
       
-      // Masquer l'animation après 3 secondes
-      setTimeout(() => {
-        setShowPaymentRejectedAnimation(false);
-      }, 3000);
-      return;
+      // Écouter la réponse du solde une seule fois
+      socket.once('balance_result', (result) => {
+        console.log('Réponse balance reçue:', result);
+        
+        if (result.success) {
+          const currentBalance = result.balance;
+          // Mettre à jour l'affichage du solde
+          setBalance(currentBalance);
+          
+          // Vérifier le solde
+          if (currentBalance < product.price) {
+            // Afficher l'animation de refus
+            setRejectedAmount(product.price);
+            setRejectedBalance(currentBalance);
+            setShowPaymentRejectedAnimation(true);
+            
+            // Masquer l'animation après 3 secondes
+            setTimeout(() => {
+              setShowPaymentRejectedAnimation(false);
+            }, 3000);
+          } else {
+            // Solde suffisant, continuer avec la commande
+            console.log('Ouverture du modal de confirmation');
+            setSelectedProduct(product);
+            setSugarLevel(2);
+            setShowConfirmation(true);
+          }
+        } else {
+          console.error('Erreur récupération solde:', result.error);
+          setMessageType('error');
+          setMessage('Erreur lors de la vérification du solde');
+          setTimeout(() => setMessage(''), 3000);
+        }
+      });
+    } else {
+      console.error('Socket non connecté');
+      setMessageType('error');
+      setMessage('Erreur: connexion perdue');
+      setTimeout(() => setMessage(''), 3000);
     }
-    console.log('Ouverture du modal de confirmation');
-    setSelectedProduct(product);
-    setSugarLevel(2);
-    setShowConfirmation(true);
   };
 
   const handlePayment = () => {

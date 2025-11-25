@@ -312,6 +312,49 @@ def handle_create_transaction(data):
             'error': result.get('error', 'Erreur inconnue')
         })
 
+@socketio.on('get_balance')
+def handle_get_balance():
+    global current_card_token, current_card_id
+    from flask import request
+    
+    logger.info(f"Demande de récupération du solde du client: {request.sid}")
+    
+    if not current_card_token:
+        emit('balance_result', {
+            'success': False,
+            'error': 'Non authentifié. Veuillez d\'abord vérifier votre PIN.'
+        })
+        logger.warning("Tentative de récupération du solde sans authentification")
+        return
+    
+    if not current_card_id:
+        emit('balance_result', {
+            'success': False,
+            'error': 'Carte non détectée.'
+        })
+        logger.warning("Tentative de récupération du solde sans carte")
+        return
+    
+    logger.info(f"Récupération du solde pour la carte {current_card_id}")
+    
+    # Importer la fonction get_user_balance depuis api
+    from api import get_user_balance
+    
+    result = get_user_balance(current_card_token, current_card_id)
+    
+    if result['success']:
+        logger.info(f"Solde récupéré: {result['balance']}€")
+        emit('balance_result', {
+            'success': True,
+            'balance': result['balance']
+        })
+    else:
+        logger.error(f"Erreur récupération solde: {result.get('error')}")
+        emit('balance_result', {
+            'success': False,
+            'error': result.get('error', 'Erreur inconnue')
+        })
+
 def initialize_reader():
     global reader, detection_thread
     
