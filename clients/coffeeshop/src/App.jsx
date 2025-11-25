@@ -63,7 +63,7 @@ function App() {
       console.log('Données reçues:', data);
       
       if (data.card_id && data.card_id !== null) {
-        setUser({ name: 'Utilisateur', cardId: data.card_id });
+        setUser({ name: '', cardId: data.card_id });
         setBalance(0);
         setPinAttempts(3);
         setIsCardBlocked(false);
@@ -372,7 +372,7 @@ function App() {
         </div>
       )}
 
-      {user && (
+      {user && user.name && isPinVerified && (
         <div className="fixed top-6 right-6 z-[60] bg-white border-3 border-black rounded-xl shadow-lg px-6 py-4">
           <div className="flex items-center space-x-4">
             <div className="w-12 h-12 bg-gray-900 rounded-full flex items-center justify-center">
@@ -389,7 +389,7 @@ function App() {
       )}
 
       {/* Page d'attente de carte */}
-      {!user ? (
+      {!user || !user.name || !isPinVerified ? (
         <div className="min-h-screen flex items-center">
           <div className="container mx-auto px-6">
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center max-w-7xl mx-auto">
