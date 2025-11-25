@@ -208,13 +208,16 @@ export const api = {
     return response.json();
   },
 
-  getTransactions: async (userId = null) => {
-    const url = userId
-      ? `${API_BASE_URL}/v1/transactions?userId=${userId}`
-      : `${API_BASE_URL}/v1/transactions`;
+  getTransactions: async (userId = null, page = 1, limit = null) => {
+    const params = new URLSearchParams();
+    if (userId) params.append('userId', userId);
+    params.append('page', page);
+    if (limit) params.append('limit', limit);
+
+    const url = `${API_BASE_URL}/v1/transactions?${params.toString()}`;
     const response = await fetch(url, { headers: getAuthHeaders() });
     if (!response.ok) throw new Error("Erreur lors de la récupération des transactions");
-    return response.json();
+    return response.json(); // Returns { transactions, pagination }
   },
 
   createTransaction: async (transactionData) => {

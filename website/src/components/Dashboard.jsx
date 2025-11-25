@@ -73,11 +73,11 @@ function Dashboard() {
         }),
         api.getTransactions(currentUserId).catch(err => {
           console.error('Failed to fetch transactions:', err);
-          return [];
+          return { transactions: [] };
         })
       ]);
       setBalance(balanceData.balance || 0);
-      setTransactions(transData);
+      setTransactions(transData.transactions || []);
     } catch (err) {
       console.error('Error loading dashboard data:', err);
     } finally {

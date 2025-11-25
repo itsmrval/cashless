@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { api } from '../../api/api';
-import { 
-  ArrowDownLeft, 
-  ArrowUpRight, 
-  RefreshCw, 
-  Loader2, 
+import Pagination from '../../components/Pagination';
+import {
+  ArrowDownLeft,
+  ArrowUpRight,
+  RefreshCw,
+  Loader2,
   AlertCircle,
   Filter,
   TrendingUp,
@@ -24,6 +25,11 @@ export default function AdminTransactions() {
   const [selectedUser, setSelectedUser] = useState('');
   const [userBalance, setUserBalance] = useState(null);
   const [showBalanceInfo, setShowBalanceInfo] = useState(false);
+
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(30);
+  const [paginationData, setPaginationData] = useState(null);
   
   // Create transaction modal
   const [showTransactionModal, setShowTransactionModal] = useState(false);
@@ -34,23 +40,34 @@ export default function AdminTransactions() {
 
   useEffect(() => {
     loadData();
-  }, []);
+  }, [currentPage, itemsPerPage]);
 
   const loadData = async () => {
     setLoading(true);
     setError('');
     try {
       const [transData, usersData] = await Promise.all([
-        api.getTransactions(),
+        api.getTransactions(null, currentPage, itemsPerPage),
         api.getAllUsers()
       ]);
-      setTransactions(transData);
+      setTransactions(transData.transactions || []);
+      setPaginationData(transData.pagination || null);
       setUsers(usersData);
     } catch (err) {
       setError(err.message || 'Erreur lors du chargement');
     } finally {
       setLoading(false);
     }
+  };
+
+  const handlePageChange = (newPage) => {
+    setCurrentPage(newPage);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const handleItemsPerPageChange = (newLimit) => {
+    setItemsPerPage(parseInt(newLimit));
+    setCurrentPage(1); // Reset to first page
   };
 
   const loadUserBalance = async (userId) => {
@@ -68,6 +85,7 @@ export default function AdminTransactions() {
 
   const handleUserFilter = (userId) => {
     setSelectedUser(userId);
+    setCurrentPage(1); // Reset to first page when changing filter
     loadUserBalance(userId);
   };
 
@@ -181,8 +199,8 @@ export default function AdminTransactions() {
         </div>
       )}
 
-      {/* Filter and Balance */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      {/* Filter and Settings */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-lg border border-white/20 p-6">
           <label className="flex items-center gap-2 text-sm font-semibold text-slate-700 mb-3">
             <Filter className="h-4 w-4 text-emerald-600" />
@@ -197,6 +215,23 @@ export default function AdminTransactions() {
             {users.map(user => (
               <option key={user._id} value={user._id}>{user.name}</option>
             ))}
+          </select>
+        </div>
+
+        <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-lg border border-white/20 p-6">
+          <label className="flex items-center gap-2 text-sm font-semibold text-slate-700 mb-3">
+            <Users className="h-4 w-4 text-emerald-600" />
+            Transactions par page
+          </label>
+          <select
+            value={itemsPerPage}
+            onChange={(e) => handleItemsPerPageChange(e.target.value)}
+            className="w-full px-4 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition-all"
+          >
+            <option value="20">20 par page</option>
+            <option value="30">30 par page</option>
+            <option value="50">50 par page</option>
+            <option value="100">100 par page</option>
           </select>
         </div>
 
@@ -228,6 +263,17 @@ export default function AdminTransactions() {
 
       {/* Transactions Table */}
       <div className="bg-white/90 backdrop-blur-sm rounded-2xl shadow-lg border border-white/20 overflow-hidden">
+        {/* Pagination - Top */}
+        {paginationData && paginationData.totalPages > 1 && (
+          <Pagination
+            currentPage={paginationData.currentPage}
+            totalPages={paginationData.totalPages}
+            totalItems={paginationData.totalItems}
+            itemsPerPage={paginationData.itemsPerPage}
+            onPageChange={handlePageChange}
+          />
+        )}
+
         <div className="overflow-x-auto">
           <table className="w-full">
             <thead className="bg-slate-50 border-b border-slate-200">
@@ -294,14 +340,16 @@ export default function AdminTransactions() {
             </tbody>
           </table>
         </div>
-        
-        {filteredTransactions.length > 0 && (
-          <div className="bg-slate-50 px-6 py-3 border-t border-slate-100">
-            <p className="text-xs text-slate-500">
-              Affichage de {filteredTransactions.length} transaction(s)
-              {selectedUser && ` pour ${users.find(u => u._id === selectedUser)?.name}`}
-            </p>
-          </div>
+
+        {/* Pagination - Bottom */}
+        {paginationData && paginationData.totalPages > 1 && (
+          <Pagination
+            currentPage={paginationData.currentPage}
+            totalPages={paginationData.totalPages}
+            totalItems={paginationData.totalItems}
+            itemsPerPage={paginationData.itemsPerPage}
+            onPageChange={handlePageChange}
+          />
         )}
       </div>
 

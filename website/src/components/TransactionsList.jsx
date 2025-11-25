@@ -20,10 +20,17 @@ import {
   Save
 } from 'lucide-react';
 import { api } from '../api/api';
+import Pagination from './Pagination';
 
-function TransactionsList({ transactions = [], userId, loading, onRefresh }) {
+function TransactionsList({ userId, loading: parentLoading, onRefresh }) {
   const [filter, setFilter] = useState('all');
   const normalizedUserId = userId ? String(userId) : null;
+
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  const [paginationData, setPaginationData] = useState(null);
+  const [paginatedTransactions, setPaginatedTransactions] = useState([]);
+  const [loading, setLoading] = useState(false);
 
   const [showTransactionModal, setShowTransactionModal] = useState(false);
   const [beneficiaries, setBeneficiaries] = useState([]);
@@ -47,6 +54,42 @@ function TransactionsList({ transactions = [], userId, loading, onRefresh }) {
       loadBeneficiaries();
     }
   }, [showTransactionModal]);
+
+  // Load transactions with pagination
+  useEffect(() => {
+    loadTransactions();
+  }, [currentPage, userId]);
+
+  const loadTransactions = async () => {
+    if (!userId) {
+      setPaginatedTransactions([]);
+      setPaginationData(null);
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const response = await api.getTransactions(userId, currentPage);
+      setPaginatedTransactions(response.transactions || []);
+      setPaginationData(response.pagination || null);
+    } catch (err) {
+      console.error('Error loading transactions:', err);
+      setPaginatedTransactions([]);
+      setPaginationData(null);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handlePageChange = (newPage) => {
+    setCurrentPage(newPage);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const handleRefresh = () => {
+    loadTransactions();
+    if (onRefresh) onRefresh();
+  };
 
   const formatCurrency = (amount) => {
     return new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR' }).format(amount / 100);
@@ -112,6 +155,7 @@ function TransactionsList({ transactions = [], userId, loading, onRefresh }) {
       setBeneficiaryComment('');
       setTimeout(() => {
         setShowTransactionModal(false);
+        loadTransactions();
         if (onRefresh) onRefresh();
       }, 1500);
     } catch (err) {
@@ -132,6 +176,7 @@ function TransactionsList({ transactions = [], userId, loading, onRefresh }) {
       await api.updateTransactionComment(transactionId, editCommentText);
       setEditingCommentId(null);
       setEditCommentText('');
+      await loadTransactions();
       if (onRefresh) await onRefresh();
     } catch (err) {
       console.error('Failed to update comment:', err);
@@ -175,18 +220,18 @@ function TransactionsList({ transactions = [], userId, loading, onRefresh }) {
     return 'neutral';
   };
 
-  const transactionsWithBalance = transactions.map((trans, index) => {
+  const transactionsWithBalance = paginatedTransactions.map((trans, index) => {
     const type = getTransactionType(trans);
     const amount = trans.operation || 0;
-    
+
     let runningBalance = 0;
     for (let i = 0; i <= index; i++) {
-      const t = transactions[i];
+      const t = paginatedTransactions[i];
       const tType = getTransactionType(t);
       if (tType === 'credit') runningBalance += t.operation;
       else if (tType === 'debit') runningBalance -= t.operation;
     }
-    
+
     return {
       ...trans,
       type,
@@ -233,18 +278,27 @@ function TransactionsList({ transactions = [], userId, loading, onRefresh }) {
             <option value="credit">Crédits</option>
             <option value="debit">Débits</option>
           </select>
-          {onRefresh && (
-            <button 
-              onClick={onRefresh}
-              className="p-2 text-slate-500 bg-white border border-slate-200 rounded-lg hover:bg-slate-50"
-            >
-              <RefreshCw className="h-5 w-5" />
-            </button>
-          )}
+          <button
+            onClick={handleRefresh}
+            className="p-2 text-slate-500 bg-white border border-slate-200 rounded-lg hover:bg-slate-50"
+          >
+            <RefreshCw className="h-5 w-5" />
+          </button>
         </div>
       </div>
 
       <div className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
+        {/* Pagination - Top */}
+        {paginationData && paginationData.totalPages > 1 && (
+          <Pagination
+            currentPage={paginationData.currentPage}
+            totalPages={paginationData.totalPages}
+            totalItems={paginationData.totalItems}
+            itemsPerPage={paginationData.itemsPerPage}
+            onPageChange={handlePageChange}
+          />
+        )}
+
         {filteredTransactions.length === 0 ? (
           <div className="p-12 text-center flex flex-col items-center justify-center text-slate-400">
             <div className="w-16 h-16 bg-slate-50 rounded-full flex items-center justify-center mb-4">
@@ -353,13 +407,16 @@ function TransactionsList({ transactions = [], userId, loading, onRefresh }) {
             ))}
           </ul>
         )}
-        
-        {filteredTransactions.length > 0 && (
-          <div className="bg-slate-50 px-6 py-3 border-t border-slate-100 text-center sm:text-left">
-            <p className="text-xs text-slate-500">
-              Affichage de {filteredTransactions.length} opération(s)
-            </p>
-          </div>
+
+        {/* Pagination - Bottom */}
+        {paginationData && paginationData.totalPages > 1 && (
+          <Pagination
+            currentPage={paginationData.currentPage}
+            totalPages={paginationData.totalPages}
+            totalItems={paginationData.totalItems}
+            itemsPerPage={paginationData.itemsPerPage}
+            onPageChange={handlePageChange}
+          />
         )}
       </div>
 
