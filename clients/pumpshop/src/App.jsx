@@ -3,9 +3,7 @@ import fuels from './fuels.json';
 import io from 'socket.io-client';
 
 // URL du serveur Socket.IO (lecteur de carte)
-const SOCKET_URL = process.env.REACT_APP_SOCKET_URL || 'http://localhost:8002';
-// URL de l'API principale (backend MongoDB)
-const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:3000';
+const SOCKET_URL = process.env.REACT_APP_SOCKET_URL ;
 
 // Mode démo - mettre à true pour simuler sans lecteur de carte
 const DEMO_MODE = false;
@@ -32,8 +30,6 @@ function App() {
   
   // États de connexion
   const [isSocketConnected, setIsSocketConnected] = useState(false);
-  const [isBackendConnected, setIsBackendConnected] = useState(false);
-  const [connectionError, setConnectionError] = useState(null);
   const [isLoadingBalance, setIsLoadingBalance] = useState(false);
   
   // États pompe et carburant
@@ -66,37 +62,6 @@ function App() {
   const [message, setMessage] = useState('');
   const [messageType, setMessageType] = useState('info');
 
-  // Vérifier la connexion au backend principal au démarrage
-  useEffect(() => {
-    const checkBackendConnection = async () => {
-      try {
-        const response = await fetch(`${API_URL}/api/cards`, {
-          method: 'GET',
-          headers: { 'Content-Type': 'application/json' }
-        });
-        if (response.ok || response.status === 401) {
-          // 401 = API accessible mais non authentifié, c'est OK
-          setIsBackendConnected(true);
-          setConnectionError(null);
-          console.log('✅ Backend API connecté:', API_URL);
-        } else {
-          throw new Error('Backend non accessible');
-        }
-      } catch (error) {
-        console.error('❌ Erreur connexion backend:', error);
-        setIsBackendConnected(false);
-        if (!isDemoMode) {
-          setConnectionError('Impossible de se connecter au serveur principal. Vérifiez que l\'API est démarrée.');
-        }
-      }
-    };
-    
-    checkBackendConnection();
-    // Vérifier la connexion toutes les 3 secondes
-    const interval = setInterval(checkBackendConnection, 3000);
-    return () => clearInterval(interval);
-  }, [isDemoMode]);
-
   // Connexion Socket.IO
   useEffect(() => {
     console.log('Connexion au serveur Socket.IO...', SOCKET_URL);
@@ -115,15 +80,11 @@ function App() {
     newSocket.on('connect', () => {
       console.log('Socket.IO connecté - ID:', newSocket.id);
       setIsSocketConnected(true);
-      setConnectionError(null);
     });
 
     newSocket.on('connect_error', (error) => {
       console.error('Erreur connexion Socket.IO:', error);
       setIsSocketConnected(false);
-      if (!isDemoMode) {
-        setConnectionError('Impossible de se connecter au lecteur de carte. Vérifiez que le serveur est démarré.');
-      }
     });
 
     newSocket.on('card_inserted', async (data) => {
@@ -210,74 +171,6 @@ function App() {
     setShowAmountSelector(false);
     setRefundAmount(0);
   }, [fuelingIntervalRef]);
-
-  // Fonction pour récupérer la balance via l'API
-  const fetchBalance = useCallback(async (cardId) => {
-    if (isDemoMode) {
-      // En mode démo, on utilise la balance prédéfinie
-      setBalance(DEMO_BALANCE);
-      return DEMO_BALANCE;
-    }
-
-    setIsLoadingBalance(true);
-    try {
-      // 1. Récupérer la carte par son ID pour avoir le user_id
-      const cardResponse = await fetch(`${API_URL}/api/cards/${cardId}`, {
-        method: 'GET',
-        headers: { 'Content-Type': 'application/json' }
-      });
-      
-      if (!cardResponse.ok) {
-        throw new Error('Carte non trouvée dans le système');
-      }
-      
-      const cardData = await cardResponse.json();
-      
-      if (!cardData.user_id) {
-        throw new Error('Carte non assignée à un utilisateur');
-      }
-      
-      const userId = cardData.user_id._id || cardData.user_id;
-      
-      // Mettre à jour le nom de l'utilisateur
-      if (cardData.user_id.name) {
-        setUser(prev => ({ ...prev, name: cardData.user_id.name }));
-      }
-      
-      // 2. Récupérer la balance de l'utilisateur
-      const balanceResponse = await fetch(`${API_URL}/api/users/${userId}/balance`, {
-        method: 'GET',
-        headers: { 'Content-Type': 'application/json' }
-      });
-      
-      if (!balanceResponse.ok) {
-        throw new Error('Impossible de récupérer le solde');
-      }
-      
-      const balanceData = await balanceResponse.json();
-      const userBalance = balanceData.balance || 0;
-      
-      setBalance(userBalance);
-      console.log('💰 Balance récupérée:', userBalance, '€');
-      return userBalance;
-      
-    } catch (error) {
-      console.error('Erreur récupération balance:', error);
-      setMessage(`Erreur: ${error.message}`);
-      setMessageType('error');
-      setBalance(0);
-      return 0;
-    } finally {
-      setIsLoadingBalance(false);
-    }
-  }, [isDemoMode]);
-
-  // Récupérer la balance quand le PIN est vérifié (mode non-démo)
-  useEffect(() => {
-    if (isPinVerified && user?.cardId && !isDemoMode) {
-      fetchBalance(user.cardId);
-    }
-  }, [isPinVerified, user?.cardId, isDemoMode, fetchBalance]);
 
   // Fonction pour simuler l'insertion de carte en mode démo
   const handleDemoInsertCard = () => {
@@ -1029,48 +922,28 @@ function App() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 p-6">
       {/* Erreur de connexion */}
-      {(!isSocketConnected || !isBackendConnected) && !isDemoMode && (
+      {!isSocketConnected && !isDemoMode && (
         <div className="fixed inset-0 bg-black bg-opacity-90 flex items-center justify-center z-[100]">
           <div className="bg-red-900 border-2 border-red-500 rounded-2xl p-8 max-w-md mx-4 text-center">
             <div className="text-6xl mb-4">⚠️</div>
             <h2 className="text-2xl font-bold text-red-100 mb-4">Erreur de connexion</h2>
             <p className="text-red-200 mb-6">
-              {!isSocketConnected && !isBackendConnected 
-                ? 'Les serveurs ne sont pas accessibles.'
-                : !isSocketConnected 
-                  ? 'Lecteur de carte non connecté.'
-                  : 'API principale non connectée.'
-              }
+              Impossible de se connecter au serveur du lecteur de carte.
             </p>
             <div className="flex flex-col gap-3">
-              <div className="flex justify-center gap-4 mb-4">
-                <div className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm ${isSocketConnected ? 'bg-green-800 text-green-300' : 'bg-red-800 text-red-300'}`}>
-                  <div className={`w-2 h-2 rounded-full ${isSocketConnected ? 'bg-green-400 animate-pulse' : 'bg-red-400'}`}></div>
-                  Lecteur
-                </div>
-                <div className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm ${isBackendConnected ? 'bg-green-800 text-green-300' : 'bg-red-800 text-red-300'}`}>
-                  <div className={`w-2 h-2 rounded-full ${isBackendConnected ? 'bg-green-400 animate-pulse' : 'bg-red-400'}`}></div>
-                  API
+              <div className="flex justify-center mb-4">
+                <div className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm bg-red-800 text-red-300">
+                  <div className="w-2 h-2 rounded-full bg-red-400 animate-pulse"></div>
+                  Lecteur déconnecté
                 </div>
               </div>
               <p className="text-red-300 text-sm">
-                Vérifiez que les serveurs sont démarrés
+                Vérifiez que le serveur est démarré
               </p>
               <code className="bg-black bg-opacity-50 text-red-200 p-2 rounded text-xs">
-                Socket: {SOCKET_URL}<br/>
-                API: {API_URL}
+                {SOCKET_URL}
               </code>
             </div>
-          </div>
-        </div>
-      )}
-
-      {/* Indicateur de chargement de la balance */}
-      {isLoadingBalance && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-gray-800 rounded-xl p-6 text-center">
-            <div className="animate-spin text-4xl mb-4">⏳</div>
-            <p className="text-white">Récupération du solde...</p>
           </div>
         </div>
       )}
