@@ -520,6 +520,8 @@ int fetch_transactions(const char *card_id, const char *card_token, const char *
     snprintf(card_auth_header, sizeof(card_auth_header), "Authorization: Bearer %s", card_token);
     snprintf(driver_auth_header, sizeof(driver_auth_header), "Authorization: Bearer %s", driver_token);
 
+    fprintf(stderr, "[DEBUG] Fetching transactions from: %s\n", url);
+
     curl = curl_easy_init();
     if (curl) {
         struct curl_slist *headers = NULL;
@@ -537,7 +539,10 @@ int fetch_transactions(const char *card_id, const char *card_token, const char *
             long response_code;
             curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &response_code);
 
+            fprintf(stderr, "[DEBUG] Transactions endpoint returned HTTP %ld\n", response_code);
+
             if (response_code == 200) {
+                fprintf(stderr, "[DEBUG] Response: %s\n", chunk.memory);
                 *transaction_count = 0;
 
                 char *trans_start = chunk.memory;
@@ -602,9 +607,17 @@ int fetch_transactions(const char *card_id, const char *card_token, const char *
                         trans_start = obj_end + 1;
                     }
 
+                    fprintf(stderr, "[DEBUG] Successfully parsed %d transactions\n", *transaction_count);
                     success = 1;
+                } else {
+                    fprintf(stderr, "[DEBUG] ERROR: Response does not start with '[', got: %c\n", *trans_start);
                 }
+            } else {
+                fprintf(stderr, "[DEBUG] ERROR: Transactions request returned HTTP %ld\n", response_code);
+                fprintf(stderr, "[DEBUG] Response: %s\n", chunk.memory);
             }
+        } else {
+            fprintf(stderr, "[DEBUG] ERROR: Transactions CURL error: %s\n", curl_easy_strerror(res));
         }
 
         curl_slist_free_all(headers);
@@ -614,6 +627,7 @@ int fetch_transactions(const char *card_id, const char *card_token, const char *
     free(chunk.memory);
 
     if (!success) {
+        fprintf(stderr, "[DEBUG] ERROR: Failed to fetch transactions, returning 0\n");
         return 0;
     }
 
