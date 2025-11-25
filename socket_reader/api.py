@@ -257,10 +257,10 @@ def create_transaction(card_token, amount, merchant_name):
             'Authorization': f'Bearer {card_token}',
             'Content-Type': 'application/json'
         }
-        # L'API attend destination_user_id et operation (montant négatif en centimes)
+        # L'API attend destination_user_id et operation (montant positif en centimes)
         data = {
             'destination_user_id': DEST_ID,
-            'operation': -int(amount * 100)  # Montant négatif en centimes (débit)
+            'operation': int(amount * 100)  # Montant positif en centimes
         }
         
         print(f"DEBUG: Création transaction - Montant: {amount}€, Destination: {DEST_ID}")
