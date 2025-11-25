@@ -133,7 +133,6 @@ function CardManagement({
         <CardList
           cards={[]}
           userName={userData?.name}
-          onRefresh={handleRefresh}
           refreshing={refreshing}
           showBalance={false}
         />
