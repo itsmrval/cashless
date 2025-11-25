@@ -104,10 +104,6 @@ const getChallenge = async (req, res) => {
       return res.status(404).json({ error: 'Card not found' });
     }
 
-    if (card.status !== 'active') {
-      return res.status(403).json({ error: 'Card is not active' });
-    }
-
     if (!card.public_key) {
       return res.status(403).json({ error: 'Card has no public key registered' });
     }
