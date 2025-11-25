@@ -27,7 +27,7 @@ export default function AdminTransactions() {
   
   // Create transaction modal
   const [showTransactionModal, setShowTransactionModal] = useState(false);
-  const [newTransaction, setNewTransaction] = useState({ source_user_id: '', destination_user_id: '', operation: '' });
+  const [newTransaction, setNewTransaction] = useState({ source_user_id: '', destination_user_id: '', operation: '', infinite_funds: false });
   const [transactionError, setTransactionError] = useState('');
   const [transactionSuccess, setTransactionSuccess] = useState('');
   const [submitting, setSubmitting] = useState(false);
@@ -82,10 +82,11 @@ export default function AdminTransactions() {
       await api.createTransaction({
         source_user_id: newTransaction.source_user_id,
         destination_user_id: newTransaction.destination_user_id,
-        operation: operationCents
+        operation: operationCents,
+        infinite_funds: newTransaction.infinite_funds
       });
       setTransactionSuccess('Transaction créée avec succès !');
-      setNewTransaction({ source_user_id: '', destination_user_id: '', operation: '' });
+      setNewTransaction({ source_user_id: '', destination_user_id: '', operation: '', infinite_funds: false });
       setTimeout(() => {
         setShowTransactionModal(false);
         loadData();
@@ -386,7 +387,25 @@ export default function AdminTransactions() {
                   required
                 />
               </div>
-              
+
+              <div className="flex items-center gap-3 p-4 bg-amber-50 rounded-xl border border-amber-200">
+                <input
+                  type="checkbox"
+                  id="infinite-funds"
+                  checked={newTransaction.infinite_funds}
+                  onChange={(e) => setNewTransaction({ ...newTransaction, infinite_funds: e.target.checked })}
+                  className="rounded border-amber-300 text-amber-600 focus:ring-amber-500 w-4 h-4"
+                />
+                <label htmlFor="infinite-funds" className="flex-1 cursor-pointer">
+                  <div className="text-sm font-semibold text-amber-900">
+                    Autoriser solde négatif
+                  </div>
+                  <div className="text-xs text-amber-700">
+                    Ignorer la vérification du solde pour cette transaction (admin uniquement)
+                  </div>
+                </label>
+              </div>
+
               <div className="flex gap-3">
                 <button
                   type="submit"

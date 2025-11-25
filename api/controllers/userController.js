@@ -139,6 +139,37 @@ const deleteUser = async (req, res) => {
   }
 };
 
+const calculateUserBalance = async (userId) => {
+  const transactions = await Transaction.find({
+    $or: [
+      { source_user_id: userId },
+      { destination_user_id: userId }
+    ]
+  });
+
+  const balance = transactions.reduce((sum, t) => {
+    const sourceId = t.source_user_id.toString();
+    const destId = t.destination_user_id.toString();
+    const userIdStr = userId.toString();
+
+    if (sourceId === destId) {
+      return sum;
+    }
+
+    if (sourceId === userIdStr) {
+      return sum - t.operation;
+    }
+
+    if (destId === userIdStr) {
+      return sum + t.operation;
+    }
+
+    return sum;
+  }, 0);
+
+  return balance;
+};
+
 const getUserBalance = async (req, res) => {
   try {
     const userId = req.params.id;
@@ -154,32 +185,7 @@ const getUserBalance = async (req, res) => {
       return res.status(404).json({ error: 'User not found' });
     }
 
-    const transactions = await Transaction.find({
-      $or: [
-        { source_user_id: userId },
-        { destination_user_id: userId }
-      ]
-    });
-
-    const balance = transactions.reduce((sum, t) => {
-      const sourceId = t.source_user_id.toString();
-      const destId = t.destination_user_id.toString();
-      const userIdStr = userId.toString();
-
-      if (sourceId === destId) {
-        return sum;
-      }
-
-      if (sourceId === userIdStr) {
-        return sum - t.operation;
-      }
-
-      if (destId === userIdStr) {
-        return sum + t.operation;
-      }
-
-      return sum;
-    }, 0);
+    const balance = await calculateUserBalance(userId);
 
     res.json({ balance });
   } catch (error) {
@@ -262,5 +268,6 @@ module.exports = {
   deleteUser,
   getUserBalance,
   updatePassword,
-  adminResetPassword
+  adminResetPassword,
+  calculateUserBalance
 };

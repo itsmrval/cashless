@@ -1,5 +1,6 @@
 const Transaction = require('../models/Transaction');
 const Card = require('../models/Card');
+const { calculateUserBalance } = require('./userController');
 
 const formatTransaction = (t) => ({
   _id: t._id,
@@ -75,7 +76,7 @@ const getTransactions = async (req, res) => {
 
 const createTransaction = async (req, res) => {
   try {
-    const { source_user_id: bodySourceUserId, destination_user_id, operation } = req.body;
+    const { source_user_id: bodySourceUserId, destination_user_id, operation, infinite_funds } = req.body;
 
     if (!destination_user_id || !operation) {
       return res.status(400).json({ error: 'destination_user_id and operation are required' });
@@ -99,6 +100,22 @@ const createTransaction = async (req, res) => {
       }
     } else {
       return res.status(401).json({ error: 'Authentication required' });
+    }
+
+    if (infinite_funds) {
+      const isAdmin = req.user && req.user.role === 'admin';
+      if (!isAdmin) {
+        return res.status(403).json({ error: 'Only admins can bypass balance checks' });
+      }
+    }
+
+    if (!infinite_funds) {
+      const currentBalance = await calculateUserBalance(source_user_id);
+      const newBalance = currentBalance - operation;
+
+      if (newBalance < 0) {
+        return res.status(400).json({ error: 'Insufficient funds' });
+      }
     }
 
     const transaction = new Transaction({
