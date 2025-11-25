@@ -149,7 +149,6 @@ export default function AdminCardManagement() {
       case 'active': return 'bg-emerald-50 text-emerald-700 border-emerald-200';
       case 'inactive': return 'bg-red-50 text-red-700 border-red-200';
       case 'waiting_activation': return 'bg-amber-50 text-amber-700 border-amber-200';
-      case 'blocked': return 'bg-orange-50 text-orange-700 border-orange-200';
       default: return 'bg-slate-50 text-slate-700 border-slate-200';
     }
   };
@@ -159,7 +158,6 @@ export default function AdminCardManagement() {
       case 'active': return 'Active';
       case 'inactive': return 'Inactive';
       case 'waiting_activation': return 'En attente';
-      case 'blocked': return 'Bloquée';
       default: return status;
     }
   };
@@ -181,7 +179,6 @@ export default function AdminCardManagement() {
     active: cards.filter(c => c.status === 'active').length,
     inactive: cards.filter(c => c.status === 'inactive').length,
     waiting_activation: cards.filter(c => c.status === 'waiting_activation').length,
-    blocked: cards.filter(c => c.status === 'blocked').length,
   };
 
   if (loading) {
@@ -351,16 +348,6 @@ export default function AdminCardManagement() {
                 }`}
               >
                 En attente ({statusCounts.waiting_activation})
-              </button>
-              <button
-                onClick={() => setStatusFilter('blocked')}
-                className={`px-4 py-2 rounded-xl font-medium text-sm whitespace-nowrap transition-all ${
-                  statusFilter === 'blocked'
-                    ? 'bg-orange-600 text-white shadow-lg'
-                    : 'bg-white text-slate-600 hover:bg-slate-50 border border-slate-200'
-                }`}
-              >
-                Bloquées ({statusCounts.blocked})
               </button>
               <button
                 onClick={() => setStatusFilter('inactive')}
@@ -575,7 +562,6 @@ export default function AdminCardManagement() {
                     <option value="waiting_activation">En attente</option>
                     <option value="active">Active</option>
                     <option value="inactive">Inactive</option>
-                    <option value="blocked">Bloquée</option>
                   </select>
                 </div>
               )}

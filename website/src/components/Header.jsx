@@ -24,8 +24,7 @@ function Header() {
   const statusConfig = {
     active: { text: 'Active', color: 'text-emerald-600', bg: 'bg-emerald-50', border: 'border-emerald-200' },
     inactive: { text: 'Inactive', color: 'text-red-600', bg: 'bg-red-50', border: 'border-red-200' },
-    waiting_activation: { text: "En attente", color: 'text-amber-600', bg: 'bg-amber-50', border: 'border-amber-200' },
-    blocked: { text: 'Bloquée', color: 'text-red-700', bg: 'bg-red-50', border: 'border-red-200' }
+    waiting_activation: { text: "En attente", color: 'text-amber-600', bg: 'bg-amber-50', border: 'border-amber-200' }
   };
 
   const status = statusConfig[card?.status] || { text: card?.status || '-', color: 'text-slate-600', bg: 'bg-slate-50', border: 'border-slate-200' };

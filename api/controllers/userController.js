@@ -21,9 +21,6 @@ const login = async (req, res) => {
     }
 
     const card = await Card.findOne({ user_id: user._id });
-    if (card && card.status === 'blocked') {
-      return res.status(403).json({ error: 'Carte bloquée, connexion impossible.' });
-    }
 
     const userResponse = user.toObject();
     delete userResponse.password;

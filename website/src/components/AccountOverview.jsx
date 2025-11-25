@@ -97,11 +97,6 @@ function AccountOverview({
                       <span className="w-2 h-2 rounded-full bg-amber-500 animate-bounce"></span> En attente
                     </span>
                   )}
-                  {currentCard?.status === 'blocked' && (
-                    <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-red-100 text-red-700 border border-red-200">
-                      <span className="w-2 h-2 rounded-full bg-red-500"></span> Bloquée
-                    </span>
-                  )}
                 </div>
               </div>
               

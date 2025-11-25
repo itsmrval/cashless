@@ -54,8 +54,7 @@ function CardManagement({
     const configs = {
       active: { label: 'Active', text: 'text-emerald-700', bg: 'bg-emerald-50', border: 'border-emerald-200', dot: 'bg-emerald-500' },
       inactive: { label: 'Inactive', text: 'text-slate-700', bg: 'bg-slate-100', border: 'border-slate-200', dot: 'bg-slate-500' },
-      waiting_activation: { label: "En attente", text: 'text-amber-700', bg: 'bg-amber-50', border: 'border-amber-200', dot: 'bg-amber-500' },
-      blocked: { label: 'Bloquée', text: 'text-red-700', bg: 'bg-red-50', border: 'border-red-200', dot: 'bg-red-500' }
+      waiting_activation: { label: "En attente", text: 'text-amber-700', bg: 'bg-amber-50', border: 'border-amber-200', dot: 'bg-amber-500' }
     };
     return configs[status] || { label: status || '-', text: 'text-gray-700', bg: 'bg-gray-100', border: 'border-gray-200', dot: 'bg-gray-500' };
   }, [currentCard?.status]);

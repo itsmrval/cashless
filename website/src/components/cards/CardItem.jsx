@@ -10,37 +10,29 @@ import {
 } from 'lucide-react';
 
 const statusConfig = {
-  active: { 
-    label: 'Active', 
-    color: 'text-emerald-600', 
-    bg: 'bg-emerald-50', 
+  active: {
+    label: 'Active',
+    color: 'text-emerald-600',
+    bg: 'bg-emerald-50',
     border: 'border-emerald-200',
     dot: 'bg-emerald-500',
     gradient: 'from-slate-900 via-slate-800 to-slate-900'
   },
-  inactive: { 
-    label: 'Inactive', 
-    color: 'text-rose-600', 
-    bg: 'bg-rose-50', 
+  inactive: {
+    label: 'Inactive',
+    color: 'text-rose-600',
+    bg: 'bg-rose-50',
     border: 'border-rose-200',
     dot: 'bg-rose-500',
     gradient: 'from-slate-600 via-slate-500 to-slate-600'
   },
-  waiting_activation: { 
-    label: 'En attente', 
-    color: 'text-amber-600', 
-    bg: 'bg-amber-50', 
+  waiting_activation: {
+    label: 'En attente',
+    color: 'text-amber-600',
+    bg: 'bg-amber-50',
     border: 'border-amber-200',
     dot: 'bg-amber-500',
     gradient: 'from-amber-800 via-amber-700 to-amber-800'
-  },
-  blocked: { 
-    label: 'Bloquée', 
-    color: 'text-red-700', 
-    bg: 'bg-red-50', 
-    border: 'border-red-200',
-    dot: 'bg-red-500',
-    gradient: 'from-red-900 via-red-800 to-red-900'
   }
 };
 
@@ -64,7 +56,7 @@ function CardItem({
     gradient: 'from-slate-700 via-slate-600 to-slate-700'
   };
 
-  const isLocked = card?.status === 'inactive' || card?.status === 'blocked';
+  const isLocked = card?.status === 'inactive';
   const canToggle = card?.status === 'active' || card?.status === 'inactive';
 
   const handleToggleStatus = async (e) => {
