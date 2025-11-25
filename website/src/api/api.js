@@ -70,8 +70,8 @@ export const api = {
     }
 
     // Allow admins to log in even if they have no card assigned.
-    // Regular users still require a card and it must not be blocked.
-    // MODIFICATION: On autorise la connexion même sans carte ou si elle est bloquée
+    // Regular users still require a card and it must not be inactive.
+    // MODIFICATION: On autorise la connexion même sans carte ou si elle est inactive
     /*
     if (!card) {
       const isAdmin = (typeof user.role === 'string' && user.role.toLowerCase() === 'admin') ||
@@ -83,11 +83,10 @@ export const api = {
       throw new Error('Aucune carte associée à ce compte');
     }
 
-    if (card.status === 'blocked' || card.status === 'inactive') {
-       // Backend uses 'inactive', but let's handle 'blocked' just in case
-       // Actually, for login purposes, maybe we want to allow login but show blocked status?
+    if (card.status === 'inactive') {
+       // Actually, for login purposes, maybe we want to allow login but show inactive status?
        // The original code threw an error.
-       throw new Error('Votre carte est bloquée');
+       throw new Error('Votre carte est inactive');
     }
     */
 

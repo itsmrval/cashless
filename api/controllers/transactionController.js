@@ -1,5 +1,4 @@
 const Transaction = require('../models/Transaction');
-const Card = require('../models/Card');
 const { calculateUserBalance } = require('./userController');
 
 const formatTransaction = (t) => ({
@@ -22,38 +21,25 @@ const formatTransaction = (t) => ({
 
 const getTransactions = async (req, res) => {
   try {
-    let targetUserId;
-    let isAdmin = false;
-
-    if (req.card) {
-      const cardData = await Card.findById(req.card._id).populate('user_id');
-      if (!cardData || !cardData.user_id) {
-        return res.status(400).json({ error: 'Card not assigned to user' });
-      }
-      targetUserId = cardData.user_id._id;
-    } else if (req.user) {
-      isAdmin = req.user.role === 'admin';
-      const requestedUserId = req.query.userId;
-
-      if (isAdmin && !requestedUserId) {
-        const transactions = await Transaction.find()
-          .populate('source_user_id', 'name username')
-          .populate('destination_user_id', 'name username')
-          .sort({ date: -1 })
-          .limit(100)
-          .lean();
-
-        return res.json(transactions.map(formatTransaction));
-      }
-
-      if (isAdmin && requestedUserId) {
-        targetUserId = requestedUserId;
-      } else {
-        targetUserId = req.user.userId;
-      }
-    } else {
+    if (!req.user) {
       return res.status(401).json({ error: 'Authentication required' });
     }
+
+    const isAdmin = req.user.role === 'admin';
+    const requestedUserId = req.query.userId;
+
+    if (isAdmin && !requestedUserId) {
+      const transactions = await Transaction.find()
+        .populate('source_user_id', 'name username')
+        .populate('destination_user_id', 'name username')
+        .sort({ date: -1 })
+        .limit(100)
+        .lean();
+
+      return res.json(transactions.map(formatTransaction));
+    }
+
+    const targetUserId = (isAdmin && requestedUserId) ? requestedUserId : req.user.userId;
 
     const transactions = await Transaction.find({
       $or: [
@@ -82,31 +68,22 @@ const createTransaction = async (req, res) => {
       return res.status(400).json({ error: 'destination_user_id and operation are required' });
     }
 
-    let source_user_id;
-    let source_card_id = null;
+    if (operation < 0) {
+      return res.status(400).json({ error: 'Operation amount must be positive' });
+    }
 
-    if (req.card) {
-      const cardData = await Card.findById(req.card._id).populate('user_id');
-      if (!cardData || !cardData.user_id) {
-        return res.status(400).json({ error: 'Card not assigned to user' });
-      }
-      source_user_id = cardData.user_id._id;
-      source_card_id = req.card._id;
-    } else if (req.user) {
-      if (req.user.role === 'admin' && bodySourceUserId) {
-        source_user_id = bodySourceUserId;
-      } else {
-        source_user_id = req.user.userId;
-      }
-    } else {
+    if (!req.user) {
       return res.status(401).json({ error: 'Authentication required' });
     }
 
-    if (infinite_funds) {
-      const isAdmin = req.user && req.user.role === 'admin';
-      if (!isAdmin) {
-        return res.status(403).json({ error: 'Only admins can bypass balance checks' });
-      }
+    const isAdmin = req.user.role === 'admin';
+    const isCardToken = req.user.type === 'card';
+
+    const source_user_id = (isAdmin && bodySourceUserId) ? bodySourceUserId : req.user.userId;
+    const source_card_id = isCardToken ? req.user.cardId : null;
+
+    if (infinite_funds && !isAdmin) {
+      return res.status(403).json({ error: 'Only admins can bypass balance checks' });
     }
 
     if (!infinite_funds) {

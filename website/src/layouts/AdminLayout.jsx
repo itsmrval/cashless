@@ -44,16 +44,16 @@ function AdminSidebar() {
 
       {/* Sidebar */}
       <aside className={`
-        fixed md:static inset-y-0 left-0 z-40
-        w-64 bg-gradient-to-b from-slate-900 to-slate-800 text-white
-        flex flex-col shadow-xl
+        fixed inset-y-0 left-0 z-40
+        w-64 min-w-[16rem] max-w-[16rem] flex-shrink-0 box-border bg-slate-900 text-white
+        flex flex-col shadow-2xl
         transition-transform duration-300 ease-in-out
         ${mobileMenuOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}
       `}>
         {/* Header */}
-        <div className="p-6 border-b border-slate-700">
-          <h2 className="text-2xl font-bold bg-gradient-to-r from-blue-400 to-indigo-400 bg-clip-text text-transparent">
-            Cashless
+        <div className="p-6 border-b border-slate-700/50">
+          <h2 className="text-2xl font-bold text-white">
+            Cashless Admin
           </h2>
           <p className="text-xs text-slate-400 mt-1">{user?.name || 'Administrateur'}</p>
         </div>
@@ -70,8 +70,8 @@ function AdminSidebar() {
                 to={item.path}
                 onClick={() => setMobileMenuOpen(false)}
                 className={`
-                  flex items-center gap-3 px-4 py-3 rounded-lg
-                  transition-all duration-200
+                  w-full flex items-center gap-3 px-4 py-3 rounded-lg box-border border border-transparent
+                  transition-colors duration-200
                   ${active 
                     ? 'bg-blue-600 text-white shadow-lg shadow-blue-500/50' 
                     : 'text-slate-300 hover:bg-slate-700 hover:text-white'
@@ -102,6 +102,11 @@ function AdminSidebar() {
             <LogOut className="h-5 w-5" />
             <span className="font-medium">Déconnexion</span>
           </button>
+
+          {/* Copyright */}
+          <p className="text-[10px] text-slate-500 text-center mt-3 pt-3 border-t border-slate-700/50">
+            Cashless © {new Date().getFullYear()} — Tous droits réservés
+          </p>
         </div>
       </aside>
 
@@ -120,7 +125,7 @@ export default function AdminLayout() {
   return (
     <div className="flex min-h-screen bg-slate-50">
       <AdminSidebar />
-      <main className="flex-grow md:ml-0 overflow-x-hidden">
+      <main className="flex-grow ml-0 md:ml-64 overflow-x-hidden transition-all duration-300">
         <Outlet />
       </main>
     </div>

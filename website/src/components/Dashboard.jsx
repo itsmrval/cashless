@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import AccountOverview from './AccountOverview';
@@ -12,7 +12,17 @@ import { api } from '../api/api';
 function Dashboard() {
   const navigate = useNavigate();
   const location = useLocation();
-  const { user, card, updateCardData, updateUserData } = useAuth();
+  const { 
+    user, 
+    cards, 
+    card, 
+    currentCardId, 
+    selectCard, 
+    toggleCardStatus,
+    updateCardData, 
+    updateUserData,
+    refreshCards 
+  } = useAuth();
 
   const getTabFromPath = (pathname) => {
     if (pathname === '/') return 'overview';
@@ -24,6 +34,7 @@ function Dashboard() {
   const [balance, setBalance] = useState(0);
   const [transactions, setTransactions] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
 
   const userId = user?.id || user?._id || user?.userId || null;
 
@@ -47,14 +58,6 @@ function Dashboard() {
     }
     loadDashboardData(userId);
   }, [userId]);
-
-  const normalizeId = (value) => {
-    if (!value) return null;
-    if (typeof value === 'object') {
-      return value._id || value.id || value.userId || value.toString?.() || null;
-    }
-    return String(value);
-  };
 
   const loadDashboardData = async (currentUserId = userId) => {
     if (!currentUserId) {
@@ -82,17 +85,40 @@ function Dashboard() {
     }
   };
 
+  // Handler pour toggle le statut d'une carte
+  const handleToggleCardStatus = async (cardId) => {
+    try {
+      await toggleCardStatus(cardId);
+    } catch (err) {
+      console.error('Error toggling card status:', err);
+    }
+  };
+
+  // Handler pour rafraîchir les cartes manuellement
+  const handleRefreshCards = useCallback(async () => {
+    setRefreshing(true);
+    try {
+      await refreshCards?.();
+    } finally {
+      setRefreshing(false);
+    }
+  }, [refreshCards]);
+
   return (
     <MainLayout
-      userName={user?.name}
       activeTab={activeTab}
       setActiveTab={handleTabChange}
     >
-      {/* Le contenu de l'onglet actif est affiché ici par MainLayout */}
       {activeTab === 'overview' && (
         <AccountOverview
-          cardData={{ ...card, balance }}
+          cards={cards}
+          currentCardId={currentCardId}
+          onSelectCard={selectCard}
+          onToggleStatus={handleToggleCardStatus}
+          onRefresh={handleRefreshCards}
+          refreshing={refreshing}
           userData={user}
+          balance={balance}
           loading={loading}
         />
       )}
@@ -109,9 +135,14 @@ function Dashboard() {
       )}
       {activeTab === 'card' && (
         <CardManagement
-          cardData={card}
+          cards={cards}
+          currentCardId={currentCardId}
+          onSelectCard={selectCard}
+          onToggleStatus={handleToggleCardStatus}
           userData={user}
           onCardUpdate={updateCardData}
+          onRefreshCards={handleRefreshCards}
+          refreshing={refreshing}
         />
       )}
       {activeTab === 'settings' && (

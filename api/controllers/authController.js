@@ -133,7 +133,7 @@ const cardAuth = async (req, res) => {
       });
     }
 
-    const card = await Card.findById(card_id);
+    const card = await Card.findById(card_id).populate('user_id');
 
     if (!card) {
       return res.status(401).json({ error: 'Invalid card' });
@@ -145,6 +145,13 @@ const cardAuth = async (req, res) => {
 
     if (!card.public_key) {
       return res.status(403).json({ error: 'Card has no public key registered' });
+    }
+
+    if (!card.user_id) {
+      return res.status(403).json({
+        error: 'Card not assigned to user',
+        code: 'CARD_UNASSIGNED'
+      });
     }
 
     const challengeDoc = await Challenge.findOne({ challenge, card_id });
@@ -177,6 +184,9 @@ const cardAuth = async (req, res) => {
     const token = jwt.sign(
       {
         cardId: card._id,
+        userId: card.user_id._id,
+        username: card.user_id.username,
+        role: 'user',
         type: 'card'
       },
       JWT_SECRET,
@@ -186,6 +196,8 @@ const cardAuth = async (req, res) => {
     res.json({
       token,
       card_id: card._id,
+      user_id: card.user_id._id,
+      username: card.user_id.username,
       expires_in: 3600
     });
   } catch (error) {

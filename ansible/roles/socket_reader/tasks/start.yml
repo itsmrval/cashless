@@ -1,0 +1,149 @@
+---
+- name: Resolve absolute path for socket_reader_folder
+  command: realpath {{ socket_reader_folder }}
+  register: socket_reader_folder_abs
+  changed_when: false
+
+- name: Set absolute paths
+  set_fact:
+    pid_file_abs: "{{ socket_reader_folder_abs.stdout }}/.socket_reader.pid"
+    log_file_abs: "{{ socket_reader_folder_abs.stdout }}/socket_reader.log"
+    app_file_abs: "{{ socket_reader_folder_abs.stdout }}/app.py"
+    venv_path_abs: "{{ socket_reader_folder_abs.stdout }}/venv"
+    requirements_file_abs: "{{ socket_reader_folder_abs.stdout }}/requirements.txt"
+
+- name: Include virtual environment setup
+  include_tasks: venv.yml
+
+- name: Check if PID file exists
+  stat:
+    path: "{{ pid_file_abs }}"
+  register: pid_file_stat
+
+- name: Read PID from file if exists
+  slurp:
+    src: "{{ pid_file_abs }}"
+  register: pid_file_content
+  when: pid_file_stat.stat.exists
+
+- name: Set PID variable
+  set_fact:
+    server_pid: "{{ pid_file_content.content | b64decode | trim }}"
+  when: pid_file_stat.stat.exists
+
+- name: Check if process is running
+  shell: ps -p {{ server_pid }}
+  register: process_check
+  ignore_errors: yes
+  changed_when: false
+  when: pid_file_stat.stat.exists
+
+- name: Display already running message
+  debug:
+    msg: |
+      Socket reader server is already running.
+      PID: {{ server_pid }}
+      Port: {{ socket_port }}
+      Log: {{ log_file_abs }}
+
+      To stop: ansible-playbook stop_socket.yml
+  when:
+    - pid_file_stat.stat.exists
+    - process_check.rc == 0
+
+- name: Remove stale PID file
+  file:
+    path: "{{ pid_file_abs }}"
+    state: absent
+  when:
+    - pid_file_stat.stat.exists
+    - process_check.rc != 0
+
+- name: Check if port is available
+  wait_for:
+    port: "{{ socket_port }}"
+    state: stopped
+    timeout: 1
+  register: port_check
+  ignore_errors: yes
+  when: >
+    not pid_file_stat.stat.exists or
+    process_check.rc != 0
+
+- name: Find process using port
+  shell: lsof -i :{{ socket_port }}
+  register: port_owner
+  ignore_errors: yes
+  changed_when: false
+  when:
+    - port_check is defined
+    - port_check is failed
+
+- name: Fail if port in use
+  fail:
+    msg: |
+      Port {{ socket_port }} is already in use by another process:
+      {{ port_owner.stdout }}
+
+      Please stop the process using this port or change the socket_port in vars/main.yml
+  when:
+    - port_check is defined
+    - port_check is failed
+
+- name: Start Flask-SocketIO server
+  shell: |
+    nohup {{ venv_path_abs }}/bin/python {{ app_file_abs }} > {{ log_file_abs }} 2>&1 & echo $!
+  args:
+    chdir: "{{ socket_reader_folder_abs.stdout }}"
+  register: start_result
+  when: >
+    not pid_file_stat.stat.exists or
+    process_check.rc != 0
+
+- name: Save PID to file
+  copy:
+    content: "{{ start_result.stdout }}"
+    dest: "{{ pid_file_abs }}"
+  when: start_result.changed
+
+- name: Wait for server to start
+  wait_for:
+    port: "{{ socket_port }}"
+    state: started
+    timeout: 10
+  register: server_start
+  when: start_result.changed
+
+- name: Get last 50 lines of log on failure
+  shell: tail -50 {{ log_file_abs }}
+  register: log_tail
+  when:
+    - start_result.changed
+    - server_start is failed
+
+- name: Remove PID file on failure
+  file:
+    path: "{{ pid_file_abs }}"
+    state: absent
+  when:
+    - start_result.changed
+    - server_start is failed
+
+- name: Fail if server didn't start
+  fail:
+    msg: |
+      Socket reader server failed to start.
+      Last 50 lines of log:
+      {{ log_tail.stdout }}
+  when:
+    - start_result.changed
+    - server_start is failed
+
+- name: Display success message
+  debug:
+    msg: |
+      Socket reader server successfully started.
+      PID: {{ start_result.stdout }}
+      Listening on: http://{{ socket_host }}:{{ socket_port }}
+      Log file: {{ log_file_abs }}
+  when: start_result.changed

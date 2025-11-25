@@ -19,10 +19,6 @@ export const api = {
     if (!data.card) {
       throw new Error('Aucune carte associée à ce compte');
     }
-    
-    if (data.card.status === 'blocked') {
-      throw new Error('Votre carte est bloquée');
-    }
 
     return data;
   },

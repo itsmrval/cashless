@@ -132,18 +132,18 @@ export default function AdminTransactions() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-emerald-50 to-teal-50 p-6">
+    <div className="min-h-screen bg-slate-50 p-6">
       <div className="max-w-7xl mx-auto space-y-6">
         
         {/* Header Section */}
         <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-lg border border-white/20 p-8">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
-              <div className="p-4 bg-gradient-to-br from-emerald-600 to-teal-600 rounded-2xl shadow-lg">
+              <div className="p-4 bg-emerald-600 rounded-2xl shadow-lg">
                 <DollarSign className="h-8 w-8 text-white" />
               </div>
               <div>
-                <h1 className="text-4xl font-bold bg-gradient-to-r from-slate-900 to-slate-700 bg-clip-text text-transparent">
+                <h1 className="text-4xl font-bold text-slate-900">
                   Transactions
                 </h1>
                 <p className="text-slate-600 mt-1 flex items-center gap-2">
@@ -164,7 +164,7 @@ export default function AdminTransactions() {
               </button>
               <button
                 onClick={() => setShowTransactionModal(true)}
-                className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-emerald-600 to-teal-600 text-white rounded-xl hover:from-emerald-700 hover:to-teal-700 shadow-lg hover:shadow-xl transition-all duration-200 font-medium"
+                className="flex items-center gap-2 px-6 py-3 bg-emerald-600 text-white rounded-xl hover:bg-emerald-700 shadow-lg hover:shadow-xl transition-all duration-200 font-medium"
               >
                 <Send className="h-5 w-5" />
                 Nouvelle Transaction
@@ -201,7 +201,7 @@ export default function AdminTransactions() {
         </div>
 
         {selectedUser && userBalance !== null && (
-          <div className="bg-gradient-to-br from-emerald-50 to-teal-50 rounded-2xl shadow-lg border border-emerald-100 p-6">
+          <div className="bg-emerald-50 rounded-2xl shadow-lg border border-emerald-100 p-6">
             <div className="flex items-center gap-2 text-sm font-semibold text-emerald-700 mb-2">
               <TrendingUp className="h-4 w-4" />
               Solde de {users.find(u => u._id === selectedUser)?.name}
@@ -230,7 +230,7 @@ export default function AdminTransactions() {
       <div className="bg-white/90 backdrop-blur-sm rounded-2xl shadow-lg border border-white/20 overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full">
-            <thead className="bg-gradient-to-r from-slate-50 to-emerald-50 border-b border-slate-200">
+            <thead className="bg-slate-50 border-b border-slate-200">
               <tr>
                 <th className="px-6 py-4 text-left text-xs font-bold text-slate-700 uppercase tracking-wider">Date</th>
                 <th className="px-6 py-4 text-left text-xs font-bold text-slate-700 uppercase tracking-wider">Source</th>
@@ -309,7 +309,7 @@ export default function AdminTransactions() {
       {showTransactionModal && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-in fade-in">
           <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full mx-4 animate-in zoom-in">
-            <div className="flex items-center justify-between p-6 border-b border-slate-200 bg-gradient-to-r from-slate-50 to-emerald-50">
+            <div className="flex items-center justify-between p-6 border-b border-slate-200 bg-slate-50">
               <div className="flex items-center gap-3">
                 <div className="p-2 bg-emerald-100 rounded-lg">
                   <Send className="h-5 w-5 text-emerald-600" />
@@ -410,7 +410,7 @@ export default function AdminTransactions() {
                 <button
                   type="submit"
                   disabled={submitting}
-                  className="flex-1 px-6 py-3 bg-gradient-to-r from-emerald-600 to-teal-600 text-white rounded-xl hover:from-emerald-700 hover:to-teal-700 shadow-lg font-medium transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="flex-1 px-6 py-3 bg-emerald-600 text-white rounded-xl hover:bg-emerald-700 shadow-lg font-medium transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {submitting ? (
                     <Loader2 className="h-5 w-5 animate-spin mx-auto" />

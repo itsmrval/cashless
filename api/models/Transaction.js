@@ -18,7 +18,8 @@ const transactionSchema = new mongoose.Schema({
   },
   operation: {
     type: Number,
-    required: true
+    required: true,
+    min: [0, 'Operation amount must be positive']
   },
   date: {
     type: Date,

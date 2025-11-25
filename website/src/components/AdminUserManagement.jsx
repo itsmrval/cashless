@@ -158,18 +158,18 @@ export default function AdminUserManagement() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-purple-50 to-indigo-50 p-6">
+    <div className="min-h-screen bg-slate-50 p-6">
       <div className="max-w-7xl mx-auto space-y-6">
         
         {/* Header Section */}
         <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-lg border border-white/20 p-8">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
-              <div className="p-4 bg-gradient-to-br from-purple-600 to-indigo-600 rounded-2xl shadow-lg">
+              <div className="p-4 bg-purple-600 rounded-2xl shadow-lg">
                 <Users className="h-8 w-8 text-white" />
               </div>
               <div>
-                <h1 className="text-4xl font-bold bg-gradient-to-r from-slate-900 to-slate-700 bg-clip-text text-transparent">
+                <h1 className="text-4xl font-bold text-slate-900">
                   Gestion des Utilisateurs
                 </h1>
                 <p className="text-slate-600 mt-1 flex items-center gap-2">
@@ -190,7 +190,7 @@ export default function AdminUserManagement() {
               </button>
               <button
                 onClick={() => setShowCreateForm(!showCreateForm)}
-                className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-purple-600 to-indigo-600 text-white rounded-xl hover:from-purple-700 hover:to-indigo-700 shadow-lg hover:shadow-xl transition-all duration-200 font-medium"
+                className="flex items-center gap-2 px-6 py-3 bg-purple-600 text-white rounded-xl hover:bg-purple-700 shadow-lg hover:shadow-xl transition-all duration-200 font-medium"
               >
                 <UserPlus className="h-5 w-5" />
                 Nouvel Utilisateur
@@ -278,7 +278,7 @@ export default function AdminUserManagement() {
               <div className="flex gap-3 pt-4">
                 <button
                   type="submit"
-                  className="px-6 py-3 bg-gradient-to-r from-purple-600 to-indigo-600 text-white rounded-xl hover:from-purple-700 hover:to-indigo-700 shadow-lg font-medium transition-all"
+                  className="px-6 py-3 bg-purple-600 text-white rounded-xl hover:bg-purple-700 shadow-lg font-medium transition-all"
                 >
                   Créer l'Utilisateur
                 </button>
@@ -316,7 +316,7 @@ export default function AdminUserManagement() {
               className="group bg-white/90 backdrop-blur-sm rounded-xl shadow-lg border border-white/20 hover:shadow-xl transition-all duration-300 overflow-hidden"
             >
               {/* Card Header */}
-              <div className="bg-gradient-to-br from-slate-800 via-purple-900 to-indigo-900 p-4 relative overflow-hidden">
+              <div className="bg-slate-800 p-4 relative overflow-hidden">
                 <div className="absolute top-0 right-0 w-24 h-24 bg-white/5 rounded-full -mr-12 -mt-12"></div>
                 <div className="absolute bottom-0 left-0 w-20 h-20 bg-purple-500/10 rounded-full -ml-10 -mb-10"></div>
                 
@@ -343,7 +343,7 @@ export default function AdminUserManagement() {
               {/* Card Body */}
               <div className="p-4 space-y-3">
                 {/* Balance */}
-                <div className="bg-gradient-to-br from-emerald-50 to-teal-50 rounded-lg p-3 border border-emerald-100">
+                <div className="bg-emerald-50 rounded-lg p-3 border border-emerald-100">
                   <div className="flex items-center gap-1.5 mb-0.5">
                     <Wallet className="h-3 w-3 text-emerald-600" />
                     <p className="text-[10px] text-emerald-700 font-semibold uppercase tracking-wider">Solde</p>
@@ -411,7 +411,7 @@ export default function AdminUserManagement() {
       {editingUser && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-in fade-in">
           <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full mx-4 animate-in zoom-in">
-            <div className="flex items-center justify-between p-6 border-b border-slate-200 bg-gradient-to-r from-slate-50 to-purple-50">
+            <div className="flex items-center justify-between p-6 border-b border-slate-200 bg-slate-50">
               <div className="flex items-center gap-3">
                 <div className="p-2 bg-purple-100 rounded-lg">
                   <Edit2 className="h-5 w-5 text-purple-600" />
@@ -460,7 +460,7 @@ export default function AdminUserManagement() {
               <div className="flex gap-3">
                 <button
                   type="submit"
-                  className="flex-1 px-6 py-3 bg-gradient-to-r from-purple-600 to-indigo-600 text-white rounded-xl hover:from-purple-700 hover:to-indigo-700 shadow-lg font-medium transition-all"
+                  className="flex-1 px-6 py-3 bg-purple-600 text-white rounded-xl hover:bg-purple-700 shadow-lg font-medium transition-all"
                 >
                   Sauvegarder
                 </button>
@@ -481,7 +481,7 @@ export default function AdminUserManagement() {
       {resetPasswordUser && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-in fade-in">
           <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full mx-4 animate-in zoom-in">
-            <div className="flex items-center justify-between p-6 border-b border-slate-200 bg-gradient-to-r from-slate-50 to-blue-50">
+            <div className="flex items-center justify-between p-6 border-b border-slate-200 bg-slate-50">
               <div className="flex items-center gap-3">
                 <div className="p-2 bg-blue-100 rounded-lg">
                   <Key className="h-5 w-5 text-blue-600" />
@@ -522,7 +522,7 @@ export default function AdminUserManagement() {
               <div className="flex gap-3">
                 <button
                   type="submit"
-                  className="flex-1 px-6 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-xl hover:from-blue-700 hover:to-indigo-700 shadow-lg font-medium transition-all"
+                  className="flex-1 px-6 py-3 bg-blue-600 text-white rounded-xl hover:bg-blue-700 shadow-lg font-medium transition-all"
                 >
                   Réinitialiser
                 </button>

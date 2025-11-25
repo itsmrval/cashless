@@ -149,7 +149,6 @@ export default function AdminCardManagement() {
       case 'active': return 'bg-emerald-50 text-emerald-700 border-emerald-200';
       case 'inactive': return 'bg-red-50 text-red-700 border-red-200';
       case 'waiting_activation': return 'bg-amber-50 text-amber-700 border-amber-200';
-      case 'blocked': return 'bg-orange-50 text-orange-700 border-orange-200';
       default: return 'bg-slate-50 text-slate-700 border-slate-200';
     }
   };
@@ -159,7 +158,6 @@ export default function AdminCardManagement() {
       case 'active': return 'Active';
       case 'inactive': return 'Inactive';
       case 'waiting_activation': return 'En attente';
-      case 'blocked': return 'Bloquée';
       default: return status;
     }
   };
@@ -181,7 +179,6 @@ export default function AdminCardManagement() {
     active: cards.filter(c => c.status === 'active').length,
     inactive: cards.filter(c => c.status === 'inactive').length,
     waiting_activation: cards.filter(c => c.status === 'waiting_activation').length,
-    blocked: cards.filter(c => c.status === 'blocked').length,
   };
 
   if (loading) {
@@ -193,18 +190,18 @@ export default function AdminCardManagement() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 p-6">
+    <div className="min-h-screen bg-slate-50 p-6">
       <div className="max-w-7xl mx-auto space-y-6">
         
         {/* Header Section */}
         <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-lg border border-white/20 p-8">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
-              <div className="p-4 bg-gradient-to-br from-blue-600 to-indigo-600 rounded-2xl shadow-lg">
+              <div className="p-4 bg-blue-600 rounded-2xl shadow-lg">
                 <CreditCard className="h-8 w-8 text-white" />
               </div>
               <div>
-                <h1 className="text-4xl font-bold bg-gradient-to-r from-slate-900 to-slate-700 bg-clip-text text-transparent">
+                <h1 className="text-4xl font-bold text-slate-900">
                   Gestion des Cartes
                 </h1>
                 <p className="text-slate-600 mt-1 flex items-center gap-2">
@@ -225,7 +222,7 @@ export default function AdminCardManagement() {
               </button>
               <button
                 onClick={() => setShowCreateForm(!showCreateForm)}
-                className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-xl hover:from-blue-700 hover:to-indigo-700 shadow-lg hover:shadow-xl transition-all duration-200 font-medium"
+                className="flex items-center gap-2 px-6 py-3 bg-blue-600 text-white rounded-xl hover:bg-blue-700 shadow-lg hover:shadow-xl transition-all duration-200 font-medium"
               >
                 <Plus className="h-5 w-5" />
                 Nouvelle Carte
@@ -287,7 +284,7 @@ export default function AdminCardManagement() {
               <div className="flex gap-3 pt-4">
                 <button
                   type="submit"
-                  className="px-6 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-xl hover:from-blue-700 hover:to-indigo-700 shadow-lg font-medium transition-all"
+                  className="px-6 py-3 bg-blue-600 text-white rounded-xl hover:bg-blue-700 shadow-lg font-medium transition-all"
                 >
                   Créer la Carte
                 </button>
@@ -326,7 +323,7 @@ export default function AdminCardManagement() {
                 onClick={() => setStatusFilter('all')}
                 className={`px-4 py-2 rounded-xl font-medium text-sm whitespace-nowrap transition-all ${
                   statusFilter === 'all'
-                    ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-lg'
+                    ? 'bg-blue-600 text-white shadow-lg'
                     : 'bg-white text-slate-600 hover:bg-slate-50 border border-slate-200'
                 }`}
               >
@@ -353,16 +350,6 @@ export default function AdminCardManagement() {
                 En attente ({statusCounts.waiting_activation})
               </button>
               <button
-                onClick={() => setStatusFilter('blocked')}
-                className={`px-4 py-2 rounded-xl font-medium text-sm whitespace-nowrap transition-all ${
-                  statusFilter === 'blocked'
-                    ? 'bg-orange-600 text-white shadow-lg'
-                    : 'bg-white text-slate-600 hover:bg-slate-50 border border-slate-200'
-                }`}
-              >
-                Bloquées ({statusCounts.blocked})
-              </button>
-              <button
                 onClick={() => setStatusFilter('inactive')}
                 className={`px-4 py-2 rounded-xl font-medium text-sm whitespace-nowrap transition-all ${
                   statusFilter === 'inactive'
@@ -384,7 +371,7 @@ export default function AdminCardManagement() {
               className="group bg-white/90 backdrop-blur-sm rounded-xl shadow-lg border border-white/20 hover:shadow-xl transition-all duration-300 overflow-hidden"
             >
               {/* Card Header */}
-              <div className="bg-gradient-to-br from-slate-800 via-slate-700 to-slate-900 p-4 relative overflow-hidden">
+              <div className="bg-slate-800 p-4 relative overflow-hidden">
                 <div className="absolute top-0 right-0 w-24 h-24 bg-white/5 rounded-full -mr-12 -mt-12"></div>
                 <div className="absolute bottom-0 left-0 w-20 h-20 bg-blue-500/10 rounded-full -ml-10 -mb-10"></div>
                 
@@ -533,7 +520,7 @@ export default function AdminCardManagement() {
       {editingCard && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-in fade-in">
           <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full mx-4 animate-in zoom-in">
-            <div className="flex items-center justify-between p-6 border-b border-slate-200 bg-gradient-to-r from-slate-50 to-blue-50">
+            <div className="flex items-center justify-between p-6 border-b border-slate-200 bg-slate-50">
               <div className="flex items-center gap-3">
                 <div className="p-2 bg-blue-100 rounded-lg">
                   <Edit2 className="h-5 w-5 text-blue-600" />
@@ -575,7 +562,6 @@ export default function AdminCardManagement() {
                     <option value="waiting_activation">En attente</option>
                     <option value="active">Active</option>
                     <option value="inactive">Inactive</option>
-                    <option value="blocked">Bloquée</option>
                   </select>
                 </div>
               )}
@@ -597,7 +583,7 @@ export default function AdminCardManagement() {
               <div className="flex gap-3">
                 <button
                   type="submit"
-                  className="flex-1 px-6 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-xl hover:from-blue-700 hover:to-indigo-700 shadow-lg font-medium transition-all"
+                  className="flex-1 px-6 py-3 bg-blue-600 text-white rounded-xl hover:bg-blue-700 shadow-lg font-medium transition-all"
                 >
                   Sauvegarder
                 </button>
@@ -618,7 +604,7 @@ export default function AdminCardManagement() {
       {viewingPublicKey && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-in fade-in">
           <div className="bg-white rounded-2xl shadow-2xl max-w-3xl w-full mx-4 animate-in zoom-in">
-            <div className="flex items-center justify-between p-6 border-b border-slate-200 bg-gradient-to-r from-slate-50 to-blue-50">
+            <div className="flex items-center justify-between p-6 border-b border-slate-200 bg-slate-50">
               <div className="flex items-center gap-3">
                 <div className="p-2 bg-blue-100 rounded-lg">
                   <Key className="h-5 w-5 text-blue-600" />
@@ -633,7 +619,7 @@ export default function AdminCardManagement() {
               </button>
             </div>
             <div className="p-6">
-              <div className="bg-gradient-to-br from-slate-900 to-slate-800 p-6 rounded-xl border border-slate-700">
+              <div className="bg-slate-900 p-6 rounded-xl border border-slate-700">
                 <pre className="text-xs font-mono text-emerald-400 overflow-x-auto whitespace-pre-wrap break-all">
                   {viewingPublicKey.public_key}
                 </pre>
