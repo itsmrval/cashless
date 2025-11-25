@@ -3,16 +3,20 @@
 import requests
 import base64
 import json
-import os
 import logging
 from dotenv import load_dotenv
+import sys
 
 logger = logging.getLogger(__name__)
 
 load_dotenv()
 
-API_BASE_URL = os.getenv('API_BASE_URL', 'https://api.cashless.iut.valentinp.fr/v1')
-DEST_ID = os.getenv('DEST_ID', '6925915f6a63bc32613822c5')
+if len(sys.argv) < 3:
+    print("Usage: python api.py <API_BASE_URL> <DEST_ID>")
+    sys.exit(1)
+
+API_BASE_URL = sys.argv[1]
+DEST_ID = sys.argv[2]
 
 
 def get_challenge(card_id):

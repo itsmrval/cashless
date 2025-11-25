@@ -26,3 +26,5 @@ socket_reader/socket_reader.log
 socket_reader/__pycache__/
 socket_reader/*.pyc
 package-lock.json
+socket_reader/certs/.DS_Store
+socket_reader/.DS_Store
