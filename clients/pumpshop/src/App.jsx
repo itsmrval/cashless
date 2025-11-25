@@ -3,7 +3,7 @@ import fuels from './fuels.json';
 import io from 'socket.io-client';
 
 // URL du serveur Socket.IO (lecteur de carte)
-const SOCKET_URL = process.env.REACT_APP_SOCKET_URL ;
+const SOCKET_URL = process.env.REACT_APP_SOCKET_URL || 'https://localhost:8001';
 
 // Mode démo - mettre à true pour simuler sans lecteur de carte
 const DEMO_MODE = false;
