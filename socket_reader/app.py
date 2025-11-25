@@ -6,7 +6,8 @@ from flask_cors import CORS
 import threading
 import time
 import logging
-from card_reader import wait_for_reader, check_card_present, read_card_id, is_card_still_present, verify_pin
+from card_reader import wait_for_reader, check_card_present, read_card_id, is_card_still_present, verify_pin, sign_challenge
+from api import get_challenge, card_auth_with_signature, fetch_user_by_card, create_transaction
 import ssl
 import os
 
@@ -27,12 +28,13 @@ socketio = SocketIO(app, cors_allowed_origins="*", async_mode='threading')
 reader = None
 current_card_id = None
 current_connection = None
+current_card_token = None
 detection_thread = None
 running = True
 
 
 def card_detection_loop():
-    global reader, current_card_id, current_connection, running
+    global reader, current_card_id, current_connection, current_card_token, running
     
     logger.info("Démarrage de la boucle de détection des cartes")
     
@@ -52,6 +54,7 @@ def card_detection_loop():
                 if card_id and card_id != current_card_id:
                     current_card_id = card_id
                     current_connection = connection
+                    current_card_token = None
                     logger.info(f"Nouvelle carte détectée: {card_id}")
                     
                     socketio.emit('card_inserted', {
@@ -68,6 +71,7 @@ def card_detection_loop():
                     old_card_id = current_card_id
                     current_card_id = None
                     current_connection = None
+                    current_card_token = None
                     
                     socketio.emit('card_removed', {
                         'card_id': old_card_id,
@@ -117,10 +121,7 @@ def handle_ping():
 
 @socketio.on('verify_pin')
 def handle_verify_pin(data):
-    global current_connection
-    from flask import request
-    
-    logger.info(f"Demande de vérification PIN du client: {request.sid}")
+    global current_connection, current_card_id, current_card_token    
     
     if not current_connection:
         emit('pin_verification_result', {
@@ -157,14 +158,135 @@ def handle_verify_pin(data):
     logger.info(f"Vérification du PIN sur la carte...")
     result = verify_pin(current_connection, pin)
     
-    emit('pin_verification_result', result)
-    
     if result['success']:
-        logger.info(f"PIN correct")
+        logger.info(f"PIN correct - Challenge en cours...")
+        
+        challenge_result = get_challenge(current_card_id)
+        
+        if not challenge_result['success']:
+            error_msg = challenge_result.get('error', '')
+            logger.error(f"Erreur récupération challenge: {error_msg}")
+            
+            if 'not active' in error_msg.lower() or 'inactive' in error_msg.lower():
+                user_error = "Carte inactive ou bloquée. Veuillez contacter un administrateur."
+            else:
+                user_error = f"Erreur lors de la récupération du challenge: {error_msg}"
+            
+            emit('pin_verification_result', {
+                'success': False,
+                'error': user_error,
+                'attempts_remaining': None,
+                'blocked': False
+            })
+            return
+        
+        challenge = challenge_result['challenge']
+        
+        sign_result = sign_challenge(current_connection, challenge)
+        
+        if not sign_result['success']:
+            logger.error(f"Erreur signature challenge: {sign_result.get('error')}")
+            emit('pin_verification_result', {
+                'success': False,
+                'error': f"Erreur lors de la signature: {sign_result.get('error')}",
+                'attempts_remaining': None,
+                'blocked': False
+            })
+            return
+        
+        signature = sign_result['signature']
+        
+        auth_result = card_auth_with_signature(current_card_id, challenge, signature)
+        
+        if auth_result['success']:
+            current_card_token = auth_result['token']
+            logger.info(f"Authentification API réussie")
+            
+            user_result = fetch_user_by_card(current_card_id, current_card_token)
+            
+            if user_result['success']:
+                logger.info(f"Utilisateur: {user_result['name']}, Balance: {user_result['balance']}€")
+                
+                emit('pin_verification_result', {
+                    'success': True,
+                    'attempts_remaining': 3,
+                    'blocked': False,
+                    'user': {
+                        'name': user_result['name'],
+                        'balance': user_result['balance'],
+                        'card_id': current_card_id
+                    }
+                })
+            else:
+                logger.error(f"Erreur récupération utilisateur: {user_result.get('error')}")
+                emit('pin_verification_result', {
+                    'success': False,
+                    'error': f"Erreur lors de la récupération des données utilisateur: {user_result.get('error')}",
+                    'attempts_remaining': None,
+                    'blocked': False
+                })
+        else:
+            logger.error(f"Erreur authentification API: {auth_result.get('error')}")
+            emit('pin_verification_result', {
+                'success': False,
+                'error': f"Erreur d'authentification: {auth_result.get('error')}",
+                'attempts_remaining': None,
+                'blocked': False
+            })
     elif result.get('blocked'):
         logger.warning(f"Carte bloquée (0 tentatives restantes)")
+        emit('pin_verification_result', result)
     else:
         logger.warning(f"PIN incorrect - Tentatives restantes: {result.get('attempts_remaining', '?')}")
+        emit('pin_verification_result', result)
+
+@socketio.on('create_transaction')
+def handle_create_transaction(data):
+    global current_card_token, current_card_id    
+
+    if not current_card_token:
+        emit('transaction_result', {
+            'success': False,
+            'error': 'Non authentifié. Veuillez d\'abord vérifier votre PIN.'
+        })
+        logger.warning("Tentative de transaction sans authentification")
+        return
+    
+    if not current_card_id:
+        emit('transaction_result', {
+            'success': False,
+            'error': 'Carte non détectée.'
+        })
+        logger.warning("Tentative de transaction sans carte")
+        return
+    
+    amount = data.get('amount')
+    merchant = data.get('merchant', 'CoffeeShop')
+    
+    if not amount or amount <= 0:
+        emit('transaction_result', {
+            'success': False,
+            'error': 'Montant invalide'
+        })
+        logger.warning(f"Montant invalide reçu: {amount}")
+        return
+    
+    result = create_transaction(current_card_token, current_card_id, amount, merchant)
+    
+    if result['success']:
+        emit('transaction_result', {
+            'success': True,
+            'transaction_id': result.get('transaction_id'),
+            'new_balance': result['new_balance'],
+            'message': 'Transaction effectuée avec succès'
+        })
+    
+    else:
+        logger.error(f"Erreur transaction: {result.get('error')}")
+        emit('transaction_result', {
+            'success': False,
+            'error': result.get('error', 'Erreur inconnue')
+        })
 
 def initialize_reader():
     global reader, detection_thread

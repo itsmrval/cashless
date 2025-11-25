@@ -34,6 +34,11 @@ function App() {
   const [paymentAmount, setPaymentAmount] = useState(0);
   const [newBalanceAmount, setNewBalanceAmount] = useState(0);
   const [showDrinkReadyAnimation, setShowDrinkReadyAnimation] = useState(false);
+  const [showPaymentRejectedAnimation, setShowPaymentRejectedAnimation] = useState(false);
+  const [rejectedAmount, setRejectedAmount] = useState(0);
+  const [rejectedBalance, setRejectedBalance] = useState(0);
+  const [showCardErrorAnimation, setShowCardErrorAnimation] = useState(false);
+  const [cardErrorMessage, setCardErrorMessage] = useState('');
 
   useEffect(() => {
     console.log('Connexion au serveur Socket.IO...', API_BASE_URL);
@@ -63,8 +68,8 @@ function App() {
       console.log('Données reçues:', data);
       
       if (data.card_id && data.card_id !== null) {
-        setUser({ name: `User ${data.card_id.substring(0, 8)}`, cardId: data.card_id });
-        setBalance(50.00);
+        setUser({ name: `Carte ${data.card_id.substring(0, 8)}`, cardId: data.card_id });
+        setBalance(0);
         setPinAttempts(3);
         setIsCardBlocked(false);
         setShowPinModal(true);
@@ -81,6 +86,15 @@ function App() {
         setShowPinModal(false);
         setPin('');
         setPinAttempts(3);
+        
+        if (result.user) {
+          console.log('Données utilisateur reçues:', result.user);
+          setUser({
+            name: result.user.name,
+            cardId: result.user.card_id
+          });
+          setBalance(result.user.balance);
+        }
       } else if (result.blocked) {
         console.log('Carte bloquée !');
         setIsCardBlocked(true);
@@ -96,8 +110,39 @@ function App() {
         setTimeout(() => setMessage(''), 3000);
       } else if (result.error) {
         console.error('Erreur:', result.error);
+        
+        // Vérifier si c'est une erreur de carte inactive/bloquée
+        if (result.error.includes('inactive') || result.error.includes('bloquée') || result.error.includes('bloquee')) {
+          setCardErrorMessage(result.error);
+          setShowCardErrorAnimation(true);
+          setShowPinModal(false);
+          
+          setTimeout(() => {
+            setShowCardErrorAnimation(false);
+            // Rouvrir le modal PIN après la fermeture de l'animation
+            setShowPinModal(true);
+            setPin('');
+          }, 4000);
+        } else {
+          setMessageType('error');
+          setMessage(`Erreur: ${result.error}`);
+          setTimeout(() => setMessage(''), 3000);
+        }
+      }
+    });
+
+    newSocket.on('transaction_result', (result) => {
+      console.log('Résultat de transaction reçu:', result);
+      
+      if (result.success) {
+        console.log('Transaction réussie - Nouveau solde:', result.new_balance);
+        // Mettre à jour le solde immédiatement
+        setBalance(result.new_balance);
+        setNewBalanceAmount(result.new_balance);
+      } else {
+        console.error('Erreur transaction:', result.error);
         setMessageType('error');
-        setMessage(`Erreur: ${result.error}`);
+        setMessage(`Erreur de paiement: ${result.error}`);
         setTimeout(() => setMessage(''), 3000);
       }
     });
@@ -173,9 +218,15 @@ function App() {
       return;
     }
     if (balance < product.price) {
-      setMessageType('error');
-      setMessage(`Solde insuffisant : ${balance.toFixed(2)}€ disponible | ${product.price.toFixed(2)}€ requis`);
-      setTimeout(() => setMessage(''), 3000);
+      // Afficher l'animation de refus
+      setRejectedAmount(product.price);
+      setRejectedBalance(balance);
+      setShowPaymentRejectedAnimation(true);
+      
+      // Masquer l'animation après 3 secondes
+      setTimeout(() => {
+        setShowPaymentRejectedAnimation(false);
+      }, 3000);
       return;
     }
     console.log('Ouverture du modal de confirmation');
@@ -222,13 +273,27 @@ function App() {
   };
 
   const processPaymentForProduct = (product) => {
-    const newBalance = balance - product.price;
-    setBalance(newBalance);
+    console.log('Création de la transaction via Socket.IO...');
     
-    // Afficher l'animation de paiement
-    setPaymentAmount(product.price);
-    setNewBalanceAmount(newBalance);
-    setShowPaymentAnimation(true);
+    // Envoyer la transaction au serveur
+    if (socket && socket.connected) {
+      socket.emit('create_transaction', {
+        amount: product.price,
+        merchant: 'CoffeeShop'
+      });
+      
+      // Afficher l'animation de paiement immédiatement
+      setPaymentAmount(product.price);
+      setShowPaymentAnimation(true);
+      
+      // Ne pas réenregistrer le listener ici car il est déjà dans useEffect
+    } else {
+      console.error('Socket non connecté pour la transaction');
+      setMessageType('error');
+      setMessage('Erreur: connexion perdue');
+      setTimeout(() => setMessage(''), 3000);
+      return;
+    }
     
     // Masquer l'animation après 2.5 secondes et commencer la préparation
     setTimeout(() => {
@@ -325,7 +390,7 @@ function App() {
         </div>
       )}
 
-      {user && (
+      {user && user.name && isPinVerified && (
         <div className="fixed top-6 right-6 z-[60] bg-white border-3 border-black rounded-xl shadow-lg px-6 py-4">
           <div className="flex items-center space-x-4">
             <div className="w-12 h-12 bg-gray-900 rounded-full flex items-center justify-center">
@@ -554,6 +619,87 @@ function App() {
                   <div>
                     <p className="text-sm text-gray-600 mb-1">Nouveau solde</p>
                     <p className="text-2xl font-bold text-gray-900">{newBalanceAmount.toFixed(2)}€</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Animation de paiement refusé */}
+          {showPaymentRejectedAnimation && (
+            <div className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50 p-4">
+              <div className="bg-white rounded-3xl shadow-2xl p-8 max-w-sm w-full animate-slideDown">
+                <div className="text-center">
+                  {/* Icône d'erreur animée */}
+                  <div className="relative mb-6 flex justify-center">
+                    <div className="w-24 h-24 bg-red-100 rounded-full flex items-center justify-center animate-scaleIn">
+                      <svg className="w-16 h-16 text-red-600 animate-shake" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M6 18L18 6M6 6l12 12" />
+                      </svg>
+                    </div>
+                  </div>
+                  
+                  {/* Titre */}
+                  <h2 className="text-2xl font-bold text-gray-900 mb-2">Solde insuffisant</h2>
+                  
+                  {/* Montant requis */}
+                  <div className="mb-4">
+                    <p className="text-3xl font-bold text-red-600 mb-1">{rejectedAmount.toFixed(2)}€</p>
+                    <p className="text-sm text-gray-500">Montant requis</p>
+                  </div>
+                  
+                  {/* Divider */}
+                  <div className="w-full h-px bg-gray-200 my-4"></div>
+                  
+                  {/* Solde disponible */}
+                  <div>
+                    <p className="text-sm text-gray-600 mb-1">Solde disponible</p>
+                    <p className="text-2xl font-bold text-gray-900">{rejectedBalance.toFixed(2)}€</p>
+                  </div>
+                  
+                  {/* Message d'erreur */}
+                  <div className="mt-6 bg-red-50 border-2 border-red-200 rounded-xl p-4">
+                    <p className="text-sm text-red-700 font-medium">
+                      Veuillez recharger votre compte
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Animation d'erreur de carte (inactive/bloquée) */}
+          {showCardErrorAnimation && (
+            <div className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50 p-4">
+              <div className="bg-white border-3 border-black rounded-2xl shadow-2xl p-8 max-w-md w-full animate-slideDown">
+                <div className="text-center">
+                  {/* Icône d'alerte animée */}
+                  <div className="relative mb-6 flex justify-center">
+                    <div className="bg-gradient-to-br from-gray-100 to-gray-200 p-8 rounded-2xl inline-block">
+                      <svg className="w-16 h-16 text-gray-900" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                      </svg>
+                    </div>
+                  </div>
+                  
+                  {/* Titre */}
+                  <h2 className="text-3xl font-bold text-gray-900 mb-6">Carte inactive</h2>
+                  
+                  {/* Message d'erreur */}
+                  <div className="bg-gradient-to-br from-gray-50 to-gray-100 border-3 border-black rounded-xl p-6 mb-6">
+                    <p className="text-gray-900 font-semibold text-lg mb-2">
+                      Authentification refusée
+                    </p>
+                    <p className="text-gray-700">
+                      Cette carte n'est pas autorisée à s'authentifier
+                    </p>
+                  </div>
+                  
+                  {/* Instructions */}
+                  <div className="bg-white border-2 border-gray-300 rounded-xl p-5">
+                    <p className="text-gray-800 font-medium">
+                      Consultez votre espace client pour activer votre carte
+                    </p>
                   </div>
                 </div>
               </div>
