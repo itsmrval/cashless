@@ -37,6 +37,8 @@ function App() {
   const [showPaymentRejectedAnimation, setShowPaymentRejectedAnimation] = useState(false);
   const [rejectedAmount, setRejectedAmount] = useState(0);
   const [rejectedBalance, setRejectedBalance] = useState(0);
+  const [showCardErrorAnimation, setShowCardErrorAnimation] = useState(false);
+  const [cardErrorMessage, setCardErrorMessage] = useState('');
 
   useEffect(() => {
     console.log('Connexion au serveur Socket.IO...', API_BASE_URL);
@@ -108,9 +110,21 @@ function App() {
         setTimeout(() => setMessage(''), 3000);
       } else if (result.error) {
         console.error('Erreur:', result.error);
-        setMessageType('error');
-        setMessage(`Erreur: ${result.error}`);
-        setTimeout(() => setMessage(''), 3000);
+        
+        // Vérifier si c'est une erreur de carte inactive/bloquée
+        if (result.error.includes('inactive') || result.error.includes('bloquée') || result.error.includes('bloquee')) {
+          setCardErrorMessage(result.error);
+          setShowCardErrorAnimation(true);
+          setShowPinModal(false);
+          
+          setTimeout(() => {
+            setShowCardErrorAnimation(false);
+          }, 4000);
+        } else {
+          setMessageType('error');
+          setMessage(`Erreur: ${result.error}`);
+          setTimeout(() => setMessage(''), 3000);
+        }
       }
     });
 
@@ -644,6 +658,41 @@ function App() {
                   <div className="mt-6 bg-red-50 border-2 border-red-200 rounded-xl p-4">
                     <p className="text-sm text-red-700 font-medium">
                       Veuillez recharger votre compte
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Animation d'erreur de carte (inactive/bloquée) */}
+          {showCardErrorAnimation && (
+            <div className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50 p-4">
+              <div className="bg-white rounded-3xl shadow-2xl p-8 max-w-sm w-full animate-slideDown">
+                <div className="text-center">
+                  {/* Icône d'alerte animée */}
+                  <div className="relative mb-6 flex justify-center">
+                    <div className="w-24 h-24 bg-orange-100 rounded-full flex items-center justify-center animate-scaleIn">
+                      <svg className="w-16 h-16 text-orange-600 animate-shake" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                      </svg>
+                    </div>
+                  </div>
+                  
+                  {/* Titre */}
+                  <h2 className="text-2xl font-bold text-gray-900 mb-4">Carte non autorisée</h2>
+                  
+                  {/* Message d'erreur */}
+                  <div className="bg-orange-50 border-2 border-orange-200 rounded-xl p-4 mb-4">
+                    <p className="text-sm text-orange-700 font-medium">
+                      {cardErrorMessage}
+                    </p>
+                  </div>
+                  
+                  {/* Instructions */}
+                  <div className="bg-gray-50 border-2 border-gray-200 rounded-xl p-4">
+                    <p className="text-sm text-gray-700">
+                      Veuillez contacter un administrateur pour débloquer votre carte
                     </p>
                   </div>
                 </div>
