@@ -78,18 +78,11 @@ function App() {
           console.log('Carte non activée - PIN non défini');
 
           // Set error message and show animation
-          setCardErrorMessage(
-            "PIN non défini sur cette carte.\n\n" +
-            "Veuillez activer votre carte à la borne d'activation (ATM) " +
-            "pour configurer votre code PIN."
-          );
+          setCardErrorMessage("PIN non défini.\nActivez votre carte à la borne ATM.");
           setShowCardErrorAnimation(true);
           setShowPinModal(false);
 
-          // Auto-hide after 6 seconds
-          setTimeout(() => {
-            setShowCardErrorAnimation(false);
-          }, 6000);
+          // Popup will remain until card is removed
         } else {
           // Card is activated, show PIN modal
           setShowPinModal(true);
@@ -178,6 +171,7 @@ function App() {
       setIsVerifyingPin(false);
       setSelectedProduct(null);
       setShowPinModal(false);
+      setShowCardErrorAnimation(false);
       setShowConfirmation(false);
       setSugarLevel(2);
       setPin('');

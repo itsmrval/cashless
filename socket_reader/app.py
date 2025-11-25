@@ -31,12 +31,13 @@ reader = None
 current_card_id = None
 current_connection = None
 current_card_token = None
+current_card_activated = None
 detection_thread = None
 running = True
 
 
 def card_detection_loop():
-    global reader, current_card_id, current_connection, current_card_token, running
+    global reader, current_card_id, current_connection, current_card_token, current_card_activated, running
     
     logger.info("Démarrage de la boucle de détection des cartes")
     
@@ -68,6 +69,8 @@ def card_detection_loop():
                     else:
                         logger.warning(f"Erreur lors de la vérification du PIN: {pin_status.get('error', 'Unknown error')}")
 
+                    current_card_activated = pin_defined
+
                     socketio.emit('card_inserted', {
                         'card_id': card_id,
                         'timestamp': time.time(),
@@ -84,6 +87,7 @@ def card_detection_loop():
                     current_card_id = None
                     current_connection = None
                     current_card_token = None
+                    current_card_activated = None
                     
                     socketio.emit('card_removed', {
                         'card_id': old_card_id,
@@ -114,13 +118,14 @@ def card_detection_loop():
 def handle_connect():
     from flask import request
     logger.info(f"Client Socket.IO connecté: {request.sid}")
-    
+
     if current_card_id:
         emit('card_inserted', {
             'card_id': current_card_id,
-            'timestamp': time.time()
+            'timestamp': time.time(),
+            'activated': current_card_activated if current_card_activated is not None else True
         })
-        logger.info(f"État actuel envoyé au nouveau client: {current_card_id}")
+        logger.info(f"État actuel envoyé au nouveau client: {current_card_id} (activated={current_card_activated})")
 
 @socketio.on('disconnect')
 def handle_disconnect():
