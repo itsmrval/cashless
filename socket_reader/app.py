@@ -7,7 +7,7 @@ import threading
 import time
 import logging
 import sys
-from card_reader import wait_for_reader, check_card_present, read_card_id, is_card_still_present, verify_pin, sign_challenge
+from card_reader import wait_for_reader, check_card_present, read_card_id, is_card_still_present, verify_pin, sign_challenge, check_pin_defined
 import api
 from api import get_challenge, card_auth_with_signature, fetch_user_by_card, create_transaction
 import ssl
@@ -58,14 +58,24 @@ def card_detection_loop():
                     current_connection = connection
                     current_card_token = None
                     logger.info(f"Nouvelle carte détectée: {card_id}")
-                    
+
                     socketio.emit('card_inserted', {
                         'card_id': card_id,
                         'timestamp': time.time()
                     })
-                    
+
                     logger.info(f"Événement 'card_inserted' envoyé à tous les clients")
-                    
+
+                    # Check if PIN is defined
+                    pin_status = check_pin_defined(connection)
+                    if pin_status['success'] and not pin_status['pin_defined']:
+                        logger.info(f"PIN non défini pour la carte: {card_id}")
+                        socketio.emit('pin_not_defined', {
+                            'card_id': card_id,
+                            'message': 'PIN non défini sur cette carte'
+                        })
+                        logger.info(f"Événement 'pin_not_defined' envoyé à tous les clients")
+
                     while is_card_still_present(connection) and running:
                         time.sleep(0.5)
                     

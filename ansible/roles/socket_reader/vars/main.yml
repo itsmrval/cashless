@@ -6,5 +6,4 @@ pid_file: "{{ socket_reader_folder }}/.socket_reader.pid"
 log_file: "{{ socket_reader_folder }}/socket_reader.log"
 socket_port: 8001
 socket_host: "0.0.0.0"
-api_base_url: "https://api.cashless.iut.valentinp.fr/v1"
-dest_id: "6925915f6a63bc32613822c5"
+# api_base_url and dest_id are defined in group_vars/all.yml

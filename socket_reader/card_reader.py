@@ -14,6 +14,7 @@ CMD_READ_VERSION = [0x80, 0x02, 0x00, 0x00, 0x01]
 CMD_VERIFY_PIN = [0x80, 0x06, 0x00, 0x00, SIZE_PIN]  # INS = 0x06 pour verify_pin
 CMD_SET_CHALLENGE = [0x80, 0x0C, 0x00, 0x00, 0x04]  # INS = 0x0C pour set_challenge
 CMD_SIGN_CHALLENGE = [0x80, 0x0B, 0x00, 0x00, 0x00]  # INS = 0x0B pour sign_challenge (Le=0 signifie taille max)
+CMD_CHECK_PIN_DEFINED = [0x80, 0x0E, 0x00, 0x00, 0x01]  # INS = 0x0E pour check if PIN is defined
 SIZE_CHALLENGE = 4
 
 
@@ -213,6 +214,39 @@ def sign_challenge(connection, challenge_hex):
                 'error': f'SIGN_CHALLENGE failed: SW1={hex(sw1)}, SW2={hex(sw2)}'
             }
             
+    except Exception as e:
+        return {
+            'success': False,
+            'error': str(e)
+        }
+
+
+def check_pin_defined(connection):
+    """
+    Check if PIN is defined on the card.
+
+    Returns:
+        dict: {
+            'success': bool,
+            'pin_defined': bool,
+            'error': str (optional)
+        }
+    """
+    try:
+        data, sw1, sw2 = connection.transmit(CMD_CHECK_PIN_DEFINED)
+
+        if sw1 == 0x90 and sw2 == 0x00:
+            # data[0]: 0x01 = PIN defined, 0x00 = PIN not defined
+            pin_defined = (data[0] == 0x01)
+            return {
+                'success': True,
+                'pin_defined': pin_defined
+            }
+        else:
+            return {
+                'success': False,
+                'error': f'Card error: SW1={hex(sw1)}, SW2={hex(sw2)}'
+            }
     except Exception as e:
         return {
             'success': False,

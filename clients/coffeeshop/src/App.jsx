@@ -66,7 +66,7 @@ function App() {
     newSocket.on('card_inserted', (data) => {
       console.log('CARTE DÉTECTÉE VIA SOCKET.IO');
       console.log('Données reçues:', data);
-      
+
       if (data.card_id && data.card_id !== null) {
         setUser({ name: `Carte ${data.card_id.substring(0, 8)}`, cardId: data.card_id });
         setBalance(0);
@@ -74,6 +74,26 @@ function App() {
         setIsCardBlocked(false);
         setShowPinModal(true);
       }
+    });
+
+    newSocket.on('pin_not_defined', (data) => {
+      console.log('PIN non défini:', data);
+
+      // Set error message and show animation
+      setCardErrorMessage(
+        "PIN non défini sur cette carte.\n\n" +
+        "Veuillez activer votre carte à la borne d'activation (ATM) " +
+        "pour configurer votre code PIN."
+      );
+      setShowCardErrorAnimation(true);
+
+      // Prevent PIN modal from showing
+      setShowPinModal(false);
+
+      // Auto-hide after 6 seconds
+      setTimeout(() => {
+        setShowCardErrorAnimation(false);
+      }, 6000);
     });
 
     newSocket.on('pin_verification_result', (result) => {
@@ -690,15 +710,8 @@ function App() {
                     <p className="text-gray-900 font-semibold text-lg mb-2">
                       Authentification refusée
                     </p>
-                    <p className="text-gray-700">
-                      Cette carte n'est pas autorisée à s'authentifier
-                    </p>
-                  </div>
-                  
-                  {/* Instructions */}
-                  <div className="bg-white border-2 border-gray-300 rounded-xl p-5">
-                    <p className="text-gray-800 font-medium">
-                      Consultez votre espace client pour activer votre carte
+                    <p className="text-gray-700 whitespace-pre-line">
+                      {cardErrorMessage || "Cette carte n'est pas autorisée à s'authentifier"}
                     </p>
                   </div>
                 </div>

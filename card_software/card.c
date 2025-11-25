@@ -14,7 +14,7 @@ uint8_t pin_verified = 0;
 #define SIZE_ATR 8
 const char atr_str[SIZE_ATR] PROGMEM = "cashless";
 
-#define CARD_VERSION 110
+#define CARD_VERSION 111
 #define SIZE_CARD_ID 24
 #define SIZE_PIN 4
 #define SIZE_PUK 4
@@ -266,6 +266,38 @@ void get_remaining_attempts()
     sw1 = 0x90;
 }
 
+void is_pin_defined()
+{
+    int i;
+    uint8_t pin_byte;
+    uint8_t all_default = 1;
+
+    if (p3 != 1) {
+        sw1 = 0x6c;
+        sw2 = 1;
+        return;
+    }
+
+    sendbytet0(ins);
+
+    for (i = 0; i < SIZE_PIN; i++) {
+        pin_byte = eeprom_read_byte((uint8_t*)(EEPROM_PIN_ADDR + i));
+
+        if (pin_byte != 0xFF && pin_byte != 0x00) {
+            all_default = 0;
+            break;
+        }
+    }
+
+    if (all_default) {
+        sendbytet0(0x00);
+    } else {
+        sendbytet0(0x01);
+    }
+
+    sw1 = 0x90;
+}
+
 uint8_t card_id_buffer[SIZE_CARD_ID];
 uint8_t private_key_chunk_buffer[SIZE_PRIVATE_KEY_CHUNK];
 
@@ -492,6 +524,9 @@ int main(void)
                 break;
             case 0x0D:
                 get_remaining_attempts();
+                break;
+            case 0x0E:
+                is_pin_defined();
                 break;
             default:
                 sw1 = 0x6d;
