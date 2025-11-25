@@ -12,6 +12,9 @@ MAX_PIN_ATTEMPTS = 3
 CMD_READ_CARD_ID = [0x80, 0x01, 0x00, 0x00, SIZE_CARD_ID]
 CMD_READ_VERSION = [0x80, 0x02, 0x00, 0x00, 0x01]
 CMD_VERIFY_PIN = [0x80, 0x06, 0x00, 0x00, SIZE_PIN]  # INS = 0x06 pour verify_pin
+CMD_SIGN_CHALLENGE = [0x80, 0x08, 0x00, 0x00]  # INS = 0x08 pour sign_challenge
+SIZE_CHALLENGE = 4
+SIZE_SIGNATURE = 4
 
 
 def wait_for_reader():    
@@ -146,5 +149,62 @@ def verify_pin(connection, pin):
             'success': False,
             'attempts_remaining': None,
             'blocked': False,
+            'error': str(e)
+        }
+
+
+def sign_challenge(connection, challenge_hex):
+    """
+    Demande à la carte de signer un challenge.
+    
+    Args:
+        connection: La connexion à la carte
+        challenge_hex: Le challenge en hexadécimal (8 caractères = 4 bytes)
+        
+    Returns:
+        dict: {'success': bool, 'signature': bytes, 'error': str}
+    """
+    try:
+        # Convertir le challenge hex en bytes
+        if len(challenge_hex) != 8:  # 4 bytes = 8 caractères hex
+            return {
+                'success': False,
+                'error': f'Challenge must be 8 hex characters (got {len(challenge_hex)})'
+            }
+        
+        challenge_bytes = bytes.fromhex(challenge_hex)
+        
+        # Construire la commande: CMD_SIGN_CHALLENGE + Lc (4) + challenge (4 bytes) + Le (4)
+        cmd = CMD_SIGN_CHALLENGE + [SIZE_CHALLENGE] + list(challenge_bytes) + [SIZE_SIGNATURE]
+        
+        print(f"DEBUG: Envoi sign_challenge - Challenge hex: {challenge_hex} -> CMD: {cmd}")
+        
+        data, sw1, sw2 = connection.transmit(cmd)
+        
+        print(f"DEBUG: Réponse sign - SW1: {hex(sw1)}, SW2: {hex(sw2)}, Data length: {len(data)}, Data: {data}")
+        
+        if sw1 == 0x90 and sw2 == 0x00:
+            if len(data) == SIZE_SIGNATURE:
+                signature = bytes(data)
+                print(f"DEBUG: Signature reçue: {signature.hex()}")
+                return {
+                    'success': True,
+                    'signature': signature
+                }
+            else:
+                return {
+                    'success': False,
+                    'error': f'Invalid signature length: expected {SIZE_SIGNATURE}, got {len(data)}'
+                }
+        
+        else:
+            return {
+                'success': False,
+                'error': f'Sign failed: SW1={hex(sw1)}, SW2={hex(sw2)}'
+            }
+            
+    except Exception as e:
+        return {
+            'success': False,
             'error': str(e)
         }

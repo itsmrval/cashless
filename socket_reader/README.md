@@ -12,21 +12,20 @@ Puis modifiez les valeurs selon votre configuration :
 
 ```env
 API_BASE_URL = https://api.cashless.iut.valentinp.fr/v1
-DRIVER_USERNAME = admin
-DRIVER_PASSWORD = votre_mot_de_passe
 ```
 
 ### Variables d'environnement
 
 - `API_BASE_URL` : L'URL de base de l'API cashless
-- `DRIVER_USERNAME` : Le nom d'utilisateur admin/driver pour accéder aux données utilisateurs
-- `DRIVER_PASSWORD` : Le mot de passe du compte admin/driver
 
 ## Fonctionnement
 
-Le système utilise un compte admin/driver pour :
-1. Récupérer les informations utilisateur (prénom) à partir du card_id
-2. Récupérer le solde de l'utilisateur
-3. Créer des transactions de paiement
+Le système utilise l'authentification cryptographique par signature :
 
-La vérification du PIN est effectuée localement sur la carte physique, pas via l'API.
+1. **Vérification du PIN** : Le PIN est vérifié localement sur la carte physique
+2. **Récupération du challenge** : Un challenge est demandé à l'API pour le card_id
+3. **Signature du challenge** : La carte signe cryptographiquement le challenge avec sa clé privée
+4. **Authentification** : La signature est envoyée à l'API qui vérifie avec la clé publique
+5. **Récupération des données** : Une fois authentifiée, la carte peut récupérer les infos utilisateur (prénom, balance) et créer des transactions
+
+Ce système garantit que seule la carte physique peut s'authentifier, car elle seule possède la clé privée nécessaire pour signer le challenge.

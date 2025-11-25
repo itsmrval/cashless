@@ -9,80 +9,6 @@ from dotenv import load_dotenv
 load_dotenv()
 
 API_BASE_URL = os.getenv('API_BASE_URL', 'https://api.cashless.iut.valentinp.fr/v1')
-DRIVER_USERNAME = os.getenv('DRIVER_USERNAME', 'admin')
-DRIVER_PASSWORD = os.getenv('DRIVER_PASSWORD', 'admin')
-
-# Token du driver (admin) pour accéder aux données
-_driver_token = None
-
-
-# Token du driver (admin) pour accéder aux données
-_driver_token = None
-
-
-def get_driver_token():
-    """
-    Authentifie le driver (admin) et récupère son token.
-    Le token est mis en cache pour éviter de se reconnecter à chaque fois.
-    
-    Returns:
-        dict: {'success': bool, 'token': str, 'error': str}
-    """
-    global _driver_token
-    
-    # Si on a déjà un token, le retourner
-    if _driver_token:
-        return {
-            'success': True,
-            'token': _driver_token
-        }
-    
-    try:
-        url = f"{API_BASE_URL}/auth/login"
-        headers = {'Content-Type': 'application/json'}
-        data = {
-            'username': DRIVER_USERNAME,
-            'password': DRIVER_PASSWORD
-        }
-        
-        print(f"DEBUG: Connexion driver - URL: {url}, Username: {DRIVER_USERNAME}")
-        
-        response = requests.post(url, json=data, headers=headers, timeout=5)
-        
-        print(f"DEBUG: Réponse driver - Code: {response.status_code}")
-        
-        if response.status_code == 200:
-            response_data = response.json()
-            if 'token' in response_data:
-                _driver_token = response_data['token']
-                print("DEBUG: Token driver récupéré avec succès")
-                return {
-                    'success': True,
-                    'token': _driver_token
-                }
-        
-        # Essayer de parser le message d'erreur
-        try:
-            error_data = response.json()
-            error_msg = error_data.get('error', f'Status {response.status_code}')
-        except:
-            error_msg = f'Status {response.status_code}'
-        
-        return {
-            'success': False,
-            'error': f'Driver login failed: {error_msg}'
-        }
-        
-    except requests.exceptions.Timeout:
-        return {
-            'success': False,
-            'error': 'Request timeout'
-        }
-    except Exception as e:
-        return {
-            'success': False,
-            'error': str(e)
-        }
 
 
 def get_challenge(card_id):
@@ -99,19 +25,30 @@ def get_challenge(card_id):
         url = f"{API_BASE_URL}/auth/challenge"
         params = {'card_id': card_id}
         
+        print(f"DEBUG: Récupération challenge - URL: {url}?card_id={card_id}")
+        
         response = requests.get(url, params=params, timeout=5)
+        
+        print(f"DEBUG: Réponse challenge - Code: {response.status_code}")
         
         if response.status_code == 200:
             data = response.json()
             if 'challenge' in data:
+                print(f"DEBUG: Challenge reçu: {data['challenge']}")
                 return {
                     'success': True,
                     'challenge': data['challenge']
                 }
         
+        try:
+            error_data = response.json()
+            error_msg = error_data.get('error', f'Status {response.status_code}')
+        except:
+            error_msg = f'Status {response.status_code}'
+        
         return {
             'success': False,
-            'error': f'Failed to get challenge: {response.status_code}'
+            'error': f'Failed to get challenge: {error_msg}'
         }
         
     except requests.exceptions.Timeout:
@@ -126,55 +63,87 @@ def get_challenge(card_id):
         }
 
 
-def card_auth(card_id, pin):
+def card_auth_with_signature(card_id, challenge, signature):
     """
-    Authentifie une carte avec son PIN.
-    Cette fonction ne fait que vérifier localement le PIN (déjà fait sur la carte).
-    Elle retourne un "pseudo-token" qui sera utilisé avec le token driver.
+    Authentifie une carte avec une signature cryptographique.
     
     Args:
         card_id: L'identifiant de la carte
-        pin: Le code PIN (4 chiffres) - déjà vérifié par la carte
+        challenge: Le challenge reçu de l'API (hex string)
+        signature: La signature générée par la carte (bytes)
         
     Returns:
         dict: {'success': bool, 'token': str, 'error': str}
     """
-    # Le PIN a déjà été vérifié par la carte physique
-    # On n'a pas besoin d'authentifier auprès de l'API
-    # On retourne simplement un succès
-    return {
-        'success': True,
-        'token': 'local_verified'  # Token fictif car la vérification est locale
-    }
+    try:
+        url = f"{API_BASE_URL}/auth/card"
+        headers = {'Content-Type': 'application/json'}
+        
+        # Encoder la signature en base64
+        signature_b64 = base64.b64encode(signature).decode('utf-8')
+        
+        data = {
+            'card_id': card_id,
+            'challenge': challenge,
+            'signature': signature_b64
+        }
+        
+        print(f"DEBUG: Authentification carte - URL: {url}")
+        print(f"DEBUG: card_id: {card_id}, challenge: {challenge}, signature_b64: {signature_b64}")
+        
+        response = requests.post(url, json=data, headers=headers, timeout=5)
+        
+        print(f"DEBUG: Réponse auth - Code: {response.status_code}")
+        print(f"DEBUG: Réponse brute: {response.text}")
+        
+        if response.status_code == 200:
+            response_data = response.json()
+            if 'token' in response_data:
+                print("DEBUG: Token carte récupéré avec succès")
+                return {
+                    'success': True,
+                    'token': response_data['token']
+                }
+        
+        try:
+            error_data = response.json()
+            error_msg = error_data.get('error', f'Status {response.status_code}')
+        except:
+            error_msg = f'Status {response.status_code}'
+        
+        return {
+            'success': False,
+            'error': f'Authentication failed: {error_msg}'
+        }
+        
+    except requests.exceptions.Timeout:
+        return {
+            'success': False,
+            'error': 'Request timeout'
+        }
+    except Exception as e:
+        return {
+            'success': False,
+            'error': str(e)
+        }
 
 
 def fetch_user_by_card(card_id, card_token):
     """
-    Récupère les informations utilisateur (prénom et balance) via le card_id.
-    Utilise le token driver pour l'accès aux données.
+    Récupère les informations utilisateur (prénom et balance) via le token de la carte.
     
     Args:
         card_id: L'identifiant de la carte
-        card_token: Ignoré - on utilise le token driver à la place
+        card_token: Le token d'authentification de la carte
         
     Returns:
         dict: {'success': bool, 'name': str, 'balance': float, 'error': str}
     """
     try:
-        # Récupérer le token driver
-        driver_result = get_driver_token()
-        if not driver_result['success']:
-            return {
-                'success': False,
-                'error': f"Failed to get driver token: {driver_result.get('error')}"
-            }
-        
-        driver_token = driver_result['token']
-        
         # Récupérer les informations utilisateur
         url = f"{API_BASE_URL}/user"
         params = {'card_id': card_id}
-        headers = {'Authorization': f'Bearer {driver_token}'}
+        headers = {'Authorization': f'Bearer {card_token}'}
         
         print(f"DEBUG: Récupération user - URL: {url}?card_id={card_id}")
         
@@ -260,10 +229,9 @@ def fetch_user_by_card(card_id, card_token):
 def create_transaction(card_token, amount, merchant_name):
     """
     Crée une transaction (paiement).
-    Utilise le token driver pour créer la transaction.
     
     Args:
-        card_token: Ignoré - on utilise le token driver
+        card_token: Le token d'authentification de la carte
         amount: Le montant en euros
         merchant_name: Le nom du marchand
         
@@ -271,19 +239,9 @@ def create_transaction(card_token, amount, merchant_name):
         dict: {'success': bool, 'transaction_id': str, 'new_balance': float, 'error': str}
     """
     try:
-        # Récupérer le token driver
-        driver_result = get_driver_token()
-        if not driver_result['success']:
-            return {
-                'success': False,
-                'error': f"Failed to get driver token: {driver_result.get('error')}"
-            }
-        
-        driver_token = driver_result['token']
-        
         url = f"{API_BASE_URL}/transactions"
         headers = {
-            'Authorization': f'Bearer {driver_token}',
+            'Authorization': f'Bearer {card_token}',
             'Content-Type': 'application/json'
         }
         data = {

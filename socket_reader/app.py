@@ -6,8 +6,8 @@ from flask_cors import CORS
 import threading
 import time
 import logging
-from card_reader import wait_for_reader, check_card_present, read_card_id, is_card_still_present, verify_pin
-from api import card_auth, fetch_user_by_card, create_transaction
+from card_reader import wait_for_reader, check_card_present, read_card_id, is_card_still_present, verify_pin, sign_challenge
+from api import get_challenge, card_auth_with_signature, fetch_user_by_card, create_transaction
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
@@ -155,16 +155,48 @@ def handle_verify_pin(data):
     result = verify_pin(current_connection, pin)
     
     if result['success']:
-        logger.info(f"PIN correct - Authentification auprès de l'API...")
+        logger.info(f"PIN correct - Récupération du challenge depuis l'API...")
         
-        # Authentifier la carte auprès de l'API
-        auth_result = card_auth(current_card_id, pin)
+        # 1. Récupérer un challenge depuis l'API
+        challenge_result = get_challenge(current_card_id)
+        
+        if not challenge_result['success']:
+            logger.error(f"Erreur récupération challenge: {challenge_result.get('error')}")
+            emit('pin_verification_result', {
+                'success': False,
+                'error': f"Erreur lors de la récupération du challenge: {challenge_result.get('error')}",
+                'attempts_remaining': None,
+                'blocked': False
+            })
+            return
+        
+        challenge = challenge_result['challenge']
+        logger.info(f"Challenge reçu: {challenge}")
+        
+        # 2. Demander à la carte de signer le challenge
+        sign_result = sign_challenge(current_connection, challenge)
+        
+        if not sign_result['success']:
+            logger.error(f"Erreur signature challenge: {sign_result.get('error')}")
+            emit('pin_verification_result', {
+                'success': False,
+                'error': f"Erreur lors de la signature: {sign_result.get('error')}",
+                'attempts_remaining': None,
+                'blocked': False
+            })
+            return
+        
+        signature = sign_result['signature']
+        logger.info(f"Signature reçue de la carte")
+        
+        # 3. Authentifier la carte auprès de l'API avec la signature
+        auth_result = card_auth_with_signature(current_card_id, challenge, signature)
         
         if auth_result['success']:
             current_card_token = auth_result['token']
             logger.info(f"Authentification API réussie")
             
-            # Récupérer les informations utilisateur
+            # 4. Récupérer les informations utilisateur
             user_result = fetch_user_by_card(current_card_id, current_card_token)
             
             if user_result['success']:
