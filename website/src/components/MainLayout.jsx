@@ -4,27 +4,23 @@ import Sidebar from './Sidebar';
 /*
  * NOTE: C'est un pur composant de layout.
  * - Il crée simplement la grille Sidebar + Contenu.
+ * - Responsive: sidebar cachée sur mobile avec header + drawer
  */
-export default function MainLayout({ children, userName, activeTab, setActiveTab }) {
+export default function MainLayout({ children, activeTab, setActiveTab }) {
   return (
-    /* * Cette grille est placée à l'intérieur de la balise <main> de App.jsx
-     * et s'adapte aux écrans mobiles (lg:grid-cols-12)
-    */
-    <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 w-full">
+    <div className="flex min-h-screen overflow-x-hidden">
+      {/* --- Sidebar (fixe à gauche sur desktop, drawer sur mobile) --- */}
+      <Sidebar
+        activeTab={activeTab}
+        setActiveTab={setActiveTab}
+      />
 
-      {/* --- Sidebar (colonne de gauche) --- */}
-      <div className="lg:col-span-3 h-full">
-        <Sidebar
-          activeTab={activeTab}
-          setActiveTab={setActiveTab}
-          userName={userName}
-        />
-      </div>
-
-      {/* --- Contenu Principal (colonne de droite) --- */}
-      <div className="lg:col-span-9">
+      {/* --- Contenu Principal --- */}
+      {/* Sur mobile: padding-top pour le header mobile */}
+      {/* Sur desktop: margin-left pour la sidebar fixe */}
+      <div className="flex-1 lg:ml-72 pt-20 lg:pt-6 p-4 sm:p-6 min-w-0 overflow-x-hidden">
         {/* La boîte blanche qui encapsule l'onglet actif */}
-        <div className="bg-white rounded-xl shadow-sm border border-slate-100 p-6 sm:p-8 w-full min-h-[75vh]">
+        <div className="bg-white rounded-xl shadow-sm border border-slate-100 p-4 sm:p-6 lg:p-8 w-full min-h-[75vh] overflow-x-hidden">
           {children}
         </div>
       </div>

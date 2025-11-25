@@ -25,3 +25,4 @@ socket_reader/.socket_reader.pid
 socket_reader/socket_reader.log
 socket_reader/__pycache__/
 socket_reader/*.pyc
+package-lock.json
