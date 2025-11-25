@@ -389,7 +389,7 @@ function App() {
       )}
 
       {/* Page d'attente de carte */}
-      {!user || !user.name || !isPinVerified ? (
+      {!user ? (
         <div className="min-h-screen flex items-center">
           <div className="container mx-auto px-6">
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center max-w-7xl mx-auto">
