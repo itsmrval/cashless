@@ -237,7 +237,7 @@ def handle_verify_pin(data):
 
 @socketio.on('create_transaction')
 def handle_create_transaction(data):
-    global current_card_token
+    global current_card_token, current_card_id
     from flask import request
     
     logger.info(f"Demande de création de transaction du client: {request.sid}")
@@ -248,6 +248,14 @@ def handle_create_transaction(data):
             'error': 'Non authentifié. Veuillez d\'abord vérifier votre PIN.'
         })
         logger.warning("Tentative de transaction sans authentification")
+        return
+    
+    if not current_card_id:
+        emit('transaction_result', {
+            'success': False,
+            'error': 'Carte non détectée.'
+        })
+        logger.warning("Tentative de transaction sans carte")
         return
     
     amount = data.get('amount')
@@ -264,7 +272,7 @@ def handle_create_transaction(data):
     logger.info(f"Création de transaction: {amount}€ pour {merchant}")
     
     # Créer la transaction et attendre la confirmation (200/201) de l'API
-    result = create_transaction(current_card_token, amount, merchant)
+    result = create_transaction(current_card_token, current_card_id, amount, merchant)
     
     if result['success']:
         # Transaction confirmée par l'API (200 OK), le nouveau solde a été récupéré

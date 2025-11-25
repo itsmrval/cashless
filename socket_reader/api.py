@@ -233,27 +233,30 @@ def fetch_user_by_card(card_id, card_token):
         }
 
 
-def get_user_balance(card_token):
+def get_user_balance(card_token, card_id):
     """
     Récupère le solde de l'utilisateur authentifié.
     
     Args:
         card_token: Le token d'authentification de la carte
+        card_id: L'identifiant de la carte
         
     Returns:
         dict: {'success': bool, 'balance': float, 'error': str}
     """
     try:
-        # Récupérer d'abord les infos user pour obtenir l'ID
-        url = f"{API_BASE_URL}/card/me"
+        # Récupérer d'abord les infos user pour obtenir l'ID via /user?card_id=
+        url = f"{API_BASE_URL}/user"
+        params = {'card_id': card_id}
         headers = {
             'Authorization': f'Bearer {card_token}',
             'Content-Type': 'application/json'
         }
         
-        print(f"DEBUG get_user_balance: Récupération info user - URL: {url}")
-        response = requests.get(url, headers=headers, timeout=5)
+        print(f"DEBUG get_user_balance: Récupération info user - URL: {url}?card_id={card_id}")
+        response = requests.get(url, params=params, headers=headers, timeout=5)
         print(f"DEBUG get_user_balance: Réponse user - Code: {response.status_code}")
+        print(f"DEBUG get_user_balance: Réponse user brute: {response.text}")
         
         if response.status_code != 200:
             print(f"DEBUG get_user_balance: ERREUR - Status {response.status_code}")
@@ -306,12 +309,13 @@ def get_user_balance(card_token):
         }
 
 
-def create_transaction(card_token, amount, merchant_name):
+def create_transaction(card_token, card_id, amount, merchant_name):
     """
     Crée une transaction (paiement).
     
     Args:
         card_token: Le token d'authentification de la carte
+        card_id: L'identifiant de la carte
         amount: Le montant en euros (positif)
         merchant_name: Le nom du marchand (non utilisé, pour compatibilité)
         
@@ -359,7 +363,7 @@ def create_transaction(card_token, amount, merchant_name):
             time.sleep(0.3)  # Attendre 300ms pour que l'API mette à jour
             
             print(f"DEBUG: Récupération du nouveau solde depuis l'API...")
-            balance_result = get_user_balance(card_token)
+            balance_result = get_user_balance(card_token, card_id)
             
             if balance_result['success']:
                 new_balance = balance_result['balance']
