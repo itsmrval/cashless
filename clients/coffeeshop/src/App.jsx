@@ -698,7 +698,7 @@ function App() {
                   {/* Instructions */}
                   <div className="bg-white border-2 border-gray-300 rounded-xl p-5">
                     <p className="text-gray-800 font-medium">
-                      📱 Consultez votre espace client pour activer votre carte
+                      Consultez votre espace client pour activer votre carte
                     </p>
                   </div>
                 </div>
