@@ -90,7 +90,7 @@ function App() {
     });
 
     newSocket.on('connect_error', (error) => {
-      console.error('❌ Erreur de connexion Socket.IO:', error.message);
+      console.error('Erreur de connexion Socket.IO:', error.message);
       setIsSocketConnected(false);
       setReconnectAttempts(prev => {
         const newCount = prev + 1;
@@ -105,7 +105,7 @@ function App() {
       console.log('Données reçues:', data);
       
       if (data.card_id && data.card_id !== null) {
-        setUser({ name: `Carte ${data.card_id.substring(0, 8)}`, cardId: data.card_id });
+        setUser({ name: 'Carte détectée', cardId: data.card_id });
         setBalance(0);
         setPinAttempts(3);
         setIsCardBlocked(false);
@@ -199,7 +199,7 @@ function App() {
     });
 
     newSocket.on('disconnect', (reason) => {
-      console.log('🔌 Socket.IO déconnecté - Raison:', reason);
+      console.log('Socket.IO déconnecté - Raison:', reason);
       setIsSocketConnected(false);
       if (reason === 'io server disconnect') {
         setApiError('Le serveur a fermé la connexion');
@@ -383,7 +383,7 @@ function App() {
       setTpeMode('success');
       setTpeMessage(`${amount.toFixed(2)}€ bloqués`);
       
-      console.log(`💳 Pré-autorisation de ${amount.toFixed(2)}€ acceptée`);
+      console.log(`Pré-autorisation de ${amount.toFixed(2)}€ acceptée`);
       
       // Démarrer le ravitaillement après 1.5s
       setTimeout(() => {
@@ -404,43 +404,48 @@ function App() {
     }
   };
 
-  // Finaliser le ravitaillement et calculer le remboursement
+  // Finaliser le ravitaillement et envoyer la transaction
   const finalizeFueling = () => {
     const actualAmount = currentLiters * selectedFuel.price;
-    const refund = preAuthAmount - actualAmount;
     
-    // Envoyer la transaction au serveur via Socket.IO
+    console.log('Création de la transaction via Socket.IO...');
+    
+    // Envoyer la transaction au serveur via Socket.IO (comme coffeeshop)
     if (socket && socket.connected) {
-      console.log('Envoi de la transaction via Socket.IO...');
       socket.emit('create_transaction', {
         amount: actualAmount,
         merchant: 'PumpShop'
       });
+      
+      // Afficher les infos de paiement
+      setPaymentAmount(actualAmount);
+      setRefundAmount(preAuthAmount - actualAmount);
+      setLiters(currentLiters);
+      setIsPreAuthActive(false);
+      
+      setIsFueling(false);
+      setShowPaymentSuccess(true);
+      
+      console.log(`Transaction envoyée: ${actualAmount.toFixed(2)}€`);
+      
+      // Le nouveau solde sera mis à jour par l'événement 'transaction_result'
     } else {
       console.error('Socket non connecté pour la transaction');
       setMessage('Erreur: connexion perdue');
       setMessageType('error');
       setTimeout(() => setMessage(''), 3000);
+      
+      // Remettre le solde original en cas d'erreur
+      setBalance(prev => prev + preAuthAmount);
+      setIsPreAuthActive(false);
+      setIsFueling(false);
+      return;
     }
-    
-    // Calculer le solde final (sera mis à jour par transaction_result)
-    const finalBalance = balance + refund;
-    
-    setPaymentAmount(actualAmount);
-    setNewBalanceAmount(finalBalance);
-    setRefundAmount(refund);
-    setLiters(currentLiters);
-    setIsPreAuthActive(false);
-    
-    setIsFueling(false);
-    setShowPaymentSuccess(true);
-    
-    console.log(`💳 Paiement finalisé: ${actualAmount.toFixed(2)}€ (remboursement: ${refund.toFixed(2)}€)`);
     
     setTimeout(() => {
       setShowPaymentSuccess(false);
       setTpeMode('idle');
-      setTpeMessage('');
+      setTpeMessage('Retirez votre carte');
       setSelectedFuel(null);
       setFuelingProgress(0);
       setCurrentLiters(0);
@@ -511,7 +516,7 @@ function App() {
             {/* Status de la carte */}
             <div className="flex items-center justify-between mb-1 lg:mb-2 pb-1 border-b border-slate-200">
               <span className="text-slate-600 text-[10px] sm:text-xs font-medium truncate">
-                {user ? `💳 ${user.name}` : '💳 Insérer carte'}
+                {user && isPinVerified ? user.name : user ? 'Carte détectée' : 'Insérer carte'}
               </span>
               {user && isPinVerified && (
                 <span className="text-slate-900 text-[10px] sm:text-xs font-bold">
@@ -689,7 +694,7 @@ function App() {
                         }`}
                         style={{ backgroundColor: fuel.darkColor }}
                       >
-                        {isPumping ? '⚡ EN COURS...' : '✓ SÉLECTIONNÉ'}
+                        {isPumping ? 'EN COURS...' : 'SÉLECTIONNÉ'}
                       </div>
                     </div>
                   )}
@@ -804,11 +809,10 @@ function App() {
 
           {/* Contenu */}
           <div className="p-6">
-            <h3 className="text-white font-semibold mb-4 text-center">⛽ Faire le plein</h3>
+            <h3 className="text-white font-semibold mb-4 text-center">Faire le plein</h3>
             
             <div className="bg-gray-700 rounded-xl p-4">
               <div className="flex items-start gap-3">
-                <span className="text-2xl">ℹ️</span>
                 <div className="text-sm text-gray-300">
                   <p className="font-semibold text-white mb-2">Comment ça marche ?</p>
                   <ol className="space-y-1 list-decimal list-inside">
@@ -822,7 +826,7 @@ function App() {
               </div>
               <div className="mt-4 p-3 bg-yellow-900 bg-opacity-50 rounded-lg">
                 <p className="text-yellow-400 text-sm text-center">
-                  🔒 Montant bloqué : <strong>{balance.toFixed(2)}€</strong>
+                  Montant bloqué : <strong>{balance.toFixed(2)}€</strong>
                   <br/>
                   <span className="text-xs">≈ {maxLitersForAmount(balance)} litres maximum</span>
                 </p>
@@ -830,13 +834,12 @@ function App() {
             </div>
           </div>
 
-          {/* Footer avec bouton de confirmation */}
           <div className="p-6 border-t border-gray-700 bg-gray-900 rounded-b-2xl">
             <button
               onClick={handleConfirmAmount}
               className="w-full bg-green-600 hover:bg-green-500 text-white font-bold py-4 rounded-xl transition-all text-lg"
             >
-              🔒 Autoriser {balance.toFixed(2)}€ et commencer
+              Autoriser {balance.toFixed(2)}€ et commencer
             </button>
           </div>
         </div>
@@ -862,7 +865,7 @@ function App() {
           </h3>
           <div className="text-right">
             <span className="px-3 py-1 rounded-full text-sm font-bold bg-yellow-500 text-black">
-              🔒 {preAuthAmount.toFixed(2)}€
+              {preAuthAmount.toFixed(2)}€
             </span>
             <p className="text-gray-400 text-xs mt-1">Pré-autorisé</p>
           </div>
@@ -920,7 +923,6 @@ function App() {
           onClick={stopFueling}
           className="w-full bg-red-600 hover:bg-red-500 text-white font-bold py-5 rounded-xl transition-all text-xl flex items-center justify-center gap-3"
         >
-          <span className="text-3xl">⏹</span>
           Arrêter le remplissage
         </button>
       </div>
@@ -1104,7 +1106,7 @@ function App() {
                 </div>
                 {refundAmount > 0 && (
                   <div className="flex justify-between bg-green-50 p-2 rounded-lg">
-                    <span className="text-green-700">💰 Remboursé</span>
+                    <span className="text-green-700">Remboursé</span>
                     <span className="font-bold text-green-600">+{refundAmount.toFixed(2)}€</span>
                   </div>
                 )}
@@ -1116,7 +1118,7 @@ function App() {
               </div>
               
               <p className="text-green-600 font-medium mt-4">
-                Merci de votre visite ! 🚗
+                Merci de votre visite !
               </p>
             </div>
           </div>
