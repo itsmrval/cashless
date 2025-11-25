@@ -1,0 +1,25 @@
+---
+- name: Stop Socket Reader Server
+  hosts: localhost
+  gather_facts: no
+
+  tasks:
+    - name: Stop socket reader
+      block:
+        - name: Stop Flask-SocketIO server
+          include_role:
+            name: socket_reader
+            tasks_from: stop
+
+        - name: Display success message
+          debug:
+            msg: "Socket reader server successfully stopped."
+
+      rescue:
+        - name: Display error message
+          debug:
+            msg: "Error stopping socket reader server"
+
+        - name: Fail playbook
+          fail:
+            msg: "Socket reader server failed to stop"

@@ -1,0 +1,3 @@
+---
+- name: Include start tasks
+  include_tasks: start.yml

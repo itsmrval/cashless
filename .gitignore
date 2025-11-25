@@ -16,3 +16,12 @@ card/card.eep
 .idea/
 *.swp
 *~
+
+# Python virtual environment
+socket_reader/venv/
+
+# Socket reader runtime files
+socket_reader/.socket_reader.pid
+socket_reader/socket_reader.log
+socket_reader/__pycache__/
+socket_reader/*.pyc

@@ -1,0 +1,111 @@
+---
+- name: Check if PID file exists
+  stat:
+    path: "{{ pid_file }}"
+  register: pid_file_stat
+
+- name: Display not running message
+  debug:
+    msg: "Socket reader server is not running (no PID file found)."
+  when: not pid_file_stat.stat.exists
+
+- name: Read PID from file
+  slurp:
+    src: "{{ pid_file }}"
+  register: pid_file_content
+  when: pid_file_stat.stat.exists
+
+- name: Set PID variable
+  set_fact:
+    server_pid: "{{ pid_file_content.content | b64decode | trim }}"
+  when: pid_file_stat.stat.exists
+
+- name: Validate PID is numeric
+  fail:
+    msg: "PID file contains invalid data: {{ server_pid }}"
+  when:
+    - pid_file_stat.stat.exists
+    - server_pid is not match('^\d+$')
+
+- name: Check if process is actually running
+  shell: ps -p {{ server_pid }}
+  register: process_check
+  ignore_errors: yes
+  changed_when: false
+  when: pid_file_stat.stat.exists
+
+- name: Display stale PID message
+  debug:
+    msg: "Socket reader server is not running (stale PID file)."
+  when:
+    - pid_file_stat.stat.exists
+    - process_check.rc != 0
+
+- name: Remove stale PID file
+  file:
+    path: "{{ pid_file }}"
+    state: absent
+  when:
+    - pid_file_stat.stat.exists
+    - process_check.rc != 0
+
+- name: Send SIGTERM for graceful shutdown
+  shell: kill -TERM {{ server_pid }}
+  ignore_errors: yes
+  when:
+    - pid_file_stat.stat.exists
+    - process_check.rc == 0
+
+- name: Wait for graceful shutdown
+  wait_for:
+    port: "{{ socket_port }}"
+    state: stopped
+    timeout: 10
+  register: graceful_stop
+  ignore_errors: yes
+  when:
+    - pid_file_stat.stat.exists
+    - process_check.rc == 0
+
+- name: Check if process still running
+  shell: ps -p {{ server_pid }}
+  register: still_running
+  ignore_errors: yes
+  changed_when: false
+  when:
+    - pid_file_stat.stat.exists
+    - process_check.rc == 0
+    - graceful_stop is failed
+
+- name: Force kill with SIGKILL if needed
+  shell: kill -KILL {{ server_pid }}
+  ignore_errors: yes
+  when:
+    - pid_file_stat.stat.exists
+    - process_check.rc == 0
+    - graceful_stop is failed
+    - still_running.rc == 0
+
+- name: Remove PID file
+  file:
+    path: "{{ pid_file }}"
+    state: absent
+  when:
+    - pid_file_stat.stat.exists
+    - process_check.rc == 0
+
+- name: Verify port is closed
+  wait_for:
+    port: "{{ socket_port }}"
+    state: stopped
+    timeout: 5
+  when:
+    - pid_file_stat.stat.exists
+    - process_check.rc == 0
+
+- name: Display success message
+  debug:
+    msg: "Socket reader server stopped successfully."
+  when:
+    - pid_file_stat.stat.exists
+    - process_check.rc == 0

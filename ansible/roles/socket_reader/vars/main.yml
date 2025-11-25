@@ -1,0 +1,8 @@
+---
+venv_path: "{{ socket_reader_folder }}/venv"
+requirements_file: "{{ socket_reader_folder }}/requirements.txt"
+app_file: "{{ socket_reader_folder }}/app.py"
+pid_file: "{{ socket_reader_folder }}/.socket_reader.pid"
+log_file: "{{ socket_reader_folder }}/socket_reader.log"
+socket_port: 8001
+socket_host: "0.0.0.0"

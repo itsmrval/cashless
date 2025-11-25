@@ -1,0 +1,30 @@
+---
+- name: Start Socket Reader Server
+  hosts: localhost
+  gather_facts: no
+
+  tasks:
+    - name: Start socket reader
+      block:
+        - name: Start Flask-SocketIO server
+          include_role:
+            name: socket_reader
+
+        - name: Display success message
+          debug:
+            msg: |
+              Socket reader server successfully started.
+              Listening on: http://{{ socket_host }}:{{ socket_port }}
+              Log file: {{ log_file }}
+              PID file: {{ pid_file }}
+
+              To stop: ansible-playbook stop_socket.yml
+
+      rescue:
+        - name: Display error message
+          debug:
+            msg: "Error starting socket reader server"
+
+        - name: Fail playbook
+          fail:
+            msg: "Socket reader server failed to start"
