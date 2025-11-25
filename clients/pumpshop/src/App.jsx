@@ -465,7 +465,7 @@ function App() {
               <span className="text-slate-600 text-sm font-medium">
                 {user ? `💳 ${user.name}` : '💳 Insérer carte'}
               </span>
-              {user && (
+              {user && isPinVerified && (
                 <span className="text-slate-900 text-sm font-bold">
                   {balance.toFixed(2)}€
                 </span>
@@ -952,7 +952,7 @@ function App() {
 
       {/* Header compact */}
       <header className="text-center h-12 flex items-center justify-center flex-shrink-0">
-        <img src="/img/Plan de travail 1.png" alt="Logo" className="h-20 md:h-24 object-contain" />
+        <img src="/img/logo.png" alt="Logo" className="h-20 md:h-24 object-contain" />
       </header>
 
       {/* Contenu principal - hauteur fixe */}
