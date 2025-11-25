@@ -198,5 +198,6 @@ if __name__ == '__main__':
         port=8001,
         debug=False,
         use_reloader=False,
-        ssl_context=ssl_context
+        ssl_context=ssl_context,
+        allow_unsafe_werkzeug=True
     )
