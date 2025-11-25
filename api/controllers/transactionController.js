@@ -68,6 +68,10 @@ const createTransaction = async (req, res) => {
       return res.status(400).json({ error: 'destination_user_id and operation are required' });
     }
 
+    if (operation < 0) {
+      return res.status(400).json({ error: 'Operation amount must be positive' });
+    }
+
     if (!req.user) {
       return res.status(401).json({ error: 'Authentication required' });
     }
