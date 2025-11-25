@@ -409,10 +409,23 @@ function App() {
     const actualAmount = currentLiters * selectedFuel.price;
     const refund = preAuthAmount - actualAmount;
     
-    // Rembourser la différence
+    // Envoyer la transaction au serveur via Socket.IO
+    if (socket && socket.connected) {
+      console.log('Envoi de la transaction via Socket.IO...');
+      socket.emit('create_transaction', {
+        amount: actualAmount,
+        merchant: 'PumpShop'
+      });
+    } else {
+      console.error('Socket non connecté pour la transaction');
+      setMessage('Erreur: connexion perdue');
+      setMessageType('error');
+      setTimeout(() => setMessage(''), 3000);
+    }
+    
+    // Calculer le solde final (sera mis à jour par transaction_result)
     const finalBalance = balance + refund;
     
-    setBalance(finalBalance);
     setPaymentAmount(actualAmount);
     setNewBalanceAmount(finalBalance);
     setRefundAmount(refund);
