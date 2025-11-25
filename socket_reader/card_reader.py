@@ -107,12 +107,8 @@ def verify_pin(connection, pin):
         pin_bytes = [int(c) for c in pin]
         
         cmd = CMD_VERIFY_PIN + pin_bytes
-        
-        print(f"DEBUG: Envoi PIN - String: '{pin}' -> Bytes: {pin_bytes} -> CMD complète: {cmd}")
-        
-        data, sw1, sw2 = connection.transmit(cmd)
-        
-        print(f"DEBUG: Réponse - SW1: {hex(sw1)}, SW2: {hex(sw2)}, Data: {data}")
+                
+        sw1, sw2 = connection.transmit(cmd)
         
         if sw1 == 0x90 and sw2 == 0x00:
             return {
@@ -179,45 +175,28 @@ def sign_challenge(connection, challenge_hex):
         
         # Étape 1: Définir le challenge (SET_CHALLENGE)
         cmd_set = CMD_SET_CHALLENGE + list(challenge_bytes)
-        
-        print(f"DEBUG: Envoi SET_CHALLENGE - Challenge hex: {challenge_hex} -> CMD: {cmd_set}")
-        
+                
         data, sw1, sw2 = connection.transmit(cmd_set)
-        
-        print(f"DEBUG: Réponse SET_CHALLENGE - SW1: {hex(sw1)}, SW2: {hex(sw2)}")
-        
+                
         if sw1 != 0x90 or sw2 != 0x00:
             return {
                 'success': False,
                 'error': f'SET_CHALLENGE failed: SW1={hex(sw1)}, SW2={hex(sw2)}'
             }
-        
-        # Étape 2: Récupérer la signature (SIGN_CHALLENGE)
-        # Le dernier byte indique la taille attendue de la réponse
-        # On utilise 0x00 pour demander la taille maximale disponible
+
         cmd_sign = CMD_SIGN_CHALLENGE
-        
-        print(f"DEBUG: Envoi SIGN_CHALLENGE -> CMD: {cmd_sign}")
-        
+                
         data, sw1, sw2 = connection.transmit(cmd_sign)
-        
-        print(f"DEBUG: Réponse SIGN_CHALLENGE - SW1: {hex(sw1)}, SW2: {hex(sw2)}, Data length: {len(data)}")
-        
-        # Si SW1=0x6C, cela indique la taille attendue dans SW2
+                
         if sw1 == 0x6C:
             expected_size = sw2
-            print(f"DEBUG: La carte indique une taille attendue de {expected_size} bytes, réessai...")
             
-            # Refaire la commande avec la bonne taille
             cmd_sign_with_size = [0x80, 0x0B, 0x00, 0x00, expected_size]
             data, sw1, sw2 = connection.transmit(cmd_sign_with_size)
-            
-            print(f"DEBUG: Réponse SIGN_CHALLENGE (retry) - SW1: {hex(sw1)}, SW2: {hex(sw2)}, Data length: {len(data)}")
-        
+                    
         if sw1 == 0x90 and sw2 == 0x00:
             if len(data) > 0:
                 signature = bytes(data)
-                print(f"DEBUG: Signature reçue ({len(signature)} bytes): {signature.hex()}")
                 return {
                     'success': True,
                     'signature': signature

@@ -29,9 +29,7 @@ def get_challenge(card_id):
         print(f"DEBUG: Récupération challenge - URL: {url}?card_id={card_id}")
         
         response = requests.get(url, params=params, timeout=5)
-        
-        print(f"DEBUG: Réponse challenge - Code: {response.status_code}")
-        
+                
         if response.status_code == 200:
             data = response.json()
             if 'challenge' in data:
@@ -88,19 +86,14 @@ def card_auth_with_signature(card_id, challenge, signature):
             'challenge': challenge,
             'signature': signature_b64
         }
-        
-        print(f"DEBUG: Authentification carte - URL: {url}")
-        print(f"DEBUG: card_id: {card_id}, challenge: {challenge}, signature_b64: {signature_b64}")
-        
+                
         response = requests.post(url, json=data, headers=headers, timeout=5)
         
-        print(f"DEBUG: Réponse auth - Code: {response.status_code}")
         print(f"DEBUG: Réponse brute: {response.text}")
         
         if response.status_code == 200:
             response_data = response.json()
             if 'token' in response_data:
-                print("DEBUG: Token carte récupéré avec succès")
                 return {
                     'success': True,
                     'token': response_data['token']
@@ -130,28 +123,13 @@ def card_auth_with_signature(card_id, challenge, signature):
 
 
 def fetch_user_by_card(card_id, card_token):
-    """
-    Récupère les informations utilisateur (prénom et balance) via le token de la carte.
-    
-    Args:
-        card_id: L'identifiant de la carte
-        card_token: Le token d'authentification de la carte
-        
-    Returns:
-        dict: {'success': bool, 'name': str, 'balance': float, 'error': str}
-    """
     try:
-        # Récupérer les informations utilisateur
         url = f"{API_BASE_URL}/user"
         params = {'card_id': card_id}
         headers = {'Authorization': f'Bearer {card_token}'}
-        
-        print(f"DEBUG: Récupération user - URL: {url}?card_id={card_id}")
-        
+                
         response = requests.get(url, params=params, headers=headers, timeout=5)
-        
-        print(f"DEBUG: Réponse user - Code: {response.status_code}")
-        
+                
         if response.status_code != 200:
             try:
                 error_data = response.json()
@@ -163,10 +141,8 @@ def fetch_user_by_card(card_id, card_token):
                 'error': f'Failed to fetch user: {error_msg}'
             }
         
-        user_data = response.json()
-        print(f"DEBUG: Données user reçues: {user_data}")
-        
-        # L'API retourne 'name' (nom complet) et '_id', pas 'firstName'
+        user_data = response.json()        
+
         if 'name' not in user_data or '_id' not in user_data:
             return {
                 'success': False,
@@ -183,13 +159,9 @@ def fetch_user_by_card(card_id, card_token):
         
         # Récupérer le balance
         balance_url = f"{API_BASE_URL}/user/{user_id}/balance"
-        
-        print(f"DEBUG: Récupération balance - URL: {balance_url}")
-        
+                
         balance_response = requests.get(balance_url, headers=headers, timeout=5)
-        
-        print(f"DEBUG: Réponse balance - Code: {balance_response.status_code}")
-        
+                
         if balance_response.status_code != 200:
             try:
                 error_data = balance_response.json()

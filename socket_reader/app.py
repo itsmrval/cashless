@@ -114,10 +114,7 @@ def handle_ping():
 
 @socketio.on('verify_pin')
 def handle_verify_pin(data):
-    global current_connection, current_card_id, current_card_token
-    from flask import request
-    
-    logger.info(f"Demande de vérification PIN du client: {request.sid}")
+    global current_connection, current_card_id, current_card_token    
     
     if not current_connection:
         emit('pin_verification_result', {
@@ -157,7 +154,6 @@ def handle_verify_pin(data):
     if result['success']:
         logger.info(f"PIN correct - Récupération du challenge depuis l'API...")
         
-        # 1. Récupérer un challenge depuis l'API
         challenge_result = get_challenge(current_card_id)
         
         if not challenge_result['success']:
@@ -171,9 +167,7 @@ def handle_verify_pin(data):
             return
         
         challenge = challenge_result['challenge']
-        logger.info(f"Challenge reçu: {challenge}")
         
-        # 2. Demander à la carte de signer le challenge
         sign_result = sign_challenge(current_connection, challenge)
         
         if not sign_result['success']:
