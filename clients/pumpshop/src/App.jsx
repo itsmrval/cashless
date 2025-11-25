@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import fuels from './fuels.json';
 import io from 'socket.io-client';
+import logo from './logo.png';
 
 // URL du serveur Socket.IO (lecteur de carte)
 const SOCKET_URL = process.env.REACT_APP_SOCKET_URL || 'https://localhost:8001';
@@ -952,7 +953,7 @@ function App() {
 
       {/* Header compact */}
       <header className="text-center h-12 flex items-center justify-center flex-shrink-0">
-        <img src="/img/logo.png" alt="Logo" className="h-20 md:h-24 object-contain" />
+        <img src={logo} alt="Logo" className="h-20 md:h-24 object-contain" />
       </header>
 
       {/* Contenu principal - hauteur fixe */}
