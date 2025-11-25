@@ -109,3 +109,40 @@
   when:
     - pid_file_stat.stat.exists
     - process_check.rc == 0
+
+- name: Resolve absolute path for cleanup
+  command: realpath {{ socket_reader_folder }}
+  register: socket_reader_folder_abs_cleanup
+  changed_when: false
+
+- name: Remove log file
+  file:
+    path: "{{ socket_reader_folder_abs_cleanup.stdout }}/socket_reader.log"
+    state: absent
+  ignore_errors: yes
+
+- name: Remove virtual environment
+  file:
+    path: "{{ socket_reader_folder_abs_cleanup.stdout }}/venv"
+    state: absent
+  ignore_errors: yes
+
+- name: Remove __pycache__ directories
+  shell: find {{ socket_reader_folder_abs_cleanup.stdout }} -type d -name __pycache__ -exec rm -rf {} + 2>/dev/null || true
+  changed_when: false
+  ignore_errors: yes
+
+- name: Remove .pyc files
+  shell: find {{ socket_reader_folder_abs_cleanup.stdout }} -type f -name "*.pyc" -delete 2>/dev/null || true
+  changed_when: false
+  ignore_errors: yes
+
+- name: Display cleanup message
+  debug:
+    msg: |
+      Socket reader server stopped and cleaned up.
+      - Server process stopped
+      - PID file removed
+      - Log file removed
+      - Virtual environment removed
+      - Python cache files removed
