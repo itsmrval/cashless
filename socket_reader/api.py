@@ -234,18 +234,7 @@ def fetch_user_by_card(card_id, card_token):
 
 
 def get_user_balance(card_token, card_id):
-    """
-    Récupère le solde de l'utilisateur authentifié.
-    
-    Args:
-        card_token: Le token d'authentification de la carte
-        card_id: L'identifiant de la carte
-        
-    Returns:
-        dict: {'success': bool, 'balance': float, 'error': str}
-    """
     try:
-        # Récupérer d'abord les infos user pour obtenir l'ID via /user?card_id=
         url = f"{API_BASE_URL}/user"
         params = {'card_id': card_id}
         headers = {
@@ -253,10 +242,7 @@ def get_user_balance(card_token, card_id):
             'Content-Type': 'application/json'
         }
         
-        print(f"DEBUG get_user_balance: Récupération info user - URL: {url}?card_id={card_id}")
         response = requests.get(url, params=params, headers=headers, timeout=5)
-        print(f"DEBUG get_user_balance: Réponse user - Code: {response.status_code}")
-        print(f"DEBUG get_user_balance: Réponse user brute: {response.text}")
         
         if response.status_code != 200:
             print(f"DEBUG get_user_balance: ERREUR - Status {response.status_code}")
@@ -267,7 +253,6 @@ def get_user_balance(card_token, card_id):
         
         user_data = response.json()
         user_id = user_data.get('_id')
-        print(f"DEBUG get_user_balance: User ID: {user_id}")
         
         if not user_id:
             print(f"DEBUG get_user_balance: ERREUR - Pas d'ID utilisateur")
@@ -276,12 +261,8 @@ def get_user_balance(card_token, card_id):
                 'error': 'Invalid user data - no user_id'
             }
         
-        # Récupérer le balance
         balance_url = f"{API_BASE_URL}/user/{user_id}/balance"
-        print(f"DEBUG get_user_balance: Récupération balance - URL: {balance_url}")
         balance_response = requests.get(balance_url, headers=headers, timeout=5)
-        print(f"DEBUG get_user_balance: Réponse balance - Code: {balance_response.status_code}")
-        print(f"DEBUG get_user_balance: Réponse balance brute: {balance_response.text}")
         
         if balance_response.status_code != 200:
             print(f"DEBUG get_user_balance: ERREUR - Status {balance_response.status_code}")
@@ -294,7 +275,7 @@ def get_user_balance(card_token, card_id):
         balance_centimes = balance_data.get('balance', 0)
         balance = float(balance_centimes) / 100.0
         
-        print(f"DEBUG get_user_balance: Balance en centimes: {balance_centimes}, en euros: {balance}€")
+        print(f"DEBUG get_user_balance: Balance : {balance}€")
         
         return {
             'success': True,
@@ -310,18 +291,6 @@ def get_user_balance(card_token, card_id):
 
 
 def create_transaction(card_token, card_id, amount, merchant_name):
-    """
-    Crée une transaction (paiement).
-    
-    Args:
-        card_token: Le token d'authentification de la carte
-        card_id: L'identifiant de la carte
-        amount: Le montant en euros (positif)
-        merchant_name: Le nom du marchand (non utilisé, pour compatibilité)
-        
-    Returns:
-        dict: {'success': bool, 'transaction_id': str, 'new_balance': float, 'error': str}
-    """
     try:
         if not DEST_ID:
             return {
@@ -334,33 +303,21 @@ def create_transaction(card_token, card_id, amount, merchant_name):
             'Authorization': f'Bearer {card_token}',
             'Content-Type': 'application/json'
         }
-        # L'API attend destination_user_id et operation (montant positif en centimes)
         data = {
             'destination_user_id': DEST_ID,
             'operation': int(amount * 100)  # Montant positif en centimes
         }
         
         print(f"DEBUG: Création transaction - Montant: {amount}€, Destination: {DEST_ID}")
-        print(f"DEBUG: Token (10 premiers chars): {card_token[:10]}...")
-        print(f"DEBUG: Headers: {headers}")
         print(f"DEBUG: Données envoyées: {data}")
-        print(f"DEBUG: URL: {url}")
         
         response = requests.post(url, json=data, headers=headers, timeout=5)
         
-        print(f"DEBUG: Réponse transaction - Code: {response.status_code}")
         print(f"DEBUG: Réponse brute: {response.text}")
         
         if response.status_code == 201:
             transaction_data = response.json()
             print(f"DEBUG: Transaction créée avec succès")
-            print(f"DEBUG: Transaction ID: {transaction_data.get('_id')}")
-            print(f"DEBUG: Operation: {transaction_data.get('operation')} centimes")
-            
-            # L'API ne retourne PAS le newBalance dans la réponse de transaction
-            # On DOIT récupérer le solde depuis l'API
-            import time
-            time.sleep(0.3)  # Attendre 300ms pour que l'API mette à jour
             
             print(f"DEBUG: Récupération du nouveau solde depuis l'API...")
             balance_result = get_user_balance(card_token, card_id)
