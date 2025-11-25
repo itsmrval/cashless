@@ -232,11 +232,9 @@ function CardItem({
                 ) : (
                   <Unlock className="w-3.5 h-3.5" />
                 )}
-                <span className="hidden sm:inline">
-                  {card?.status === 'active' ? 'Verrouiller' : 'Déverrouiller'}
-                </span>
               </button>
-            )}              {/* Visa/MC logo */}
+            )} 
+             {/* Visa/MC logo */}
               <div className="flex -space-x-2">
                 <div className="w-7 h-7 rounded-full bg-red-500 opacity-80"></div>
                 <div className="w-7 h-7 rounded-full bg-orange-400 opacity-80"></div>
@@ -275,9 +273,9 @@ export function NoCardPlaceholder() {
           <div className="w-14 h-14 rounded-full bg-slate-200 flex items-center justify-center mb-3 shadow-inner border border-slate-300">
             <Package className="w-7 h-7 text-slate-400" />
           </div>
-          <p className="text-slate-600 font-semibold text-sm">Carte en livraison</p>
+          <p className="text-slate-600 font-semibold text-sm">Carte non livrée</p>
           <p className="text-slate-400 text-xs text-center mt-1 px-6">
-            Votre carte sera bientôt disponible
+            Votre carte sera bientôt disponible ici une fois livrée.
           </p>
         </div>
 

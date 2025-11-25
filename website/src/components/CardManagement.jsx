@@ -304,6 +304,14 @@ function CardManagement({
                 {userData?.name || 'N/A'}
               </p>
             </div>
+            {currentCard?.puk && (
+              <div>
+                <p className="text-xs text-slate-500 uppercase tracking-wide">Code PUK</p>
+                <p className="font-mono mt-1 text-sm font-bold text-slate-800 bg-slate-50 px-2 py-1 rounded w-fit border border-slate-200">
+                  {currentCard.puk}
+                </p>
+              </div>
+            )}
           </div>
 
           {/* Carte "Statut" */}
@@ -348,19 +356,6 @@ function CardManagement({
         </div>
       )}
 
-      {/* --- Section Sécurité (Callout) --- */}
-      <div className="bg-slate-50 p-5 rounded-xl border border-slate-200 flex items-start gap-4">
-        <div className="flex-shrink-0 p-2.5 bg-slate-200 rounded-full">
-           <Lock className="h-5 w-5 text-slate-600" />
-        </div>
-        <div>
-          <h3 className="text-base font-semibold text-slate-800">Sécurité</h3>
-          <p className="text-sm text-slate-600 mt-1">
-            Vos codes PUK sont enregistrés en sécurité dans nos systèmes. En cas de perte ou d'oubli, veuillez contacter le support client pour les récupérer.
-            {cards.length > 1 && ' Chaque carte peut être verrouillée individuellement.'}
-          </p>
-        </div>
-      </div>
     </div>
   );
 }
