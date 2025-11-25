@@ -165,14 +165,20 @@ def fetch_user_by_card(card_id, card_token):
         user_data = response.json()
         print(f"DEBUG: Données user reçues: {user_data}")
         
-        if 'firstName' not in user_data or 'id' not in user_data:
+        # L'API retourne 'name' (nom complet) et '_id', pas 'firstName'
+        if 'name' not in user_data or '_id' not in user_data:
             return {
                 'success': False,
                 'error': 'Invalid user data received'
             }
         
-        user_id = user_data['id']
-        first_name = user_data['firstName']
+        user_id = user_data['_id']
+        full_name = user_data['name']
+        
+        # Extraire le prénom (premier mot du nom complet)
+        first_name = full_name.split()[0] if full_name else 'Utilisateur'
+        
+        print(f"DEBUG: User ID: {user_id}, Nom complet: {full_name}, Prénom: {first_name}")
         
         # Récupérer le balance
         balance_url = f"{API_BASE_URL}/user/{user_id}/balance"

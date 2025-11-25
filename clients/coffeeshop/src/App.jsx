@@ -82,7 +82,6 @@ function App() {
         setPin('');
         setPinAttempts(3);
         
-        // Mettre à jour les données utilisateur avec les vraies données de l'API
         if (result.user) {
           console.log('Données utilisateur reçues:', result.user);
           setUser({
