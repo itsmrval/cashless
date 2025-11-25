@@ -5,7 +5,7 @@ const { verifyJWT, verifyAdmin } = require('../middleware/auth');
 
 router.post('/login', userController.login);
 
-router.get('/', verifyJWT, verifyAdmin, userController.getAllUsers);
+router.get('/', verifyJWT, userController.getAllUsers);
 router.post('/', verifyJWT, verifyAdmin, userController.createUser);
 router.delete('/:id', verifyJWT, verifyAdmin, userController.deleteUser);
 

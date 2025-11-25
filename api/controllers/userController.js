@@ -32,9 +32,12 @@ const login = async (req, res) => {
 
 const getAllUsers = async (req, res) => {
   try {
-    // Check if card_id query parameter is provided
     if (req.query.card_id) {
       return getUserByCardId(req, res);
+    }
+
+    if (req.user.role !== 'admin') {
+      return res.status(403).json({ error: 'Admin access required' });
     }
 
     const users = await User.find();
@@ -53,6 +56,15 @@ const getUserByCardId = async (req, res) => {
     if (!card.user_id) {
       return res.status(404).json({ error: 'Card not assigned to any user' });
     }
+
+    const isAdmin = req.user.role === 'admin';
+    const isCardOwner = card.user_id._id.toString() === req.user.userId;
+    const isOwnCard = req.user.type === 'card' && req.user.cardId === card._id.toString();
+
+    if (!isAdmin && !isCardOwner && !isOwnCard) {
+      return res.status(403).json({ error: 'Access denied' });
+    }
+
     res.json(card.user_id);
   } catch (error) {
     res.status(400).json({ error: error.message });
