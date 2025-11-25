@@ -108,7 +108,7 @@ def verify_pin(connection, pin):
         
         cmd = CMD_VERIFY_PIN + pin_bytes
                 
-        sw1, sw2 = connection.transmit(cmd)
+        data, sw1, sw2 = connection.transmit(cmd)
         
         if sw1 == 0x90 and sw2 == 0x00:
             return {
