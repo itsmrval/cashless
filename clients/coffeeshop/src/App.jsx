@@ -683,19 +683,19 @@ function App() {
                   </div>
                   
                   {/* Titre */}
-                  <h2 className="text-2xl font-bold text-gray-900 mb-4">Carte non autorisée</h2>
+                  <h2 className="text-2xl font-bold text-gray-900 mb-4">Carte inactive</h2>
                   
                   {/* Message d'erreur */}
                   <div className="bg-orange-50 border-2 border-orange-200 rounded-xl p-4 mb-4">
                     <p className="text-sm text-orange-700 font-medium">
-                      {cardErrorMessage}
+                      Cette carte n'est pas autorisé a s'authentifié
                     </p>
                   </div>
                   
                   {/* Instructions */}
                   <div className="bg-gray-50 border-2 border-gray-200 rounded-xl p-4">
                     <p className="text-sm text-gray-700">
-                      Veuillez contacter un administrateur pour débloquer votre carte
+                      Consultez votre espace client pour activer votre carte
                     </p>
                   </div>
                 </div>
