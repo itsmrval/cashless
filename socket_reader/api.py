@@ -4,6 +4,7 @@ import requests
 import base64
 import json
 import os
+import logging
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -252,7 +253,7 @@ def create_transaction(card_token, card_id, amount, merchant_name):
         }
         data = {
             'destination_user_id': DEST_ID,
-            'operation': int(amount * 100)  # Montant positif en centimes
+            'operation': int(amount * 100)
         }
         
         logger.info(f"Demande - Montant: {amount}€")
