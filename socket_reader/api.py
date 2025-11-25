@@ -9,6 +9,7 @@ from dotenv import load_dotenv
 load_dotenv()
 
 API_BASE_URL = os.getenv('API_BASE_URL', 'https://api.cashless.iut.valentinp.fr/v1')
+DEST_ID = os.getenv('DEST_ID', '')
 
 
 def get_challenge(card_id):
@@ -238,35 +239,47 @@ def create_transaction(card_token, amount, merchant_name):
     
     Args:
         card_token: Le token d'authentification de la carte
-        amount: Le montant en euros
-        merchant_name: Le nom du marchand
+        amount: Le montant en euros (positif)
+        merchant_name: Le nom du marchand (non utilisé, pour compatibilité)
         
     Returns:
         dict: {'success': bool, 'transaction_id': str, 'new_balance': float, 'error': str}
     """
     try:
+        if not DEST_ID:
+            return {
+                'success': False,
+                'error': 'DEST_ID not configured in .env'
+            }
+        
         url = f"{API_BASE_URL}/transactions"
         headers = {
             'Authorization': f'Bearer {card_token}',
             'Content-Type': 'application/json'
         }
+        # L'API attend destination_user_id et operation (montant négatif en centimes)
         data = {
-            'amount': int(amount * 100),  # Convertir euros en centimes
-            'merchant': merchant_name
+            'destination_user_id': DEST_ID,
+            'operation': -int(amount * 100)  # Montant négatif en centimes (débit)
         }
         
-        print(f"DEBUG: Création transaction - Montant: {amount}€, Merchant: {merchant_name}")
+        print(f"DEBUG: Création transaction - Montant: {amount}€, Destination: {DEST_ID}")
+        print(f"DEBUG: Token (10 premiers chars): {card_token[:10]}...")
+        print(f"DEBUG: Headers: {headers}")
+        print(f"DEBUG: Données envoyées: {data}")
+        print(f"DEBUG: URL: {url}")
         
         response = requests.post(url, json=data, headers=headers, timeout=5)
         
         print(f"DEBUG: Réponse transaction - Code: {response.status_code}")
+        print(f"DEBUG: Réponse brute: {response.text}")
         
         if response.status_code == 201:
             transaction_data = response.json()
             print(f"DEBUG: Transaction créée: {transaction_data}")
             return {
                 'success': True,
-                'transaction_id': transaction_data.get('id'),
+                'transaction_id': transaction_data.get('_id'),
                 'new_balance': float(transaction_data.get('newBalance', 0)) / 100.0
             }
         

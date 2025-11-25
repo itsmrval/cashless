@@ -12,11 +12,13 @@ Puis modifiez les valeurs selon votre configuration :
 
 ```env
 API_BASE_URL = https://api.cashless.iut.valentinp.fr/v1
+DEST_ID = 6925915f6a63bc32613822c5
 ```
 
 ### Variables d'environnement
 
 - `API_BASE_URL` : L'URL de base de l'API cashless
+- `DEST_ID` : L'ID de l'utilisateur destinataire des paiements (ex: compte marchand)
 
 ## Fonctionnement
 
