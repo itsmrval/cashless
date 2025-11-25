@@ -4,14 +4,24 @@
 Ce projet universitaire met en place une infrastructure de paiement électronique à base de cartes à puce.
 L'objectif est de permettre des recharges, paiements et transferts sécurisés entre utilisateurs, bornes et machines connectées.
 
+#### Quick Links
+- [Structure](#structure)
+- [Deployment](#deployment)
+  - [Create a card](#create-a-card)
+  - [Socket Reader](#socket-reader)
+  - [Build clients](#build-and-run-clients)
+- [API Endpoints](#api-endpoints)
+- [Smart Card Protocol](#smart-card-protocol-apdu)
+
 ## Structure
 
 ```
 cashless/
 ├── api/             # Main API that handle transactions and user accounts
 ├── website/         # Frontend dashboard website
-├── card_software/   # Firmware that is flashed on cards 
+├── card_software/   # Firmware that is flashed on cards
 ├── assignator/      # Simple tool that register the card in main API & assign ID
+├── socket_reader/   # WebSocket service for real-time card detection
 ├── clients/
 ├   ├── atm/         # ATM client that allow to setup a PIN code, see transactions
 ├   └── coffeeshop/  # Coffe shop client example that allow payments
@@ -43,6 +53,28 @@ cd ansible
 ansible-playbook assign_card.yml
 ```
 Plug a flashed card into the reader, then run the playbook.
+
+### Socket Reader
+
+WebSocket service that broadcasts real-time card insertion/removal events to connected clients.
+
+**Start the service:**
+```bash
+cd ansible
+ansible-playbook start_socket.yml
+```
+
+**Stop the service:**
+```bash
+ansible-playbook stop_socket.yml
+```
+
+The service runs on `https://0.0.0.0:8001` and supports:
+- Real-time card detection events (`card_inserted`, `card_removed`)
+- PIN verification via WebSocket
+- SSL/TLS encrypted communication
+
+See [socket_reader/README.md](socket_reader/README.md) for WebSocket API documentation.
 
 ### Build and run clients
 
