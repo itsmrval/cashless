@@ -39,6 +39,7 @@ function App() {
   const [rejectedBalance, setRejectedBalance] = useState(0);
   const [showCardErrorAnimation, setShowCardErrorAnimation] = useState(false);
   const [cardErrorMessage, setCardErrorMessage] = useState('');
+  const [pendingProduct, setPendingProduct] = useState(null);
 
   useEffect(() => {
     console.log('Connexion au serveur Socket.IO...', API_BASE_URL);
@@ -201,6 +202,47 @@ function App() {
       setPin('');
       setMessage('');
       setMessageType('info');
+      setPendingProduct(null);
+    });
+
+    newSocket.on('balance_result', (result) => {
+      console.log('Réponse balance reçue:', result);
+      
+      // Utiliser setPendingProduct avec une fonction pour obtenir la valeur actuelle
+      setPendingProduct(currentPending => {
+        if (result.success && currentPending) {
+          const currentBalance = result.balance;
+          // Mettre à jour l'affichage du solde
+          setBalance(currentBalance);
+          
+          // Vérifier le solde
+          if (currentBalance < currentPending.price) {
+            // Afficher l'animation de refus
+            setRejectedAmount(currentPending.price);
+            setRejectedBalance(currentBalance);
+            setShowPaymentRejectedAnimation(true);
+            
+            // Masquer l'animation après 3 secondes
+            setTimeout(() => {
+              setShowPaymentRejectedAnimation(false);
+            }, 3000);
+          } else {
+            // Solde suffisant, continuer avec la commande
+            console.log('Ouverture du modal de confirmation');
+            setSelectedProduct(currentPending);
+            setSugarLevel(2);
+            setShowConfirmation(true);
+          }
+        } else if (!result.success) {
+          console.error('Erreur récupération solde:', result.error);
+          setMessageType('error');
+          setMessage('Erreur lors de la vérification du solde');
+          setTimeout(() => setMessage(''), 3000);
+        }
+        
+        // Réinitialiser le produit en attente
+        return null;
+      });
     });
 
     newSocket.on('disconnect', (reason) => {
@@ -260,42 +302,10 @@ function App() {
     // Demander le solde actuel à l'API avant de vérifier
     console.log('Demande du solde actuel à l\'API...');
     if (socket && socket.connected) {
+      // Stocker le produit en attente
+      setPendingProduct(product);
+      // Demander le solde
       socket.emit('get_balance');
-      
-      // Écouter la réponse du solde une seule fois
-      socket.once('balance_result', (result) => {
-        console.log('Réponse balance reçue:', result);
-        
-        if (result.success) {
-          const currentBalance = result.balance;
-          // Mettre à jour l'affichage du solde
-          setBalance(currentBalance);
-          
-          // Vérifier le solde
-          if (currentBalance < product.price) {
-            // Afficher l'animation de refus
-            setRejectedAmount(product.price);
-            setRejectedBalance(currentBalance);
-            setShowPaymentRejectedAnimation(true);
-            
-            // Masquer l'animation après 3 secondes
-            setTimeout(() => {
-              setShowPaymentRejectedAnimation(false);
-            }, 3000);
-          } else {
-            // Solde suffisant, continuer avec la commande
-            console.log('Ouverture du modal de confirmation');
-            setSelectedProduct(product);
-            setSugarLevel(2);
-            setShowConfirmation(true);
-          }
-        } else {
-          console.error('Erreur récupération solde:', result.error);
-          setMessageType('error');
-          setMessage('Erreur lors de la vérification du solde');
-          setTimeout(() => setMessage(''), 3000);
-        }
-      });
     } else {
       console.error('Socket non connecté');
       setMessageType('error');
