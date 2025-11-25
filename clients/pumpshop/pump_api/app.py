@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 
+import os
 from flask import Flask
 from flask_socketio import SocketIO, emit
 from flask_cors import CORS
@@ -11,8 +12,13 @@ from card_reader import wait_for_reader, check_card_present, read_card_id, is_ca
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
 
+# Configuration via variables d'environnement
+HOST = os.environ.get('PUMP_API_HOST', '0.0.0.0')
+PORT = int(os.environ.get('PUMP_API_PORT', 8002))
+SECRET_KEY = os.environ.get('PUMP_API_SECRET_KEY', 'cashless-pump-secret-key-2025')
+
 app = Flask(__name__)
-app.config['SECRET_KEY'] = 'cashless-pump-secret-key-2025'
+app.config['SECRET_KEY'] = SECRET_KEY
 CORS(app, resources={r"/*": {"origins": "*"}})
 
 socketio = SocketIO(app, cors_allowed_origins="*", async_mode='threading')
@@ -209,12 +215,12 @@ if __name__ == '__main__':
     
     time.sleep(2)
     
-    logger.info("Démarrage du serveur Flask-SocketIO sur http://0.0.0.0:8002")
+    logger.info(f"Démarrage du serveur Flask-SocketIO sur http://{HOST}:{PORT}")
     
     socketio.run(
         app,
-        host='0.0.0.0',
-        port=8002,
+        host=HOST,
+        port=PORT,
         debug=False,
         use_reloader=False
     )
