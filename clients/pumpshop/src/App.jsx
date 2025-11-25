@@ -6,11 +6,6 @@ import logo from './logo.png';
 // URL du serveur Socket.IO (lecteur de carte)
 const SOCKET_URL = process.env.REACT_APP_SOCKET_URL || 'https://localhost:8001';
 
-// Mode démo - mettre à true pour simuler sans lecteur de carte
-const DEMO_MODE = false;
-const DEMO_PIN = '1234';
-const DEMO_BALANCE = 150.00;
-
 // Montants prédéfinis pour le mode montant fixe
 const PRESET_AMOUNTS = [10, 20, 30, 50, 80, 100];
 
@@ -25,9 +20,6 @@ function App() {
   const [pinAttempts, setPinAttempts] = useState(3);
   const [isCardBlocked, setIsCardBlocked] = useState(false);
   const [isVerifyingPin, setIsVerifyingPin] = useState(false);
-  
-  // État mode démo
-  const [isDemoMode] = useState(DEMO_MODE);
   
   // États de connexion
   const [isSocketConnected, setIsSocketConnected] = useState(false);
@@ -57,6 +49,7 @@ function App() {
   
   // États modals et messages
   const [showPaymentSuccess, setShowPaymentSuccess] = useState(false);
+  const [showInsufficientBalance, setShowInsufficientBalance] = useState(false);
   const [paymentAmount, setPaymentAmount] = useState(0);
   const [newBalanceAmount, setNewBalanceAmount] = useState(0);
   const [refundAmount, setRefundAmount] = useState(0);
@@ -140,7 +133,7 @@ function App() {
     return () => {
       if (newSocket) newSocket.close();
     };
-  }, [isDemoMode]);
+  }, []);
 
   const resetState = useCallback(() => {
     // Arrêter le ravitaillement en cours si présent
@@ -173,29 +166,6 @@ function App() {
     setRefundAmount(0);
   }, [fuelingIntervalRef]);
 
-  // Fonction pour simuler l'insertion de carte en mode démo
-  const handleDemoInsertCard = () => {
-    if (!isDemoMode) return;
-    
-    const demoCardId = 'DEMO' + Math.random().toString(36).substring(2, 10).toUpperCase();
-    setUser({ name: `Client Demo`, cardId: demoCardId });
-    setBalance(DEMO_BALANCE);
-    setPinAttempts(3);
-    setIsCardBlocked(false);
-    setTpeMode('pin');
-    setTpeMessage('Saisir code PIN');
-    setTpeInput('');
-    
-    console.log('🎮 Mode démo: Carte insérée -', demoCardId);
-  };
-
-  // Fonction pour simuler le retrait de carte en mode démo
-  const handleDemoRemoveCard = () => {
-    if (!isDemoMode) return;
-    console.log('🎮 Mode démo: Carte retirée');
-    resetState();
-  };
-
   // Gestion des boutons du TPE
   const handleTpeButton = (value) => {
     if (isCardBlocked) return;
@@ -225,6 +195,14 @@ function App() {
         setSelectedFuel(null);
         setLiters('');
       }
+      // Si carte connectée, demander de retirer la carte
+      if (user) {
+        setTpeMode('idle');
+        setTpeInput('');
+        setTpeMessage('Retirez votre carte');
+        setSelectedFuel(null);
+        setLiters('');
+      }
       return;
     }
     
@@ -248,39 +226,7 @@ function App() {
       setTpeMode('processing');
       setTpeMessage('Vérification...');
       
-      // Mode démo : vérification locale du PIN
-      if (isDemoMode) {
-        setTimeout(() => {
-          setIsVerifyingPin(false);
-          if (tpeInput === DEMO_PIN) {
-            setIsPinVerified(true);
-            setTpeMode('idle');
-            setTpeMessage('Code accepté');
-            setTpeInput('');
-            setPinAttempts(3);
-            console.log('🎮 Mode démo: PIN correct');
-            setTimeout(() => setTpeMessage(''), 2000);
-          } else {
-            const newAttempts = pinAttempts - 1;
-            setPinAttempts(newAttempts);
-            setTpeInput('');
-            if (newAttempts === 0) {
-              setIsCardBlocked(true);
-              setTpeMode('error');
-              setTpeMessage('CARTE BLOQUÉE');
-              console.log('🎮 Mode démo: Carte bloquée');
-            } else {
-              setTpeMode('pin');
-              setTpeMessage(`Erreur - ${newAttempts} essai(s)`);
-              console.log(`🎮 Mode démo: PIN incorrect - ${newAttempts} essai(s) restant(s)`);
-              setTimeout(() => setTpeMessage('Saisir code PIN'), 2000);
-            }
-          }
-        }, 1000);
-        return;
-      }
-      
-      // Mode réel : vérification via Socket.IO
+      // Vérification via Socket.IO
       if (socket && socket.connected) {
         socket.emit('verify_pin', { pin: tpeInput });
       }
@@ -307,9 +253,7 @@ function App() {
 
     // Vérifier que le solde n'est pas à 0
     if (balance <= 0) {
-      setMessage('Solde insuffisant ! Impossible de faire le plein.');
-      setMessageType('error');
-      setTimeout(() => setMessage(''), 3000);
+      setShowInsufficientBalance(true);
       return;
     }
 
@@ -324,9 +268,8 @@ function App() {
     const amount = balance;
 
     if (amount <= 0) {
-      setMessage('Solde insuffisant');
-      setMessageType('error');
-      setTimeout(() => setMessage(''), 3000);
+      setShowAmountSelector(false);
+      setShowInsufficientBalance(true);
       return;
     }
 
@@ -452,53 +395,54 @@ function App() {
 
   // Rendu du TPE
   const renderTPE = () => {
-    const displayText = tpeMode === 'pin' 
+    // Le PIN est TOUJOURS masqué avec des points
+    const displayText = (tpeMode === 'pin' || tpeMode === 'processing') 
       ? '•'.repeat(tpeInput.length)
       : tpeInput;
 
     return (
-      <div className="bg-gradient-to-b from-gray-700 to-gray-900 rounded-2xl p-6 shadow-2xl border-3 border-black w-80">
+      <div className="bg-gradient-to-b from-gray-700 to-gray-900 rounded-xl lg:rounded-2xl p-2 sm:p-3 lg:p-4 shadow-2xl border-2 lg:border-3 border-black w-full max-w-[240px] sm:max-w-[260px] lg:max-w-[300px] transform scale-[0.85] sm:scale-90 lg:scale-100 origin-top">
         {/* Écran du TPE */}
-        <div className="bg-gradient-to-b from-slate-100 to-slate-200 rounded-xl p-4 mb-4 border-2 border-slate-300 shadow-inner">
-          <div className="bg-white rounded-lg p-3 min-h-[100px] border border-slate-200">
+        <div className="bg-gradient-to-b from-slate-100 to-slate-200 rounded-lg lg:rounded-xl p-2 lg:p-3 mb-2 lg:mb-3 border border-slate-300 shadow-inner">
+          <div className="bg-white rounded-md lg:rounded-lg p-2 min-h-[60px] sm:min-h-[70px] lg:min-h-[80px] border border-slate-200">
             {/* Status de la carte */}
-            <div className="flex items-center justify-between mb-3 pb-2 border-b border-slate-200">
-              <span className="text-slate-600 text-sm font-medium">
+            <div className="flex items-center justify-between mb-1 lg:mb-2 pb-1 border-b border-slate-200">
+              <span className="text-slate-600 text-[10px] sm:text-xs font-medium truncate">
                 {user ? `💳 ${user.name}` : '💳 Insérer carte'}
               </span>
               {user && isPinVerified && (
-                <span className="text-slate-900 text-sm font-bold">
+                <span className="text-slate-900 text-[10px] sm:text-xs font-bold">
                   {balance.toFixed(2)}€
                 </span>
               )}
             </div>
             
             {/* Message principal */}
-            <div className="text-slate-800 text-lg font-bold text-center mb-2">
+            <div className="text-slate-800 text-xs sm:text-sm lg:text-base font-bold text-center mb-1">
               {tpeMessage || (selectedFuel ? `${selectedFuel.shortName} - ${selectedFuel.price.toFixed(3)}€/L` : 'PRÊT')}
             </div>
             
             {/* Zone de saisie */}
-            <div className="bg-slate-100 rounded-lg p-3 text-center border border-slate-200">
-              <span className="text-slate-900 text-3xl font-mono tracking-widest font-bold">
+            <div className="bg-slate-100 rounded-md lg:rounded-lg p-1.5 sm:p-2 text-center border border-slate-200">
+              <span className="text-slate-900 text-lg sm:text-xl lg:text-2xl font-mono tracking-widest font-bold">
                 {displayText || '----'}
               </span>
               {tpeMode === 'amount' && tpeInput && (
-                <span className="text-slate-600 text-lg ml-2">L</span>
+                <span className="text-slate-600 text-xs lg:text-sm ml-1">L</span>
               )}
             </div>
           </div>
         </div>
 
         {/* Clavier du TPE */}
-        <div className="grid grid-cols-3 gap-2 mb-4">
+        <div className="grid grid-cols-3 gap-1 mb-2 lg:mb-3">
           {/* Rangées de chiffres */}
           {[1, 2, 3, 4, 5, 6, 7, 8, 9].map(num => (
             <button
               key={num}
               onClick={() => handleTpeButton(num.toString())}
               disabled={tpeMode === 'processing' || tpeMode === 'success' || isCardBlocked}
-              className="bg-white hover:bg-slate-100 active:bg-slate-200 text-slate-900 font-bold text-xl py-4 rounded-xl border-2 border-slate-300 shadow-sm transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+              className="bg-white hover:bg-slate-100 active:bg-slate-200 text-slate-900 font-bold text-sm sm:text-base lg:text-lg py-2 sm:py-2.5 lg:py-3 rounded-md lg:rounded-lg border border-slate-300 shadow-sm transition-all disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {num}
             </button>
@@ -508,101 +452,70 @@ function App() {
           <button
             onClick={() => handleTpeButton('C')}
             disabled={tpeMode === 'processing' || tpeMode === 'success' || isCardBlocked}
-            className="bg-yellow-500 hover:bg-yellow-400 active:bg-yellow-600 text-white font-bold text-lg py-4 rounded-xl border-2 border-yellow-600 shadow-sm transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+            className="bg-yellow-500 hover:bg-yellow-400 active:bg-yellow-600 text-white font-bold text-xs sm:text-sm lg:text-base py-2 sm:py-2.5 lg:py-3 rounded-md lg:rounded-lg border border-yellow-600 shadow-sm transition-all disabled:opacity-50 disabled:cursor-not-allowed"
           >
             C
           </button>
           <button
             onClick={() => handleTpeButton('0')}
             disabled={tpeMode === 'processing' || tpeMode === 'success' || isCardBlocked}
-            className="bg-white hover:bg-slate-100 active:bg-slate-200 text-slate-900 font-bold text-xl py-4 rounded-xl border-2 border-slate-300 shadow-sm transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+            className="bg-white hover:bg-slate-100 active:bg-slate-200 text-slate-900 font-bold text-sm sm:text-base lg:text-lg py-2 sm:py-2.5 lg:py-3 rounded-md lg:rounded-lg border border-slate-300 shadow-sm transition-all disabled:opacity-50 disabled:cursor-not-allowed"
           >
             0
           </button>
           <button
             onClick={() => handleTpeButton('CE')}
             disabled={tpeMode === 'processing' || tpeMode === 'success' || isCardBlocked}
-            className="bg-orange-500 hover:bg-orange-400 active:bg-orange-600 text-white font-bold text-lg py-4 rounded-xl border-2 border-orange-600 shadow-sm transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+            className="bg-orange-500 hover:bg-orange-400 active:bg-orange-600 text-white font-bold text-xs sm:text-sm lg:text-base py-2 sm:py-2.5 lg:py-3 rounded-md lg:rounded-lg border border-orange-600 shadow-sm transition-all disabled:opacity-50 disabled:cursor-not-allowed"
           >
             ⌫
           </button>
         </div>
 
         {/* Boutons Annuler / Valider */}
-        <div className="grid grid-cols-2 gap-2 mb-4">
+        <div className="grid grid-cols-2 gap-1 mb-2 lg:mb-3">
           <button
             onClick={() => handleTpeButton('X')}
             disabled={tpeMode === 'processing' || tpeMode === 'success' || isCardBlocked}
-            className="bg-red-500 hover:bg-red-400 active:bg-red-600 text-white font-bold text-lg py-4 rounded-xl border-2 border-red-600 shadow-sm transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+            className="bg-red-500 hover:bg-red-400 active:bg-red-600 text-white font-bold text-[10px] sm:text-xs lg:text-sm py-2 sm:py-2.5 lg:py-3 rounded-md lg:rounded-lg border border-red-600 shadow-sm transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-1"
           >
-            <span>✕</span> Annuler
+            <span>✕</span> <span>Annuler</span>
           </button>
           <button
             onClick={() => handleTpeButton('OK')}
             disabled={tpeMode === 'processing' || tpeMode === 'success' || isCardBlocked || tpeMode === 'idle'}
-            className="bg-green-500 hover:bg-green-400 active:bg-green-600 text-white font-bold text-lg py-4 rounded-xl border-2 border-green-600 shadow-sm transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+            className="bg-green-500 hover:bg-green-400 active:bg-green-600 text-white font-bold text-[10px] sm:text-xs lg:text-sm py-2 sm:py-2.5 lg:py-3 rounded-md lg:rounded-lg border border-green-600 shadow-sm transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-1"
           >
-            <span>✓</span> Valider
+            <span>✓</span> <span>Valider</span>
           </button>
         </div>
 
         {/* Indicateurs LED */}
-        <div className="flex justify-center gap-6 py-3 border-t border-gray-600">
-          <div className="flex items-center gap-2">
-            <div className={`w-3 h-3 rounded-full ${user ? 'bg-green-400 shadow-lg shadow-green-400/50' : 'bg-gray-600'}`}
+        <div className="flex justify-center gap-2 sm:gap-3 lg:gap-4 py-1.5 lg:py-2 border-t border-gray-600">
+          <div className="flex items-center gap-1">
+            <div className={`w-1.5 h-1.5 lg:w-2 lg:h-2 rounded-full ${user ? 'bg-green-400 shadow-lg shadow-green-400/50' : 'bg-gray-600'}`}
                  style={user ? { animation: 'pulse 2s infinite' } : {}}></div>
-            <span className="text-gray-400 text-xs">Carte</span>
+            <span className="text-gray-400 text-[8px] lg:text-[10px]">Carte</span>
           </div>
-          <div className="flex items-center gap-2">
-            <div className={`w-3 h-3 rounded-full ${tpeMode === 'processing' || tpeMode === 'preauth' ? 'bg-yellow-400 shadow-lg shadow-yellow-400/50' : 'bg-gray-600'}`}
+          <div className="flex items-center gap-1">
+            <div className={`w-1.5 h-1.5 lg:w-2 lg:h-2 rounded-full ${tpeMode === 'processing' || tpeMode === 'preauth' ? 'bg-yellow-400 shadow-lg shadow-yellow-400/50' : 'bg-gray-600'}`}
                  style={tpeMode === 'processing' || tpeMode === 'preauth' ? { animation: 'pulse 1s infinite' } : {}}></div>
-            <span className="text-gray-400 text-xs">Traitement</span>
+            <span className="text-gray-400 text-[8px] lg:text-[10px]">Trait.</span>
           </div>
-          <div className="flex items-center gap-2">
-            <div className={`w-3 h-3 rounded-full ${tpeMode === 'error' || isCardBlocked ? 'bg-red-400 shadow-lg shadow-red-400/50' : 'bg-gray-600'}`}
+          <div className="flex items-center gap-1">
+            <div className={`w-1.5 h-1.5 lg:w-2 lg:h-2 rounded-full ${tpeMode === 'error' || isCardBlocked ? 'bg-red-400 shadow-lg shadow-red-400/50' : 'bg-gray-600'}`}
                  style={tpeMode === 'error' || isCardBlocked ? { animation: 'pulse 0.5s infinite' } : {}}></div>
-            <span className="text-gray-400 text-xs">Erreur</span>
+            <span className="text-gray-400 text-[8px] lg:text-[10px]">Erreur</span>
           </div>
         </div>
 
         {/* Fente carte stylisée */}
-        <div className="mt-2 flex flex-col items-center">
-          <div className="w-40 h-3 bg-black rounded-full border-2 border-gray-600 shadow-inner relative overflow-hidden">
+        <div className="mt-1 flex flex-col items-center">
+          <div className="w-20 sm:w-24 lg:w-28 h-1.5 lg:h-2 bg-black rounded-full border border-gray-600 shadow-inner relative overflow-hidden">
             <div className="absolute inset-0 bg-gradient-to-b from-gray-700 to-transparent opacity-50"></div>
           </div>
-          <p className="text-gray-400 text-xs mt-1 font-medium">↑ Insérer carte ici</p>
+          <p className="text-gray-400 text-[8px] lg:text-[10px] mt-0.5 font-medium">↑ Insérer carte</p>
         </div>
-
-        {/* Boutons Mode Démo */}
-        {isDemoMode && (
-          <div className="mt-2 border-t border-gray-600 pt-2">
-            <div className="flex items-center justify-center gap-2 mb-2">
-              <span className="text-yellow-400 text-xs font-bold px-2 py-0.5 bg-yellow-900/50 rounded-full border border-yellow-600">🎮 MODE DÉMO</span>
-            </div>
-            <div className="flex gap-2">
-              {!user ? (
-                <button
-                  onClick={handleDemoInsertCard}
-                  className="flex-1 bg-blue-500 hover:bg-blue-400 text-white text-sm font-bold py-2 px-3 rounded-xl border-2 border-blue-600 transition-all shadow-sm"
-                >
-                  💳 Insérer carte
-                </button>
-              ) : (
-                <button
-                  onClick={handleDemoRemoveCard}
-                  className="flex-1 bg-red-500 hover:bg-red-400 text-white text-sm font-bold py-2 px-3 rounded-xl border-2 border-red-600 transition-all shadow-sm"
-                >
-                  ⏏️ Retirer carte
-                </button>
-              )}
-            </div>
-            {!user && (
-              <p className="text-gray-400 text-xs text-center mt-2">
-                PIN démo : <span className="text-green-400 font-mono font-bold">{DEMO_PIN}</span>
-              </p>
-            )}
-          </div>
-        )}
       </div>
     );
   };
@@ -914,7 +827,7 @@ function App() {
   return (
     <div className="h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 p-4 flex flex-col overflow-hidden">
       {/* Erreur de connexion */}
-      {!isSocketConnected && !isDemoMode && (
+      {!isSocketConnected && (
         <div className="fixed inset-0 bg-black bg-opacity-90 flex items-center justify-center z-[100]">
           <div className="bg-red-900 border-2 border-red-500 rounded-2xl p-8 max-w-md mx-4 text-center">
             <div className="text-6xl mb-4">⚠️</div>
@@ -957,9 +870,9 @@ function App() {
       </header>
 
       {/* Contenu principal - hauteur fixe */}
-      <div className={`flex-1 max-w-7xl mx-auto w-full grid grid-cols-1 lg:grid-cols-3 gap-4 px-4 ${isDemoMode ? 'overflow-auto' : 'overflow-hidden'}`}>
+      <div className="flex-1 max-w-7xl mx-auto w-full grid grid-cols-1 lg:grid-cols-3 gap-2 lg:gap-4 px-2 lg:px-4 overflow-hidden">
         {/* Section TPE */}
-        <div className={`lg:col-span-1 flex flex-col items-center justify-start py-2 ${isDemoMode ? 'overflow-auto' : 'overflow-hidden'}`}>
+        <div className="lg:col-span-1 flex flex-col items-center justify-center overflow-hidden">
           {renderTPE()}
         </div>
 
@@ -1039,6 +952,48 @@ function App() {
               <p className="text-green-600 font-medium mt-4">
                 Merci de votre visite ! 🚗
               </p>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal de solde insuffisant */}
+      {showInsufficientBalance && (
+        <div className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50">
+          <div className="bg-white rounded-3xl shadow-2xl p-8 max-w-md w-full mx-4 animate-scaleIn relative">
+            {/* Bouton fermer */}
+            <button
+              onClick={() => setShowInsufficientBalance(false)}
+              className="absolute top-4 right-4 w-8 h-8 flex items-center justify-center rounded-full bg-gray-100 hover:bg-gray-200 text-gray-500 hover:text-gray-700 transition-all"
+            >
+              ✕
+            </button>
+            
+            <div className="text-center">
+              {/* Icône d'erreur */}
+              <div className="w-24 h-24 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-6">
+                <svg className="w-16 h-16 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                </svg>
+              </div>
+              
+              <h2 className="text-2xl font-bold text-gray-900 mb-2">Solde insuffisant</h2>
+              <p className="text-gray-600 mb-6">
+                Votre solde est insuffisant pour effectuer un plein.
+              </p>
+              
+              {/* Solde actuel */}
+              <div className="bg-red-50 rounded-xl p-4 mb-6">
+                <p className="text-red-600 text-sm mb-1">Solde actuel</p>
+                <p className="text-3xl font-bold text-red-700">{balance.toFixed(2)}€</p>
+              </div>
+              
+              <button
+                onClick={() => setShowInsufficientBalance(false)}
+                className="w-full bg-red-500 hover:bg-red-600 text-white font-bold py-3 px-6 rounded-xl transition-all"
+              >
+                Fermer
+              </button>
             </div>
           </div>
         </div>
