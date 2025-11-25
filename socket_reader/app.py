@@ -59,22 +59,22 @@ def card_detection_loop():
                     current_card_token = None
                     logger.info(f"Nouvelle carte détectée: {card_id}")
 
-                    socketio.emit('card_inserted', {
-                        'card_id': card_id,
-                        'timestamp': time.time()
-                    })
-
-                    logger.info(f"Événement 'card_inserted' envoyé à tous les clients")
-
                     # Check if PIN is defined
                     pin_status = check_pin_defined(connection)
-                    if pin_status['success'] and not pin_status['pin_defined']:
-                        logger.info(f"PIN non défini pour la carte: {card_id}")
-                        socketio.emit('pin_not_defined', {
-                            'card_id': card_id,
-                            'message': 'PIN non défini sur cette carte'
-                        })
-                        logger.info(f"Événement 'pin_not_defined' envoyé à tous les clients")
+                    pin_defined = False
+                    if pin_status['success']:
+                        pin_defined = pin_status['pin_defined']
+                        logger.info(f"PIN défini: {pin_defined}")
+                    else:
+                        logger.warning(f"Erreur lors de la vérification du PIN: {pin_status.get('error', 'Unknown error')}")
+
+                    socketio.emit('card_inserted', {
+                        'card_id': card_id,
+                        'timestamp': time.time(),
+                        'activated': pin_defined
+                    })
+
+                    logger.info(f"Événement 'card_inserted' envoyé (activated={pin_defined})")
 
                     while is_card_still_present(connection) and running:
                         time.sleep(0.5)

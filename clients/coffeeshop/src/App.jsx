@@ -72,28 +72,29 @@ function App() {
         setBalance(0);
         setPinAttempts(3);
         setIsCardBlocked(false);
-        setShowPinModal(true);
+
+        // Check if card is activated (PIN defined)
+        if (data.activated === false) {
+          console.log('Carte non activée - PIN non défini');
+
+          // Set error message and show animation
+          setCardErrorMessage(
+            "PIN non défini sur cette carte.\n\n" +
+            "Veuillez activer votre carte à la borne d'activation (ATM) " +
+            "pour configurer votre code PIN."
+          );
+          setShowCardErrorAnimation(true);
+          setShowPinModal(false);
+
+          // Auto-hide after 6 seconds
+          setTimeout(() => {
+            setShowCardErrorAnimation(false);
+          }, 6000);
+        } else {
+          // Card is activated, show PIN modal
+          setShowPinModal(true);
+        }
       }
-    });
-
-    newSocket.on('pin_not_defined', (data) => {
-      console.log('PIN non défini:', data);
-
-      // Set error message and show animation
-      setCardErrorMessage(
-        "PIN non défini sur cette carte.\n\n" +
-        "Veuillez activer votre carte à la borne d'activation (ATM) " +
-        "pour configurer votre code PIN."
-      );
-      setShowCardErrorAnimation(true);
-
-      // Prevent PIN modal from showing
-      setShowPinModal(false);
-
-      // Auto-hide after 6 seconds
-      setTimeout(() => {
-        setShowCardErrorAnimation(false);
-      }, 6000);
     });
 
     newSocket.on('pin_verification_result', (result) => {
