@@ -7,6 +7,8 @@ import os
 import logging
 from dotenv import load_dotenv
 
+logger = logging.getLogger(__name__)
+
 load_dotenv()
 
 API_BASE_URL = os.getenv('API_BASE_URL', 'https://api.cashless.iut.valentinp.fr/v1')
