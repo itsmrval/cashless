@@ -338,17 +338,25 @@ def create_transaction(card_token, amount, merchant_name):
             transaction_data = response.json()
             print(f"DEBUG: Transaction créée: {transaction_data}")
             
-            # Récupérer le nouveau solde depuis l'API
-            print(f"DEBUG: Récupération du nouveau solde...")
+            # L'API retourne le nouveau solde directement dans la réponse
+            # Note: newBalance peut être dans balance ou newBalance selon l'API
+            new_balance_centimes = transaction_data.get('newBalance') or transaction_data.get('balance', 0)
+            new_balance = float(new_balance_centimes) / 100.0
+            
+            print(f"DEBUG: Nouveau solde de la transaction: {new_balance}€")
+            
+            # Attendre un peu et récupérer le solde depuis l'API pour confirmation
+            import time
+            time.sleep(0.5)  # Attendre 500ms pour que l'API mette à jour
+            
             balance_result = get_user_balance(card_token)
             
             if balance_result['success']:
-                new_balance = balance_result['balance']
-                print(f"DEBUG: Nouveau solde récupéré: {new_balance}€")
+                confirmed_balance = balance_result['balance']
+                print(f"DEBUG: Solde confirmé par l'API: {confirmed_balance}€")
+                new_balance = confirmed_balance
             else:
-                print(f"DEBUG: Erreur récupération solde: {balance_result.get('error')}")
-                # Utiliser le solde de la réponse transaction si disponible
-                new_balance = float(transaction_data.get('newBalance', 0)) / 100.0
+                print(f"DEBUG: Utilisation du solde de la transaction: {new_balance}€")
             
             return {
                 'success': True,
