@@ -155,9 +155,19 @@ function App() {
         setNewBalanceAmount(result.new_balance);
       } else {
         console.error('Erreur transaction:', result.error);
-        setMessageType('error');
-        setMessage(`Erreur de paiement: ${result.error}`);
-        setTimeout(() => setMessage(''), 3000);
+        
+        // Afficher l'animation de refus de paiement pour toutes les erreurs de transaction
+        // En particulier pour solde insuffisant au moment du paiement
+        setRejectedAmount(paymentAmount); // Utiliser le montant de la transaction qui a échoué
+        setRejectedBalance(balance);
+        setShowPaymentRejectedAnimation(true);
+        
+        // Masquer l'animation de paiement en cours si elle est affichée
+        setShowPaymentAnimation(false);
+        
+        setTimeout(() => {
+          setShowPaymentRejectedAnimation(false);
+        }, 3000);
       }
     });
 
