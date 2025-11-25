@@ -263,15 +263,23 @@ def handle_create_transaction(data):
     
     logger.info(f"Création de transaction: {amount}€ pour {merchant}")
     
+    # Créer la transaction et attendre la confirmation (200/201) de l'API
     result = create_transaction(current_card_token, amount, merchant)
     
     if result['success']:
-        logger.info(f"Transaction réussie - Nouveau solde: {result['new_balance']}€")
+        # Transaction confirmée par l'API (200 OK), le nouveau solde a été récupéré
+        logger.info(f"Transaction confirmée par l'API - Nouveau solde: {result['new_balance']}€")
+        logger.info(f"Transaction ID: {result.get('transaction_id')}")
+        
+        # Envoyer la confirmation au client avec le nouveau solde
         emit('transaction_result', {
             'success': True,
             'transaction_id': result.get('transaction_id'),
-            'new_balance': result['new_balance']
+            'new_balance': result['new_balance'],
+            'message': 'Transaction effectuée avec succès'
         })
+        
+        logger.info("Client peut maintenant servir le produit")
     else:
         logger.error(f"Erreur transaction: {result.get('error')}")
         emit('transaction_result', {

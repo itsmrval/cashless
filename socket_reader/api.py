@@ -233,6 +233,66 @@ def fetch_user_by_card(card_id, card_token):
         }
 
 
+def get_user_balance(card_token):
+    """
+    Récupère le solde de l'utilisateur authentifié.
+    
+    Args:
+        card_token: Le token d'authentification de la carte
+        
+    Returns:
+        dict: {'success': bool, 'balance': float, 'error': str}
+    """
+    try:
+        # Récupérer d'abord les infos user pour obtenir l'ID
+        url = f"{API_BASE_URL}/card/me"
+        headers = {
+            'Authorization': f'Bearer {card_token}',
+            'Content-Type': 'application/json'
+        }
+        
+        response = requests.get(url, headers=headers, timeout=5)
+        
+        if response.status_code != 200:
+            return {
+                'success': False,
+                'error': 'Failed to fetch user info'
+            }
+        
+        user_data = response.json()
+        user_id = user_data.get('_id')
+        
+        if not user_id:
+            return {
+                'success': False,
+                'error': 'Invalid user data'
+            }
+        
+        # Récupérer le balance
+        balance_url = f"{API_BASE_URL}/user/{user_id}/balance"
+        balance_response = requests.get(balance_url, headers=headers, timeout=5)
+        
+        if balance_response.status_code != 200:
+            return {
+                'success': False,
+                'error': 'Failed to fetch balance'
+            }
+        
+        balance_data = balance_response.json()
+        balance = float(balance_data.get('balance', 0)) / 100.0
+        
+        return {
+            'success': True,
+            'balance': balance
+        }
+        
+    except Exception as e:
+        return {
+            'success': False,
+            'error': str(e)
+        }
+
+
 def create_transaction(card_token, amount, merchant_name):
     """
     Crée une transaction (paiement).
@@ -277,10 +337,23 @@ def create_transaction(card_token, amount, merchant_name):
         if response.status_code == 201:
             transaction_data = response.json()
             print(f"DEBUG: Transaction créée: {transaction_data}")
+            
+            # Récupérer le nouveau solde depuis l'API
+            print(f"DEBUG: Récupération du nouveau solde...")
+            balance_result = get_user_balance(card_token)
+            
+            if balance_result['success']:
+                new_balance = balance_result['balance']
+                print(f"DEBUG: Nouveau solde récupéré: {new_balance}€")
+            else:
+                print(f"DEBUG: Erreur récupération solde: {balance_result.get('error')}")
+                # Utiliser le solde de la réponse transaction si disponible
+                new_balance = float(transaction_data.get('newBalance', 0)) / 100.0
+            
             return {
                 'success': True,
                 'transaction_id': transaction_data.get('_id'),
-                'new_balance': float(transaction_data.get('newBalance', 0)) / 100.0
+                'new_balance': new_balance
             }
         
         try:
