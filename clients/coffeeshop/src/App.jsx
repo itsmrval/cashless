@@ -5,8 +5,11 @@ import io from 'socket.io-client';
 const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || 'http://localhost:8001';
 
 function App() {
-  // État Socket.IO
   const [socket, setSocket] = useState(null);
+  const [apiConnected, setApiConnected] = useState(false);
+  const [apiError, setApiError] = useState(null);
+  const [reconnectAttempts, setReconnectAttempts] = useState(0);
+  const [isInitializing, setIsInitializing] = useState(true);
   
   // États utilisateur
   const [user, setUser] = useState(null);
@@ -38,9 +41,9 @@ function App() {
     const newSocket = io(API_BASE_URL, {
       transports: ['polling', 'websocket'],
       reconnection: true,
-      reconnectionDelay: 1000,
+      reconnectionDelay: 500,
       reconnectionAttempts: 10,
-      timeout: 10000,
+      timeout: 3000,
       forceNew: true
     });
 
@@ -49,6 +52,10 @@ function App() {
     newSocket.on('connect', () => {
       console.log('Socket.IO connecté - ID:', newSocket.id);
       console.log('Transport:', newSocket.io.engine.transport.name);
+      setApiConnected(true);
+      setApiError(null);
+      setReconnectAttempts(0);
+      setIsInitializing(false);
     });
 
     newSocket.on('card_inserted', (data) => {
@@ -113,12 +120,25 @@ function App() {
     });
 
     newSocket.on('disconnect', (reason) => {
-      console.log('Socket.IO déconnecté - Raison:', reason);
+      console.log('🔌 Socket.IO déconnecté - Raison:', reason);
+      setApiConnected(false);
+      if (reason === 'io server disconnect') {
+        setApiError('Le serveur a fermé la connexion');
+      } else {
+        setApiError('Connexion perdue avec le serveur');
+      }
     });
 
     newSocket.on('connect_error', (error) => {
-      console.error('Erreur de connexion Socket.IO:', error.message);
-      console.error('Description:', error.description);
+      console.error('❌ Erreur de connexion Socket.IO:', error.message);
+      console.error('   Description:', error.description);
+      setApiConnected(false);
+      setReconnectAttempts(prev => {
+        const newCount = prev + 1;
+        setApiError(`Impossible de se connecter au serveur (tentative ${newCount})`);
+        return newCount;
+      });
+      setIsInitializing(false);
     });
     
     newSocket.on('error', (error) => {
@@ -255,6 +275,56 @@ function App() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
+      {/* Écran de chargement initial */}
+      {isInitializing && (
+        <div className="fixed inset-0 bg-gradient-to-br from-blue-50 to-indigo-50 flex items-center justify-center z-[100]">
+          <div className="text-center">
+            <div className="bg-white rounded-3xl shadow-2xl p-12 border-2 border-blue-200">
+              <div className="bg-gradient-to-br from-blue-100 to-blue-200 p-8 rounded-2xl inline-block mb-8">
+                <div className="animate-spin">
+                  <svg className="w-32 h-32 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                  </svg>
+                </div>
+              </div>
+              <h2 className="text-4xl font-bold text-gray-800 mb-4">Connexion en cours...</h2>
+              <p className="text-xl text-gray-600">Établissement de la connexion avec le serveur</p>
+              <div className="flex items-center justify-center space-x-2 text-blue-500 mt-8">
+                <div className="w-3 h-3 bg-blue-500 rounded-full animate-bounce" style={{ animationDelay: '0s' }}></div>
+                <div className="w-3 h-3 bg-blue-500 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
+                <div className="w-3 h-3 bg-blue-500 rounded-full animate-bounce" style={{ animationDelay: '0.4s' }}></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Écran d'erreur API - Priorité maximale */}
+      {!apiConnected && !isInitializing && (
+        <div className="fixed inset-0 bg-gradient-to-br from-gray-50 to-gray-100 flex items-center justify-center z-[100]">
+          <div className="container mx-auto px-6">
+            <div className="max-w-2xl mx-auto text-center">
+              <div className="bg-white rounded-3xl shadow-2xl p-12 border-3 border-black">
+                <div className="bg-gradient-to-br from-gray-100 to-gray-200 p-8 rounded-2xl inline-block mb-8">
+                  <svg className="w-32 h-32 text-gray-900" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                  </svg>
+                </div>
+                <h2 className="text-4xl font-bold text-gray-900 mb-4">Lecteur indisponible</h2>
+                <p className="text-xl text-gray-700 mb-8">{apiError || 'Connexion au serveur impossible'}</p>
+
+                <div className="flex items-center justify-center space-x-2 text-gray-700 mb-4">
+                  <div className="w-3 h-3 bg-gray-700 rounded-full animate-bounce" style={{ animationDelay: '0s' }}></div>
+                  <div className="w-3 h-3 bg-gray-700 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
+                  <div className="w-3 h-3 bg-gray-700 rounded-full animate-bounce" style={{ animationDelay: '0.4s' }}></div>
+                </div>
+                <p className="text-sm text-gray-600 font-medium">Tentative de reconnexion automatique... (#{reconnectAttempts})</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {user && (
         <div className="fixed top-6 right-6 z-[60] bg-white border-3 border-black rounded-xl shadow-lg px-6 py-4">
           <div className="flex items-center space-x-4">
