@@ -951,10 +951,8 @@ function App() {
       )}
 
       {/* Header compact */}
-      <header className="text-center py-2">
-        <h1 className="text-2xl md:text-3xl font-bold text-white">
-          ⛽ Station Service Cashless
-        </h1>
+      <header className="text-center h-12 flex items-center justify-center flex-shrink-0">
+        <img src="/img/Plan de travail 1.png" alt="Logo" className="h-20 md:h-24 object-contain" />
       </header>
 
       {/* Contenu principal - hauteur fixe */}
