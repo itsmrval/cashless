@@ -92,7 +92,7 @@
 
 - name: Start Flask-SocketIO server
   shell: |
-    nohup {{ venv_path_abs }}/bin/python {{ app_file_abs }} > {{ log_file_abs }} 2>&1 & echo $!
+    nohup {{ venv_path_abs }}/bin/python {{ app_file_abs }} "{{ api_base_url }}" "{{ dest_id }}" > {{ log_file_abs }} 2>&1 & echo $!
   args:
     chdir: "{{ socket_reader_folder_abs.stdout }}"
   register: start_result

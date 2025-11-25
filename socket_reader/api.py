@@ -3,20 +3,28 @@
 import requests
 import base64
 import json
-import logging
-from dotenv import load_dotenv
 import sys
+import logging
 
 logger = logging.getLogger(__name__)
 
-load_dotenv()
+# Global variables to be set by init() or command-line
+API_BASE_URL = None
+DEST_ID = None
 
-if len(sys.argv) < 3:
-    print("Usage: python api.py <API_BASE_URL> <DEST_ID>")
-    sys.exit(1)
+def init(api_base_url, dest_id):
+    """
+    Initialize the API module with configuration.
 
-API_BASE_URL = sys.argv[1]
-DEST_ID = sys.argv[2]
+    Args:
+        api_base_url: Base URL for the API
+        dest_id: Destination user ID for transactions
+    """
+    global API_BASE_URL, DEST_ID
+    API_BASE_URL = api_base_url
+    DEST_ID = dest_id
+    logger.info(f"API initialized with base URL: {API_BASE_URL}")
+    logger.info(f"Destination ID: {DEST_ID}")
 
 
 def get_challenge(card_id):
@@ -294,7 +302,7 @@ def create_transaction(card_token, card_id, amount, merchant_name):
             'success': False,
             'error': f'Transaction failed: {error_msg}'
         }
-        
+
     except requests.exceptions.Timeout:
         return {
             'success': False,
@@ -305,3 +313,19 @@ def create_transaction(card_token, card_id, amount, merchant_name):
             'success': False,
             'error': str(e)
         }
+
+
+if __name__ == '__main__':
+    if len(sys.argv) != 3:
+        print("Usage: python api.py <API_BASE_URL> <DEST_ID>")
+        print("\nExample:")
+        print("  python api.py https://api.cashless.iut.valentinp.fr/v1 6925915f6a63bc32613822c5")
+        sys.exit(1)
+
+    api_base_url = sys.argv[1]
+    dest_id = sys.argv[2]
+
+    init(api_base_url, dest_id)
+    print(f"API module configured successfully")
+    print(f"API Base URL: {API_BASE_URL}")
+    print(f"Destination ID: {DEST_ID}")

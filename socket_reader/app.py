@@ -6,7 +6,9 @@ from flask_cors import CORS
 import threading
 import time
 import logging
+import sys
 from card_reader import wait_for_reader, check_card_present, read_card_id, is_card_still_present, verify_pin, sign_challenge
+import api
 from api import get_challenge, card_auth_with_signature, fetch_user_by_card, create_transaction
 import ssl
 import os
@@ -302,9 +304,22 @@ def initialize_reader():
 
 
 if __name__ == '__main__':
+    if len(sys.argv) != 3:
+        print("Usage: python app.py <API_BASE_URL> <DEST_ID>")
+        print("\nExample:")
+        print("  python app.py https://api.cashless.iut.valentinp.fr/v1 6925915f6a63bc32613822c5")
+        sys.exit(1)
+
+    api_base_url = sys.argv[1]
+    dest_id = sys.argv[2]
+
+    # Initialize API module with command-line arguments
+    api.init(api_base_url, dest_id)
+    logger.info(f"API configured with base URL: {api_base_url}")
+
     init_thread = threading.Thread(target=initialize_reader, daemon=True)
     init_thread.start()
-    
+
     time.sleep(2)
 
     cert_file = os.path.join(os.path.dirname(__file__), 'certs', 'cert.pem')
