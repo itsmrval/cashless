@@ -7,6 +7,8 @@ import threading
 import time
 import logging
 from card_reader import wait_for_reader, check_card_present, read_card_id, is_card_still_present, verify_pin
+import ssl
+import os
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
@@ -177,13 +179,19 @@ if __name__ == '__main__':
     init_thread.start()
     
     time.sleep(2)
-    
-    logger.info("Démarrage du serveur Flask-SocketIO sur http://0.0.0.0:8001")
-    
+
+    cert_file = os.path.join(os.path.dirname(__file__), 'certs', 'cert.pem')
+    key_file = os.path.join(os.path.dirname(__file__), 'certs', 'key.pem')
+    ssl_context = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
+    ssl_context.load_cert_chain(cert_file, key_file)
+
+    logger.info("Démarrage du serveur Flask-SocketIO sur https://0.0.0.0:8001")
+
     socketio.run(
         app,
         host='0.0.0.0',
         port=8001,
         debug=False,
-        use_reloader=False
+        use_reloader=False,
+        ssl_context=ssl_context
     )

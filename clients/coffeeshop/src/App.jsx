@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import products from './element.json';
 import io from 'socket.io-client';
 
-const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || 'http://localhost:8001';
+const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || 'https://localhost:8001';
 
 function App() {
   const [socket, setSocket] = useState(null);
