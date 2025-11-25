@@ -63,8 +63,8 @@ function App() {
       console.log('Données reçues:', data);
       
       if (data.card_id && data.card_id !== null) {
-        setUser({ name: `User ${data.card_id.substring(0, 8)}`, cardId: data.card_id });
-        setBalance(50.00);
+        setUser({ name: 'Utilisateur', cardId: data.card_id });
+        setBalance(0);
         setPinAttempts(3);
         setIsCardBlocked(false);
         setShowPinModal(true);
@@ -81,6 +81,16 @@ function App() {
         setShowPinModal(false);
         setPin('');
         setPinAttempts(3);
+        
+        // Mettre à jour les données utilisateur avec les vraies données de l'API
+        if (result.user) {
+          console.log('Données utilisateur reçues:', result.user);
+          setUser({
+            name: result.user.name,
+            cardId: result.user.card_id
+          });
+          setBalance(result.user.balance);
+        }
       } else if (result.blocked) {
         console.log('Carte bloquée !');
         setIsCardBlocked(true);
@@ -98,6 +108,21 @@ function App() {
         console.error('Erreur:', result.error);
         setMessageType('error');
         setMessage(`Erreur: ${result.error}`);
+        setTimeout(() => setMessage(''), 3000);
+      }
+    });
+
+    newSocket.on('transaction_result', (result) => {
+      console.log('Résultat de transaction reçu:', result);
+      
+      if (result.success) {
+        console.log('Transaction réussie - Nouveau solde:', result.new_balance);
+        // Le balance sera mis à jour dans l'animation de paiement
+        setNewBalanceAmount(result.new_balance);
+      } else {
+        console.error('Erreur transaction:', result.error);
+        setMessageType('error');
+        setMessage(`Erreur de paiement: ${result.error}`);
         setTimeout(() => setMessage(''), 3000);
       }
     });
@@ -222,13 +247,36 @@ function App() {
   };
 
   const processPaymentForProduct = (product) => {
-    const newBalance = balance - product.price;
-    setBalance(newBalance);
+    console.log('Création de la transaction via Socket.IO...');
     
-    // Afficher l'animation de paiement
-    setPaymentAmount(product.price);
-    setNewBalanceAmount(newBalance);
-    setShowPaymentAnimation(true);
+    // Envoyer la transaction au serveur
+    if (socket && socket.connected) {
+      socket.emit('create_transaction', {
+        amount: product.price,
+        merchant: 'CoffeeShop'
+      });
+      
+      // Afficher l'animation de paiement immédiatement
+      setPaymentAmount(product.price);
+      setShowPaymentAnimation(true);
+      
+      // Écouter la réponse et mettre à jour le solde
+      const handleTransactionUpdate = (result) => {
+        if (result.success) {
+          setBalance(result.new_balance);
+          setNewBalanceAmount(result.new_balance);
+        }
+      };
+      
+      // S'assurer qu'on écoute une seule fois la réponse
+      socket.once('transaction_result', handleTransactionUpdate);
+    } else {
+      console.error('Socket non connecté pour la transaction');
+      setMessageType('error');
+      setMessage('Erreur: connexion perdue');
+      setTimeout(() => setMessage(''), 3000);
+      return;
+    }
     
     // Masquer l'animation après 2.5 secondes et commencer la préparation
     setTimeout(() => {
