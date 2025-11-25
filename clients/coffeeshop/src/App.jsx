@@ -116,7 +116,8 @@ function App() {
       
       if (result.success) {
         console.log('Transaction réussie - Nouveau solde:', result.new_balance);
-        // Le balance sera mis à jour dans l'animation de paiement
+        // Mettre à jour le solde immédiatement
+        setBalance(result.new_balance);
         setNewBalanceAmount(result.new_balance);
       } else {
         console.error('Erreur transaction:', result.error);
@@ -259,16 +260,7 @@ function App() {
       setPaymentAmount(product.price);
       setShowPaymentAnimation(true);
       
-      // Écouter la réponse et mettre à jour le solde
-      const handleTransactionUpdate = (result) => {
-        if (result.success) {
-          setBalance(result.new_balance);
-          setNewBalanceAmount(result.new_balance);
-        }
-      };
-      
-      // S'assurer qu'on écoute une seule fois la réponse
-      socket.once('transaction_result', handleTransactionUpdate);
+      // Ne pas réenregistrer le listener ici car il est déjà dans useEffect
     } else {
       console.error('Socket non connecté pour la transaction');
       setMessageType('error');
