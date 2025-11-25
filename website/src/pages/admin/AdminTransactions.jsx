@@ -263,17 +263,6 @@ export default function AdminTransactions() {
 
       {/* Transactions Table */}
       <div className="bg-white/90 backdrop-blur-sm rounded-2xl shadow-lg border border-white/20 overflow-hidden">
-        {/* Pagination - Top */}
-        {paginationData && paginationData.totalPages > 1 && (
-          <Pagination
-            currentPage={paginationData.currentPage}
-            totalPages={paginationData.totalPages}
-            totalItems={paginationData.totalItems}
-            itemsPerPage={paginationData.itemsPerPage}
-            onPageChange={handlePageChange}
-          />
-        )}
-
         <div className="overflow-x-auto">
           <table className="w-full">
             <thead className="bg-slate-50 border-b border-slate-200">

@@ -288,17 +288,6 @@ function TransactionsList({ userId, loading: parentLoading, onRefresh }) {
       </div>
 
       <div className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
-        {/* Pagination - Top */}
-        {paginationData && paginationData.totalPages > 1 && (
-          <Pagination
-            currentPage={paginationData.currentPage}
-            totalPages={paginationData.totalPages}
-            totalItems={paginationData.totalItems}
-            itemsPerPage={paginationData.itemsPerPage}
-            onPageChange={handlePageChange}
-          />
-        )}
-
         {filteredTransactions.length === 0 ? (
           <div className="p-12 text-center flex flex-col items-center justify-center text-slate-400">
             <div className="w-16 h-16 bg-slate-50 rounded-full flex items-center justify-center mb-4">
