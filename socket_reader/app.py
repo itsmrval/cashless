@@ -17,6 +17,11 @@ app = Flask(__name__)
 app.config['SECRET_KEY'] = 'cashless-secret-key-2025'
 CORS(app, resources={r"/*": {"origins": "*"}})
 
+@app.after_request
+def add_private_network_access(response):
+    response.headers['Access-Control-Allow-Private-Network'] = 'true'
+    return response
+
 socketio = SocketIO(app, cors_allowed_origins="*", async_mode='threading')
 
 reader = None
