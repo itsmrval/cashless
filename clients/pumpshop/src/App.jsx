@@ -13,6 +13,12 @@ function App() {
   // État Socket.IO
   const [socket, setSocket] = useState(null);
   
+  // États de connexion et initialisation
+  const [isSocketConnected, setIsSocketConnected] = useState(false);
+  const [apiError, setApiError] = useState(null);
+  const [reconnectAttempts, setReconnectAttempts] = useState(0);
+  const [isInitializing, setIsInitializing] = useState(true);
+  
   // États utilisateur
   const [user, setUser] = useState(null);
   const [balance, setBalance] = useState(0);
@@ -21,8 +27,11 @@ function App() {
   const [isCardBlocked, setIsCardBlocked] = useState(false);
   const [isVerifyingPin, setIsVerifyingPin] = useState(false);
   
-  // États de connexion
-  const [isSocketConnected, setIsSocketConnected] = useState(false);
+  // États erreurs carte
+  const [showCardErrorAnimation, setShowCardErrorAnimation] = useState(false);
+  const [cardErrorMessage, setCardErrorMessage] = useState('');
+  
+  // États chargement
   const [isLoadingBalance, setIsLoadingBalance] = useState(false);
   
   // États pompe et carburant
@@ -63,9 +72,9 @@ function App() {
     const newSocket = io(SOCKET_URL, {
       transports: ['polling', 'websocket'],
       reconnection: true,
-      reconnectionDelay: 1000,
+      reconnectionDelay: 500,
       reconnectionAttempts: 10,
-      timeout: 10000,
+      timeout: 3000,
       forceNew: true
     });
 
@@ -73,20 +82,31 @@ function App() {
 
     newSocket.on('connect', () => {
       console.log('Socket.IO connecté - ID:', newSocket.id);
+      console.log('Transport:', newSocket.io.engine.transport.name);
       setIsSocketConnected(true);
+      setApiError(null);
+      setReconnectAttempts(0);
+      setIsInitializing(false);
     });
 
     newSocket.on('connect_error', (error) => {
-      console.error('Erreur connexion Socket.IO:', error);
+      console.error('❌ Erreur de connexion Socket.IO:', error.message);
       setIsSocketConnected(false);
+      setReconnectAttempts(prev => {
+        const newCount = prev + 1;
+        setApiError(`Impossible de se connecter au serveur (tentative ${newCount})`);
+        return newCount;
+      });
+      setIsInitializing(false);
     });
 
-    newSocket.on('card_inserted', async (data) => {
-      console.log('CARTE DÉTECTÉE VIA SOCKET.IO', data);
+    newSocket.on('card_inserted', (data) => {
+      console.log('CARTE DÉTECTÉE VIA SOCKET.IO');
+      console.log('Données reçues:', data);
       
       if (data.card_id && data.card_id !== null) {
-        setUser({ name: `Client ${data.card_id.substring(0, 8)}`, cardId: data.card_id });
-        setBalance(0); // Sera mis à jour après vérification du PIN
+        setUser({ name: `Carte ${data.card_id.substring(0, 8)}`, cardId: data.card_id });
+        setBalance(0);
         setPinAttempts(3);
         setIsCardBlocked(false);
         setTpeMode('pin');
@@ -96,41 +116,109 @@ function App() {
     });
 
     newSocket.on('pin_verification_result', (result) => {
-      console.log('Résultat de vérification PIN:', result);
+      console.log('Résultat de vérification PIN reçu:', result);
       setIsVerifyingPin(false);
       
       if (result.success) {
+        console.log('PIN correct !');
         setIsPinVerified(true);
         setTpeMode('idle');
         setTpeMessage('Code accepté');
         setTpeInput('');
         setPinAttempts(3);
+        
+        // Récupérer les données utilisateur (nom et solde)
+        if (result.user) {
+          console.log('Données utilisateur reçues:', result.user);
+          setUser({
+            name: result.user.name,
+            cardId: result.user.card_id
+          });
+          setBalance(result.user.balance);
+        }
+        
         setTimeout(() => setTpeMessage(''), 2000);
       } else if (result.blocked) {
+        console.log('Carte bloquée !');
         setIsCardBlocked(true);
         setPinAttempts(0);
         setTpeMode('error');
         setTpeMessage('CARTE BLOQUÉE');
-      } else if (result.attempts_remaining !== undefined) {
+      } else if (result.attempts_remaining !== undefined && result.attempts_remaining !== null) {
+        console.log(`PIN incorrect - ${result.attempts_remaining} tentative(s) restante(s)`);
         setPinAttempts(result.attempts_remaining);
         setTpeInput('');
         setTpeMode('pin');
         setTpeMessage(`Erreur - ${result.attempts_remaining} essai(s)`);
         setTimeout(() => setTpeMessage('Saisir code PIN'), 2000);
+      } else if (result.error) {
+        console.error('Erreur:', result.error);
+        
+        // Vérifier si c'est une erreur de carte inactive/bloquée
+        if (result.error.includes('inactive') || result.error.includes('bloquée') || result.error.includes('bloquee')) {
+          setCardErrorMessage(result.error);
+          setShowCardErrorAnimation(true);
+          setTpeMode('error');
+          setTpeMessage('Carte inactive');
+          
+          setTimeout(() => {
+            setShowCardErrorAnimation(false);
+            setTpeMode('pin');
+            setTpeMessage('Saisir code PIN');
+            setTpeInput('');
+          }, 4000);
+        } else {
+          setTpeMode('error');
+          setTpeMessage('Erreur');
+          setTimeout(() => {
+            setTpeMode('pin');
+            setTpeMessage('Saisir code PIN');
+          }, 2000);
+        }
+      }
+    });
+
+    newSocket.on('transaction_result', (result) => {
+      console.log('Résultat de transaction reçu:', result);
+      
+      if (result.success) {
+        console.log('Transaction réussie - Nouveau solde:', result.new_balance);
+        setBalance(result.new_balance);
+        setNewBalanceAmount(result.new_balance);
+      } else {
+        console.error('Erreur transaction:', result.error);
+        setMessage(`Erreur de paiement: ${result.error}`);
+        setMessageType('error');
+        setTimeout(() => setMessage(''), 3000);
       }
     });
 
     newSocket.on('card_removed', (data) => {
-      console.log('Carte retirée:', data);
+      console.log('Carte retirée via Socket.IO:', data);
       resetState();
     });
 
     newSocket.on('disconnect', (reason) => {
-      console.log('Socket.IO déconnecté:', reason);
+      console.log('🔌 Socket.IO déconnecté - Raison:', reason);
       setIsSocketConnected(false);
+      if (reason === 'io server disconnect') {
+        setApiError('Le serveur a fermé la connexion');
+      } else {
+        setApiError('Connexion perdue avec le serveur');
+      }
+    });
+
+    newSocket.on('error', (error) => {
+      console.error('Erreur Socket.IO:', error);
+    });
+
+    // Debug: écouter tous les événements
+    newSocket.onAny((eventName, ...args) => {
+      console.log('Événement Socket.IO reçu:', eventName, args);
     });
 
     return () => {
+      console.log('Fermeture de la connexion Socket.IO');
       if (newSocket) newSocket.close();
     };
   }, []);
@@ -147,6 +235,8 @@ function App() {
     setPinAttempts(3);
     setIsCardBlocked(false);
     setIsVerifyingPin(false);
+    setShowCardErrorAnimation(false);
+    setCardErrorMessage('');
     setSelectedFuel(null);
     setLiters('');
     setIsFueling(false);
@@ -826,26 +916,51 @@ function App() {
 
   return (
     <div className="h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 p-4 flex flex-col overflow-hidden">
-      {/* Erreur de connexion */}
-      {!isSocketConnected && (
-        <div className="fixed inset-0 bg-black bg-opacity-90 flex items-center justify-center z-[100]">
-          <div className="bg-red-900 border-2 border-red-500 rounded-2xl p-8 max-w-md mx-4 text-center">
-            <div className="text-6xl mb-4">⚠️</div>
-            <h2 className="text-2xl font-bold text-red-100 mb-4">Erreur de connexion</h2>
-            <p className="text-red-200 mb-6">
-              Impossible de se connecter au serveur du lecteur de carte.
-            </p>
-            <div className="flex flex-col gap-3">
-              <div className="flex justify-center mb-4">
-                <div className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm bg-red-800 text-red-300">
-                  <div className="w-2 h-2 rounded-full bg-red-400 animate-pulse"></div>
-                  Lecteur déconnecté
+      {/* Écran de chargement initial */}
+      {isInitializing && (
+        <div className="fixed inset-0 bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 flex items-center justify-center z-[100]">
+          <div className="text-center">
+            <div className="bg-gray-800 rounded-3xl shadow-2xl p-12 border-2 border-gray-700">
+              <div className="bg-gradient-to-br from-gray-700 to-gray-800 p-8 rounded-2xl inline-block mb-8">
+                <div className="animate-spin">
+                  <svg className="w-24 h-24 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                  </svg>
                 </div>
               </div>
-              <p className="text-red-300 text-sm">
-                Vérifiez que le serveur est démarré
-              </p>
-              <code className="bg-black bg-opacity-50 text-red-200 p-2 rounded text-xs">
+              <h2 className="text-3xl font-bold text-white mb-4">Connexion en cours...</h2>
+              <p className="text-lg text-gray-400">Établissement de la connexion avec le lecteur</p>
+              <div className="flex items-center justify-center space-x-2 text-blue-400 mt-8">
+                <div className="w-3 h-3 bg-blue-500 rounded-full animate-bounce" style={{ animationDelay: '0s' }}></div>
+                <div className="w-3 h-3 bg-blue-500 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
+                <div className="w-3 h-3 bg-blue-500 rounded-full animate-bounce" style={{ animationDelay: '0.4s' }}></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Erreur de connexion */}
+      {!isSocketConnected && !isInitializing && (
+        <div className="fixed inset-0 bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 flex items-center justify-center z-[100]">
+          <div className="bg-gray-800 border-2 border-gray-700 rounded-2xl p-8 max-w-md mx-4 text-center">
+            <div className="bg-gradient-to-br from-gray-700 to-gray-800 p-6 rounded-2xl inline-block mb-6">
+              <svg className="w-20 h-20 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+              </svg>
+            </div>
+            <h2 className="text-2xl font-bold text-white mb-4">Lecteur indisponible</h2>
+            <p className="text-gray-400 mb-6">
+              {apiError || 'Impossible de se connecter au serveur du lecteur de carte'}
+            </p>
+            <div className="flex flex-col gap-3">
+              <div className="flex items-center justify-center space-x-2 text-gray-400 mb-4">
+                <div className="w-3 h-3 bg-gray-500 rounded-full animate-bounce" style={{ animationDelay: '0s' }}></div>
+                <div className="w-3 h-3 bg-gray-500 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
+                <div className="w-3 h-3 bg-gray-500 rounded-full animate-bounce" style={{ animationDelay: '0.4s' }}></div>
+              </div>
+              <p className="text-sm text-gray-500 font-medium">Tentative de reconnexion automatique... (#{reconnectAttempts})</p>
+              <code className="bg-black bg-opacity-50 text-gray-400 p-2 rounded text-xs mt-2">
                 {SOCKET_URL}
               </code>
             </div>
@@ -861,6 +976,44 @@ function App() {
           'bg-blue-900 border-blue-500 text-blue-100'
         }`}>
           {message}
+        </div>
+      )}
+
+      {/* Animation d'erreur de carte (inactive/bloquée) */}
+      {showCardErrorAnimation && (
+        <div className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50 p-4">
+          <div className="bg-gray-800 border-2 border-gray-600 rounded-2xl shadow-2xl p-8 max-w-md w-full animate-scaleIn">
+            <div className="text-center">
+              {/* Icône d'alerte animée */}
+              <div className="relative mb-6 flex justify-center">
+                <div className="bg-gradient-to-br from-red-600 to-red-800 p-6 rounded-2xl inline-block">
+                  <svg className="w-16 h-16 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                  </svg>
+                </div>
+              </div>
+              
+              {/* Titre */}
+              <h2 className="text-3xl font-bold text-white mb-6">Carte inactive</h2>
+              
+              {/* Message d'erreur */}
+              <div className="bg-gray-700 border-2 border-gray-600 rounded-xl p-6 mb-6">
+                <p className="text-white font-semibold text-lg mb-2">
+                  Authentification refusée
+                </p>
+                <p className="text-gray-300">
+                  {cardErrorMessage || "Cette carte n'est pas autorisée à s'authentifier"}
+                </p>
+              </div>
+              
+              {/* Instructions */}
+              <div className="bg-gray-900 border border-gray-700 rounded-xl p-5">
+                <p className="text-gray-300 font-medium">
+                  Consultez votre espace client pour activer votre carte
+                </p>
+              </div>
+            </div>
+          </div>
         </div>
       )}
 
