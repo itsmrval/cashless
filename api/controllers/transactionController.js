@@ -29,32 +29,66 @@ const getTransactions = async (req, res) => {
     const isAdmin = req.user.role === 'admin';
     const requestedUserId = req.query.userId;
 
-    if (isAdmin && !requestedUserId) {
-      const transactions = await Transaction.find()
-        .populate('source_user_id', 'name username')
-        .populate('destination_user_id', 'name username')
-        .sort({ date: -1 })
-        .limit(100)
-        .lean();
+    // Parse pagination parameters
+    const page = Math.max(1, parseInt(req.query.page) || 1);
+    const defaultLimit = isAdmin ? 30 : 20;
+    const limit = Math.min(parseInt(req.query.limit) || defaultLimit, 100);
+    const skip = (page - 1) * limit;
 
-      return res.json(transactions.map(formatTransaction));
+    let query = {};
+    let totalItems;
+    let transactions;
+
+    if (isAdmin && !requestedUserId) {
+      // Admin viewing all transactions
+      [totalItems, transactions] = await Promise.all([
+        Transaction.countDocuments(),
+        Transaction.find()
+          .populate('source_user_id', 'name username')
+          .populate('destination_user_id', 'name username')
+          .sort({ date: -1 })
+          .skip(skip)
+          .limit(limit)
+          .lean()
+      ]);
+    } else {
+      // User viewing their transactions or admin viewing specific user
+      const targetUserId = (isAdmin && requestedUserId) ? requestedUserId : req.user.userId;
+
+      query = {
+        $or: [
+          { source_user_id: targetUserId },
+          { destination_user_id: targetUserId }
+        ]
+      };
+
+      [totalItems, transactions] = await Promise.all([
+        Transaction.countDocuments(query),
+        Transaction.find(query)
+          .populate('source_user_id', 'name username')
+          .populate('destination_user_id', 'name username')
+          .sort({ date: -1 })
+          .skip(skip)
+          .limit(limit)
+          .lean()
+      ]);
     }
 
-    const targetUserId = (isAdmin && requestedUserId) ? requestedUserId : req.user.userId;
+    // Build pagination metadata
+    const totalPages = Math.ceil(totalItems / limit);
+    const pagination = {
+      currentPage: page,
+      totalPages,
+      totalItems,
+      itemsPerPage: limit,
+      hasNextPage: page < totalPages,
+      hasPreviousPage: page > 1
+    };
 
-    const transactions = await Transaction.find({
-      $or: [
-        { source_user_id: targetUserId },
-        { destination_user_id: targetUserId }
-      ]
-    })
-      .populate('source_user_id', 'name username')
-      .populate('destination_user_id', 'name username')
-      .sort({ date: -1 })
-      .limit(50)
-      .lean();
-
-    res.json(transactions.map(formatTransaction));
+    res.json({
+      transactions: transactions.map(formatTransaction),
+      pagination
+    });
   } catch (error) {
     console.error('Transaction error:', error);
     res.status(500).json({ error: 'Internal server error' });

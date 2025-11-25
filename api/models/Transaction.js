@@ -33,4 +33,9 @@ const transactionSchema = new mongoose.Schema({
   timestamps: true
 });
 
+// Add indices for pagination performance
+transactionSchema.index({ date: -1 });
+transactionSchema.index({ source_user_id: 1, date: -1 });
+transactionSchema.index({ destination_user_id: 1, date: -1 });
+
 module.exports = mongoose.model('Transaction', transactionSchema);
