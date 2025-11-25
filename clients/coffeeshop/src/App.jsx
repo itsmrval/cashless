@@ -34,6 +34,9 @@ function App() {
   const [paymentAmount, setPaymentAmount] = useState(0);
   const [newBalanceAmount, setNewBalanceAmount] = useState(0);
   const [showDrinkReadyAnimation, setShowDrinkReadyAnimation] = useState(false);
+  const [showPaymentRejectedAnimation, setShowPaymentRejectedAnimation] = useState(false);
+  const [rejectedAmount, setRejectedAmount] = useState(0);
+  const [rejectedBalance, setRejectedBalance] = useState(0);
 
   useEffect(() => {
     console.log('Connexion au serveur Socket.IO...', API_BASE_URL);
@@ -198,9 +201,15 @@ function App() {
       return;
     }
     if (balance < product.price) {
-      setMessageType('error');
-      setMessage(`Solde insuffisant : ${balance.toFixed(2)}€ disponible | ${product.price.toFixed(2)}€ requis`);
-      setTimeout(() => setMessage(''), 3000);
+      // Afficher l'animation de refus
+      setRejectedAmount(product.price);
+      setRejectedBalance(balance);
+      setShowPaymentRejectedAnimation(true);
+      
+      // Masquer l'animation après 3 secondes
+      setTimeout(() => {
+        setShowPaymentRejectedAnimation(false);
+      }, 3000);
       return;
     }
     console.log('Ouverture du modal de confirmation');
@@ -593,6 +602,49 @@ function App() {
                   <div>
                     <p className="text-sm text-gray-600 mb-1">Nouveau solde</p>
                     <p className="text-2xl font-bold text-gray-900">{newBalanceAmount.toFixed(2)}€</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Animation de paiement refusé */}
+          {showPaymentRejectedAnimation && (
+            <div className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50 p-4">
+              <div className="bg-white rounded-3xl shadow-2xl p-8 max-w-sm w-full animate-slideDown">
+                <div className="text-center">
+                  {/* Icône d'erreur animée */}
+                  <div className="relative mb-6 flex justify-center">
+                    <div className="w-24 h-24 bg-red-100 rounded-full flex items-center justify-center animate-scaleIn">
+                      <svg className="w-16 h-16 text-red-600 animate-shake" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M6 18L18 6M6 6l12 12" />
+                      </svg>
+                    </div>
+                  </div>
+                  
+                  {/* Titre */}
+                  <h2 className="text-2xl font-bold text-gray-900 mb-2">Solde insuffisant</h2>
+                  
+                  {/* Montant requis */}
+                  <div className="mb-4">
+                    <p className="text-3xl font-bold text-red-600 mb-1">{rejectedAmount.toFixed(2)}€</p>
+                    <p className="text-sm text-gray-500">Montant requis</p>
+                  </div>
+                  
+                  {/* Divider */}
+                  <div className="w-full h-px bg-gray-200 my-4"></div>
+                  
+                  {/* Solde disponible */}
+                  <div>
+                    <p className="text-sm text-gray-600 mb-1">Solde disponible</p>
+                    <p className="text-2xl font-bold text-gray-900">{rejectedBalance.toFixed(2)}€</p>
+                  </div>
+                  
+                  {/* Message d'erreur */}
+                  <div className="mt-6 bg-red-50 border-2 border-red-200 rounded-xl p-4">
+                    <p className="text-sm text-red-700 font-medium">
+                      Veuillez recharger votre compte
+                    </p>
                   </div>
                 </div>
               </div>
