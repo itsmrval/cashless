@@ -1,8 +1,8 @@
 ## Cashless system
 
 #### Description
-Ce projet universitaire met en place une infrastructure de paiement électronique à base de cartes à puce.
-L'objectif est de permettre des recharges, paiements et transferts sécurisés entre utilisateurs, bornes et machines connectées.
+This university project is setting up an electronic payment infrastructure based on smart cards.
+The aim is to enable secure top-ups, payments, and transfers between users, terminals, and connected machines.
 
 #### Quick Links
 - [Structure](#structure)
