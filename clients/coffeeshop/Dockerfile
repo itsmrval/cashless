@@ -5,6 +5,7 @@ WORKDIR /app
 COPY package*.json ./
 RUN npm install
 COPY . .
+ENV PUBLIC_URL=/client/coffee
 RUN npm run build
 
 FROM nginx:alpine
