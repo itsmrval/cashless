@@ -160,7 +160,6 @@ def handle_verify_pin(data):
             error_msg = challenge_result.get('error', '')
             logger.error(f"Erreur récupération challenge: {error_msg}")
             
-            # Détecter si la carte est inactive ou bloquée
             if 'not active' in error_msg.lower() or 'inactive' in error_msg.lower():
                 user_error = "Carte inactive ou bloquée. Veuillez contacter un administrateur."
             else:

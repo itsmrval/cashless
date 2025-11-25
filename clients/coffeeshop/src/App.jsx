@@ -119,6 +119,9 @@ function App() {
           
           setTimeout(() => {
             setShowCardErrorAnimation(false);
+            // Rouvrir le modal PIN après la fermeture de l'animation
+            setShowPinModal(true);
+            setPin('');
           }, 4000);
         } else {
           setMessageType('error');
