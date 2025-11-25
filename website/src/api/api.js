@@ -10,7 +10,6 @@ const getCurrentUserId = () => {
 };
 
 export const api = {
-  // Authentication
   login: async (username, password) => {
     const response = await fetch(`${API_BASE_URL}/v1/auth/login`, {
       method: 'POST',
@@ -62,7 +61,6 @@ export const api = {
     return { user, card, token };
   },
 
-  // Card operations
   getAllCards: async () => {
     const response = await fetch(`${API_BASE_URL}/v1/card`, { headers: getAuthHeaders() });
     if (!response.ok) throw new Error('Erreur lors de la récupération des cartes');
@@ -96,7 +94,6 @@ export const api = {
   },
 
   blockCard: async (cardId) => {
-    // Backend supports 'inactive'
     const response = await fetch(`${API_BASE_URL}/v1/card/${cardId}`, {
       method: 'PATCH',
       headers: getAuthHeaders(),
@@ -133,7 +130,6 @@ export const api = {
     if (!response.ok) throw new Error("Erreur lors de la suppression de la carte");
   },
 
-  // User operations
   getAllUsers: async () => {
     const response = await fetch(`${API_BASE_URL}/v1/user`, { headers: getAuthHeaders() });
     if (!response.ok) throw new Error('Erreur lors de la récupération des utilisateurs');
@@ -212,7 +208,6 @@ export const api = {
     return response.json();
   },
 
-  // Transactions
   getTransactions: async (userId = null) => {
     const url = userId
       ? `${API_BASE_URL}/v1/transactions?userId=${userId}`
@@ -248,7 +243,6 @@ export const api = {
     return response.json();
   },
 
-  // Beneficiaries
   getBeneficiaries: async () => {
     const currentUserId = getCurrentUserId();
     if (!currentUserId) throw new Error("Utilisateur non connecté");

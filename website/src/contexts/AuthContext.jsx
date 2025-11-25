@@ -62,13 +62,12 @@ export function AuthProvider({ children }) {
     }
   }, []);
 
-  // Fonction pour récupérer toutes les cartes de l'utilisateur
   const fetchUserCards = async (userId) => {
     try {
       const allCards = await api.getAllCards();
       const candidateIds = new Set();
       if (userId) candidateIds.add(String(userId));
-      
+
       const userCards = allCards.filter(c => {
         if (!c.user_id) return false;
         if (typeof c.user_id === 'string') return candidateIds.has(String(c.user_id));
@@ -78,7 +77,7 @@ export function AuthProvider({ children }) {
         }
         return false;
       });
-      
+
       return userCards;
     } catch (e) {
       console.warn('Could not fetch cards', e);
@@ -86,34 +85,28 @@ export function AuthProvider({ children }) {
     }
   };
 
-  // Fonction de connexion
   const login = async (username, password) => {
     const data = await api.login(username, password);
-    
+
     const normalizedUser = normalizeUser(data.user);
     const userId = normalizedUser?.id || normalizedUser?._id || normalizedUser?.userId;
 
-    // Récupérer toutes les cartes de l'utilisateur
     const userCards = await fetchUserCards(userId);
 
-    // Enregistrer l'état
     setUser(normalizedUser);
     setCards(userCards);
-    
-    // Sélectionner la première carte active ou la première carte
+
     const activeCard = userCards.find(c => c.status === 'active') || userCards[0];
     const selectedCardId = activeCard?._id || null;
     setCurrentCardId(selectedCardId);
 
-    // Sauvegarder en localStorage
     localStorage.setItem('cashless_user', JSON.stringify(normalizedUser));
     localStorage.setItem('cashless_cards', JSON.stringify(userCards));
     localStorage.setItem('cashless_currentCardId', selectedCardId || '');
 
-    // Redirection basée sur le rôle
     const userRole = normalizedUser?.role?.toLowerCase();
     const isUserAdmin = userRole === 'admin' || normalizedUser?.username?.toLowerCase() === 'admin';
-    
+
     if (isUserAdmin) {
       navigate('/admin');
     } else {
@@ -121,7 +114,6 @@ export function AuthProvider({ children }) {
     }
   };
 
-  // Fonction de déconnexion
   const logout = () => {
     setUser(null);
     setCards([]);
@@ -134,16 +126,14 @@ export function AuthProvider({ children }) {
     navigate('/login');
   };
 
-  // Sélectionner une carte
   const selectCard = (cardId) => {
     setCurrentCardId(cardId);
     localStorage.setItem('cashless_currentCardId', cardId || '');
   };
 
-  // Mettre à jour une carte spécifique dans la liste
   const updateCardData = (updatedCard) => {
     setCards(prevCards => {
-      const newCards = prevCards.map(c => 
+      const newCards = prevCards.map(c =>
         c._id === updatedCard._id ? updatedCard : c
       );
       localStorage.setItem('cashless_cards', JSON.stringify(newCards));
@@ -151,16 +141,14 @@ export function AuthProvider({ children }) {
     });
   };
 
-  // Rafraîchir toutes les cartes
   const refreshCards = async () => {
     const userId = user?.id || user?._id || user?.userId;
     if (!userId) return;
-    
+
     const userCards = await fetchUserCards(userId);
     setCards(userCards);
     localStorage.setItem('cashless_cards', JSON.stringify(userCards));
-    
-    // Si la carte courante n'existe plus, sélectionner la première
+
     if (currentCardId && !userCards.find(c => c._id === currentCardId)) {
       const newCurrentId = userCards[0]?._id || null;
       setCurrentCardId(newCurrentId);
@@ -168,18 +156,16 @@ export function AuthProvider({ children }) {
     }
   };
 
-  // Toggle le statut d'une carte (active/inactive)
   const toggleCardStatus = async (cardId) => {
     const targetCard = cards.find(c => c._id === cardId);
     if (!targetCard) return;
-    
+
     const newStatus = targetCard.status === 'active' ? 'inactive' : 'active';
     const updatedCard = await api.updateCard(cardId, { status: newStatus });
     updateCardData(updatedCard);
     return updatedCard;
   };
 
-  // Fonction pour mettre à jour les données utilisateur
   const updateUserData = (newUserData) => {
     const normalizedUser = normalizeUser(newUserData);
     setUser(normalizedUser);
@@ -188,25 +174,21 @@ export function AuthProvider({ children }) {
 
   const value = {
     user,
-    // Support multi-cartes
     cards,
-    card, // Carte courante (pour compatibilité)
+    card,
     currentCardId,
     selectCard,
     refreshCards,
     toggleCardStatus,
-    // Auth state
     isAuthenticated: !!user,
     isAdmin: (user?.role?.toLowerCase() === 'admin') || (user?.username?.toLowerCase() === 'admin'),
     isLoading,
-    // Actions
     login,
     logout,
     updateCardData,
     updateUserData,
   };
 
-  // Ne rend rien tant que l'état initial n'est pas chargé
   if (isLoading) {
     return null;
   }
@@ -214,7 +196,6 @@ export function AuthProvider({ children }) {
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
 
-// 3. Créer un hook personnalisé pour un accès facile
 export const useAuth = () => {
   const context = useContext(AuthContext);
   if (!context) {
