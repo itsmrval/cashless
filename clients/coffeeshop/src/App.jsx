@@ -63,7 +63,7 @@ function App() {
       console.log('Données reçues:', data);
       
       if (data.card_id && data.card_id !== null) {
-        setUser({ name: '', cardId: data.card_id });
+        setUser({ name: `Carte ${data.card_id.substring(0, 8)}`, cardId: data.card_id });
         setBalance(0);
         setPinAttempts(3);
         setIsCardBlocked(false);
