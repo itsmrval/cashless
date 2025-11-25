@@ -266,8 +266,7 @@ def handle_create_transaction(data):
             'new_balance': result['new_balance'],
             'message': 'Transaction effectuée avec succès'
         })
-        
-        logger.info("Client peut maintenant servir le produit")
+    
     else:
         logger.error(f"Erreur transaction: {result.get('error')}")
         emit('transaction_result', {

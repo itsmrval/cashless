@@ -257,9 +257,7 @@ def create_transaction(card_token, card_id, amount, merchant_name):
             'destination_user_id': DEST_ID,
             'operation': int(amount * 100)
         }
-        
-        logger.info(f"Demande - Montant: {amount}€")
-        
+                
         response = requests.post(url, json=data, headers=headers, timeout=5)
                 
         if response.status_code == 201:
