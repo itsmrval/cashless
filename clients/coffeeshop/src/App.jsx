@@ -671,31 +671,34 @@ function App() {
           {/* Animation d'erreur de carte (inactive/bloquée) */}
           {showCardErrorAnimation && (
             <div className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50 p-4">
-              <div className="bg-white rounded-3xl shadow-2xl p-8 max-w-sm w-full animate-slideDown">
+              <div className="bg-white border-3 border-black rounded-2xl shadow-2xl p-8 max-w-md w-full animate-slideDown">
                 <div className="text-center">
                   {/* Icône d'alerte animée */}
                   <div className="relative mb-6 flex justify-center">
-                    <div className="w-24 h-24 bg-orange-100 rounded-full flex items-center justify-center animate-scaleIn">
-                      <svg className="w-16 h-16 text-orange-600 animate-shake" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                    <div className="bg-gradient-to-br from-gray-100 to-gray-200 p-8 rounded-2xl inline-block">
+                      <svg className="w-16 h-16 text-gray-900" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
                       </svg>
                     </div>
                   </div>
                   
                   {/* Titre */}
-                  <h2 className="text-2xl font-bold text-gray-900 mb-4">Carte inactive</h2>
+                  <h2 className="text-3xl font-bold text-gray-900 mb-6">Carte inactive</h2>
                   
                   {/* Message d'erreur */}
-                  <div className="bg-orange-50 border-2 border-orange-200 rounded-xl p-4 mb-4">
-                    <p className="text-sm text-orange-700 font-medium">
-                      Cette carte n'est pas autorisé a s'authentifié
+                  <div className="bg-gradient-to-br from-gray-50 to-gray-100 border-3 border-black rounded-xl p-6 mb-6">
+                    <p className="text-gray-900 font-semibold text-lg mb-2">
+                      Authentification refusée
+                    </p>
+                    <p className="text-gray-700">
+                      Cette carte n'est pas autorisée à s'authentifier
                     </p>
                   </div>
                   
                   {/* Instructions */}
-                  <div className="bg-gray-50 border-2 border-gray-200 rounded-xl p-4">
-                    <p className="text-sm text-gray-700">
-                      Consultez votre espace client pour activer votre carte
+                  <div className="bg-white border-2 border-gray-300 rounded-xl p-5">
+                    <p className="text-gray-800 font-medium">
+                      📱 Consultez votre espace client pour activer votre carte
                     </p>
                   </div>
                 </div>
