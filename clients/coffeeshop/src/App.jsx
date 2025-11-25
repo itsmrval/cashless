@@ -158,8 +158,22 @@ function App() {
         
         // Afficher l'animation de refus de paiement pour toutes les erreurs de transaction
         // En particulier pour solde insuffisant au moment du paiement
-        setRejectedAmount(paymentAmount); // Utiliser le montant de la transaction qui a échoué
-        setRejectedBalance(balance);
+        // Utiliser setRejectedAmount avec une fonction pour obtenir la valeur actuelle
+        setRejectedAmount(prev => {
+          // Obtenir le montant du paiement actuel
+          setPaymentAmount(current => {
+            setRejectedAmount(current);
+            return current;
+          });
+          return prev;
+        });
+        
+        // Utiliser setRejectedBalance avec une fonction pour obtenir la valeur actuelle
+        setBalance(currentBalance => {
+          setRejectedBalance(currentBalance);
+          return currentBalance;
+        });
+        
         setShowPaymentRejectedAnimation(true);
         
         // Masquer l'animation de paiement en cours si elle est affichée
