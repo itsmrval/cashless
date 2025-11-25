@@ -12,9 +12,9 @@ MAX_PIN_ATTEMPTS = 3
 CMD_READ_CARD_ID = [0x80, 0x01, 0x00, 0x00, SIZE_CARD_ID]
 CMD_READ_VERSION = [0x80, 0x02, 0x00, 0x00, 0x01]
 CMD_VERIFY_PIN = [0x80, 0x06, 0x00, 0x00, SIZE_PIN]  # INS = 0x06 pour verify_pin
-CMD_SIGN_CHALLENGE = [0x80, 0x08, 0x00, 0x00]  # INS = 0x08 pour sign_challenge
+CMD_SET_CHALLENGE = [0x80, 0x0C, 0x00, 0x00, 0x04]  # INS = 0x0C pour set_challenge
+CMD_SIGN_CHALLENGE = [0x80, 0x0B, 0x00, 0x00, 0x00]  # INS = 0x0B pour sign_challenge (Le=0 signifie taille max)
 SIZE_CHALLENGE = 4
-SIZE_SIGNATURE = 4
 
 
 def wait_for_reader():    
@@ -156,6 +156,9 @@ def verify_pin(connection, pin):
 def sign_challenge(connection, challenge_hex):
     """
     Demande à la carte de signer un challenge.
+    Processus en 2 étapes:
+    1. SET_CHALLENGE: Définir le challenge à signer
+    2. SIGN_CHALLENGE: Récupérer la signature
     
     Args:
         connection: La connexion à la carte
@@ -174,19 +177,47 @@ def sign_challenge(connection, challenge_hex):
         
         challenge_bytes = bytes.fromhex(challenge_hex)
         
-        # Construire la commande: CMD_SIGN_CHALLENGE + Lc (4) + challenge (4 bytes) + Le (4)
-        cmd = CMD_SIGN_CHALLENGE + [SIZE_CHALLENGE] + list(challenge_bytes) + [SIZE_SIGNATURE]
+        # Étape 1: Définir le challenge (SET_CHALLENGE)
+        cmd_set = CMD_SET_CHALLENGE + list(challenge_bytes)
         
-        print(f"DEBUG: Envoi sign_challenge - Challenge hex: {challenge_hex} -> CMD: {cmd}")
+        print(f"DEBUG: Envoi SET_CHALLENGE - Challenge hex: {challenge_hex} -> CMD: {cmd_set}")
         
-        data, sw1, sw2 = connection.transmit(cmd)
+        data, sw1, sw2 = connection.transmit(cmd_set)
         
-        print(f"DEBUG: Réponse sign - SW1: {hex(sw1)}, SW2: {hex(sw2)}, Data length: {len(data)}, Data: {data}")
+        print(f"DEBUG: Réponse SET_CHALLENGE - SW1: {hex(sw1)}, SW2: {hex(sw2)}")
+        
+        if sw1 != 0x90 or sw2 != 0x00:
+            return {
+                'success': False,
+                'error': f'SET_CHALLENGE failed: SW1={hex(sw1)}, SW2={hex(sw2)}'
+            }
+        
+        # Étape 2: Récupérer la signature (SIGN_CHALLENGE)
+        # Le dernier byte indique la taille attendue de la réponse
+        # On utilise 0x00 pour demander la taille maximale disponible
+        cmd_sign = CMD_SIGN_CHALLENGE
+        
+        print(f"DEBUG: Envoi SIGN_CHALLENGE -> CMD: {cmd_sign}")
+        
+        data, sw1, sw2 = connection.transmit(cmd_sign)
+        
+        print(f"DEBUG: Réponse SIGN_CHALLENGE - SW1: {hex(sw1)}, SW2: {hex(sw2)}, Data length: {len(data)}")
+        
+        # Si SW1=0x6C, cela indique la taille attendue dans SW2
+        if sw1 == 0x6C:
+            expected_size = sw2
+            print(f"DEBUG: La carte indique une taille attendue de {expected_size} bytes, réessai...")
+            
+            # Refaire la commande avec la bonne taille
+            cmd_sign_with_size = [0x80, 0x0B, 0x00, 0x00, expected_size]
+            data, sw1, sw2 = connection.transmit(cmd_sign_with_size)
+            
+            print(f"DEBUG: Réponse SIGN_CHALLENGE (retry) - SW1: {hex(sw1)}, SW2: {hex(sw2)}, Data length: {len(data)}")
         
         if sw1 == 0x90 and sw2 == 0x00:
-            if len(data) == SIZE_SIGNATURE:
+            if len(data) > 0:
                 signature = bytes(data)
-                print(f"DEBUG: Signature reçue: {signature.hex()}")
+                print(f"DEBUG: Signature reçue ({len(signature)} bytes): {signature.hex()}")
                 return {
                     'success': True,
                     'signature': signature
@@ -194,13 +225,13 @@ def sign_challenge(connection, challenge_hex):
             else:
                 return {
                     'success': False,
-                    'error': f'Invalid signature length: expected {SIZE_SIGNATURE}, got {len(data)}'
+                    'error': 'Empty signature received'
                 }
         
         else:
             return {
                 'success': False,
-                'error': f'Sign failed: SW1={hex(sw1)}, SW2={hex(sw2)}'
+                'error': f'SIGN_CHALLENGE failed: SW1={hex(sw1)}, SW2={hex(sw2)}'
             }
             
     except Exception as e:
