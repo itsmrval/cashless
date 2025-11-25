@@ -223,9 +223,7 @@ def get_user_balance(card_token, card_id):
         balance_data = balance_response.json()
         balance_centimes = balance_data.get('balance', 0)
         balance = float(balance_centimes) / 100.0
-        
-        print(f"DEBUG get_user_balance: Balance : {balance}€")
-        
+                
         return {
             'success': True,
             'balance': balance
@@ -257,23 +255,17 @@ def create_transaction(card_token, card_id, amount, merchant_name):
             'operation': int(amount * 100)  # Montant positif en centimes
         }
         
-        print(f"DEBUG: Création transaction - Montant: {amount}€, Destination: {DEST_ID}")
-        print(f"DEBUG: Données envoyées: {data}")
+        logger.info(f"Demande - Montant: {amount}€")
         
         response = requests.post(url, json=data, headers=headers, timeout=5)
-        
-        print(f"DEBUG: Réponse brute: {response.text}")
-        
+                
         if response.status_code == 201:
             transaction_data = response.json()
-            print(f"DEBUG: Transaction créée avec succès")
             
-            print(f"DEBUG: Récupération du nouveau solde depuis l'API...")
             balance_result = get_user_balance(card_token, card_id)
             
             if balance_result['success']:
                 new_balance = balance_result['balance']
-                print(f"DEBUG: Nouveau solde récupéré: {new_balance}€")
             else:
                 print(f"DEBUG: ERREUR - Impossible de récupérer le solde: {balance_result.get('error')}")
                 return {

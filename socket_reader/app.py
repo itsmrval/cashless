@@ -188,7 +188,6 @@ def handle_verify_pin(data):
             current_card_token = auth_result['token']
             logger.info(f"Authentification API réussie")
             
-            # 4. Récupérer les informations utilisateur
             user_result = fetch_user_by_card(current_card_id, current_card_token)
             
             if user_result['success']:
@@ -258,15 +257,9 @@ def handle_create_transaction(data):
         logger.warning(f"Montant invalide reçu: {amount}")
         return
     
-    # Créer la transaction et attendre la confirmation (200/201) de l'API
     result = create_transaction(current_card_token, current_card_id, amount, merchant)
     
     if result['success']:
-        # Transaction confirmée par l'API (200 OK), le nouveau solde a été récupéré
-        logger.info(f"Transaction confirmée par l'API - Nouveau solde: {result['new_balance']}€")
-        logger.info(f"Transaction ID: {result.get('transaction_id')}")
-        
-        # Envoyer la confirmation au client avec le nouveau solde
         emit('transaction_result', {
             'success': True,
             'transaction_id': result.get('transaction_id'),
