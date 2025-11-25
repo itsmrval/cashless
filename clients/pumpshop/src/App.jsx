@@ -6,7 +6,7 @@ import io from 'socket.io-client';
 const SOCKET_URL = process.env.REACT_APP_SOCKET_URL ;
 
 // Mode démo - mettre à true pour simuler sans lecteur de carte
-const DEMO_MODE = true;
+const DEMO_MODE = false;
 const DEMO_PIN = '1234';
 const DEMO_BALANCE = 150.00;
 
