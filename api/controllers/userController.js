@@ -24,7 +24,10 @@ const login = async (req, res) => {
     if (card && card.status === 'blocked') {
       return res.status(403).json({ error: 'Carte bloquée, connexion impossible.' });
     }
-    res.json({ user, card });
+
+    const userResponse = user.toObject();
+    delete userResponse.password;
+    res.json({ user: userResponse, card });
   } catch (error) {
     res.status(400).json({ error: error.message });
   }
@@ -40,7 +43,7 @@ const getAllUsers = async (req, res) => {
       return res.status(403).json({ error: 'Admin access required' });
     }
 
-    const users = await User.find();
+    const users = await User.find().select('-password');
     res.json(users);
   } catch (error) {
     res.status(400).json({ error: error.message });
@@ -49,7 +52,7 @@ const getAllUsers = async (req, res) => {
 
 const getUserByCardId = async (req, res) => {
   try {
-    const card = await Card.findById(req.query.card_id).populate('user_id');
+    const card = await Card.findById(req.query.card_id).populate('user_id', '-password');
     if (!card) {
       return res.status(404).json({ error: 'Card not found' });
     }
@@ -80,7 +83,7 @@ const getUser = async (req, res) => {
       return res.status(403).json({ error: 'Access denied' });
     }
 
-    const user = await User.findById(req.params.id);
+    const user = await User.findById(req.params.id).select('-password');
     if (!user) {
       return res.status(404).json({ error: 'User not found' });
     }
@@ -100,7 +103,9 @@ const createUser = async (req, res) => {
 
     const user = new User({ name, username, password });
     await user.save();
-    res.status(201).json(user);
+    const userResponse = user.toObject();
+    delete userResponse.password;
+    res.status(201).json(userResponse);
   } catch (error) {
     if (error.code === 11000) {
       return res.status(400).json({ error: 'Username already exists' });
@@ -133,7 +138,9 @@ const updateUser = async (req, res) => {
     if (req.body.password) user.password = req.body.password;
 
     await user.save();
-    res.json(user);
+    const userResponse = user.toObject();
+    delete userResponse.password;
+    res.json(userResponse);
   } catch (error) {
     res.status(400).json({ error: error.message });
   }
