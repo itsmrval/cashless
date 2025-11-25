@@ -14,7 +14,7 @@ uint8_t pin_verified = 0;
 #define SIZE_ATR 8
 const char atr_str[SIZE_ATR] PROGMEM = "cashless";
 
-#define CARD_VERSION 1
+#define CARD_VERSION 110
 #define SIZE_CARD_ID 24
 #define SIZE_PIN 4
 #define SIZE_PUK 4

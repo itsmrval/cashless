@@ -2,7 +2,7 @@
 #include <stdio.h>
 #include <string.h>
 
-#define VERSION "0.0.1"
+#define VERSION "1.0.0"
 
 static void clear_screen()
 {
@@ -20,7 +20,7 @@ void print_ui(const char *status, unsigned char version, const char *card_id, co
         } else {
             printf("\n");
         }
-        printf("- version v0.0.%d, id %s\n", version, card_id);
+        printf("- version v%d.%d.%d, id %s\n", version / 100, (version % 100) / 10, version % 10, card_id);
         printf("\n%s\n", status);
     } else {
         printf("\n%s\n", status);
