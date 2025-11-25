@@ -7,7 +7,7 @@ import threading
 import time
 import logging
 import sys
-from card_reader import wait_for_reader, check_card_present, read_card_id, is_card_still_present, verify_pin, sign_challenge, check_pin_defined
+from card_reader import wait_for_reader, check_card_present, read_card_id, read_version, is_card_still_present, verify_pin, sign_challenge, check_pin_defined
 import api
 from api import get_challenge, card_auth_with_signature, fetch_user_by_card, create_transaction
 import ssl

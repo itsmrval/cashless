@@ -270,7 +270,7 @@ void is_pin_defined()
 {
     int i;
     uint8_t pin_byte;
-    uint8_t all_default = 1;
+    uint8_t all_ff = 1;
 
     if (p3 != 1) {
         sw1 = 0x6c;
@@ -283,13 +283,13 @@ void is_pin_defined()
     for (i = 0; i < SIZE_PIN; i++) {
         pin_byte = eeprom_read_byte((uint8_t*)(EEPROM_PIN_ADDR + i));
 
-        if (pin_byte != 0xFF && pin_byte != 0x00) {
-            all_default = 0;
+        if (pin_byte != 0xFF) {
+            all_ff = 0;
             break;
         }
     }
 
-    if (all_default) {
+    if (all_ff) {
         sendbytet0(0x00);
     } else {
         sendbytet0(0x01);
