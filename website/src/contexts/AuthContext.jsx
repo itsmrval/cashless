@@ -40,7 +40,7 @@ export function AuthProvider({ children }) {
         const normalizedUser = normalizeUser(parsedUser);
         setUser(normalizedUser);
         localStorage.setItem('cashless_user', JSON.stringify(normalizedUser));
-        
+
         if (storedCards && storedCards !== 'undefined') {
           const parsedCards = JSON.parse(storedCards);
           setCards(Array.isArray(parsedCards) ? parsedCards : []);
@@ -61,6 +61,31 @@ export function AuthProvider({ children }) {
       setIsLoading(false);
     }
   }, []);
+
+  useEffect(() => {
+    if (!user) return;
+
+    const userId = user?.id || user?._id || user?.userId;
+    if (!userId) return;
+
+    const pollInterval = setInterval(async () => {
+      try {
+        const userCards = await fetchUserCards(userId);
+        setCards(userCards);
+        localStorage.setItem('cashless_cards', JSON.stringify(userCards));
+
+        if (currentCardId && !userCards.find(c => c._id === currentCardId)) {
+          const newCurrentId = userCards[0]?._id || null;
+          setCurrentCardId(newCurrentId);
+          localStorage.setItem('cashless_currentCardId', newCurrentId || '');
+        }
+      } catch (error) {
+        console.error('Error polling cards:', error);
+      }
+    }, 30000);
+
+    return () => clearInterval(pollInterval);
+  }, [user, currentCardId]);
 
   const fetchUserCards = async (userId) => {
     try {

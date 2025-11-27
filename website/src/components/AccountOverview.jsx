@@ -2,16 +2,14 @@ import React from 'react';
 import { User, ShieldCheck, Loader2 } from 'lucide-react';
 import CardList from './cards/CardList';
 
-function AccountOverview({ 
-  cards = [], 
-  currentCardId, 
-  onSelectCard, 
+function AccountOverview({
+  cards = [],
+  currentCardId,
+  onSelectCard,
   onToggleStatus,
-  onRefresh,
-  refreshing = false,
-  userData, 
+  userData,
   balance = 0,
-  loading 
+  loading
 }) {
   const currentCard = cards.find(c => c._id === currentCardId) || cards[0] || null;
 
@@ -32,8 +30,6 @@ function AccountOverview({
         currentCardId={currentCardId}
         onSelectCard={onSelectCard}
         onToggleStatus={onToggleStatus}
-        onRefresh={onRefresh}
-        refreshing={refreshing}
         userName={userData?.name}
         balance={balance}
       />

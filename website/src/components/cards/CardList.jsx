@@ -1,14 +1,12 @@
 import React, { useState } from 'react';
-import { RefreshCw, Loader2, ChevronDown, ChevronUp, CreditCard } from 'lucide-react';
+import { ChevronDown, ChevronUp, CreditCard } from 'lucide-react';
 import CardItem, { NoCardPlaceholder } from './CardItem';
 
-function CardList({ 
-  cards = [], 
+function CardList({
+  cards = [],
   currentCardId,
   onSelectCard,
   userName,
-  onRefresh,
-  refreshing = false,
   showBalance = true,
   balance = 0
 }) {
@@ -45,20 +43,6 @@ function CardList({
             <CreditCard className="w-5 h-5 text-slate-400" />
             Ma carte
           </h3>
-          {onRefresh && (
-            <button
-              onClick={onRefresh}
-              disabled={refreshing}
-              className="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-lg transition-all disabled:opacity-50"
-              aria-label="Actualiser"
-            >
-              {refreshing ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
-              ) : (
-                <RefreshCw className="h-4 w-4" />
-              )}
-            </button>
-          )}
         </div>
         
         {/* Placeholder centré */}
@@ -92,20 +76,6 @@ function CardList({
           <CreditCard className="w-5 h-5 text-slate-400" />
           {expanded ? 'Toutes les cartes' : (cards.length > 1 ? 'Carte sélectionnée' : 'Ma carte')}
         </h3>
-        {onRefresh && (
-          <button
-            onClick={onRefresh}
-            disabled={refreshing}
-            className="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-lg transition-all disabled:opacity-50"
-            aria-label="Actualiser"
-          >
-            {refreshing ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
-            ) : (
-              <RefreshCw className="h-4 w-4" />
-            )}
-          </button>
-        )}
       </div>
 
       {/* Mode non-étendu : carte principale + aperçu empilé */}

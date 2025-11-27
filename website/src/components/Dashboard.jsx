@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import AccountOverview from './AccountOverview';
@@ -12,16 +12,15 @@ import { api } from '../api/api';
 function Dashboard() {
   const navigate = useNavigate();
   const location = useLocation();
-  const { 
-    user, 
-    cards, 
-    card, 
-    currentCardId, 
-    selectCard, 
+  const {
+    user,
+    cards,
+    card,
+    currentCardId,
+    selectCard,
     toggleCardStatus,
-    updateCardData, 
-    updateUserData,
-    refreshCards 
+    updateCardData,
+    updateUserData
   } = useAuth();
 
   const getTabFromPath = (pathname) => {
@@ -34,7 +33,6 @@ function Dashboard() {
   const [balance, setBalance] = useState(0);
   const [transactions, setTransactions] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
 
   const userId = user?.id || user?._id || user?.userId || null;
 
@@ -94,16 +92,6 @@ function Dashboard() {
     }
   };
 
-  // Handler pour rafraîchir les cartes manuellement
-  const handleRefreshCards = useCallback(async () => {
-    setRefreshing(true);
-    try {
-      await refreshCards?.();
-    } finally {
-      setRefreshing(false);
-    }
-  }, [refreshCards]);
-
   return (
     <MainLayout
       activeTab={activeTab}
@@ -115,8 +103,6 @@ function Dashboard() {
           currentCardId={currentCardId}
           onSelectCard={selectCard}
           onToggleStatus={handleToggleCardStatus}
-          onRefresh={handleRefreshCards}
-          refreshing={refreshing}
           userData={user}
           balance={balance}
           loading={loading}
@@ -141,8 +127,6 @@ function Dashboard() {
           onToggleStatus={handleToggleCardStatus}
           userData={user}
           onCardUpdate={updateCardData}
-          onRefreshCards={handleRefreshCards}
-          refreshing={refreshing}
         />
       )}
       {activeTab === 'settings' && (

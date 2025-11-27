@@ -9,6 +9,26 @@ const getCurrentUserId = () => {
   return localStorage.getItem('cashless_user_id');
 };
 
+const handleUnauthorized = () => {
+  localStorage.removeItem('cashless_token');
+  localStorage.removeItem('cashless_user');
+  localStorage.removeItem('cashless_cards');
+  localStorage.removeItem('cashless_currentCardId');
+  localStorage.removeItem('cashless_user_id');
+  window.location.href = '/login';
+};
+
+const fetchWithAuth = async (url, options = {}) => {
+  const response = await fetch(url, options);
+
+  if (response.status === 401) {
+    handleUnauthorized();
+    throw new Error('Session expirée. Veuillez vous reconnecter.');
+  }
+
+  return response;
+};
+
 export const api = {
   login: async (username, password) => {
     const response = await fetch(`${API_BASE_URL}/v1/auth/login`, {
@@ -62,19 +82,19 @@ export const api = {
   },
 
   getAllCards: async () => {
-    const response = await fetch(`${API_BASE_URL}/v1/card`, { headers: getAuthHeaders() });
+    const response = await fetchWithAuth(`${API_BASE_URL}/v1/card`, { headers: getAuthHeaders() });
     if (!response.ok) throw new Error('Erreur lors de la récupération des cartes');
     return response.json();
   },
 
   getCard: async (cardId) => {
-    const response = await fetch(`${API_BASE_URL}/v1/card/${cardId}`, { headers: getAuthHeaders() });
+    const response = await fetchWithAuth(`${API_BASE_URL}/v1/card/${cardId}`, { headers: getAuthHeaders() });
     if (!response.ok) throw new Error('Erreur lors de la récupération de la carte');
     return response.json();
   },
 
   createCard: async (cardData) => {
-    const response = await fetch(`${API_BASE_URL}/v1/card`, {
+    const response = await fetchWithAuth(`${API_BASE_URL}/v1/card`, {
       method: 'POST',
       headers: getAuthHeaders(),
       body: JSON.stringify(cardData)
@@ -84,7 +104,7 @@ export const api = {
   },
 
   updateCard: async (cardId, updates) => {
-    const response = await fetch(`${API_BASE_URL}/v1/card/${cardId}`, {
+    const response = await fetchWithAuth(`${API_BASE_URL}/v1/card/${cardId}`, {
       method: 'PATCH',
       headers: getAuthHeaders(),
       body: JSON.stringify(updates)
@@ -94,7 +114,7 @@ export const api = {
   },
 
   blockCard: async (cardId) => {
-    const response = await fetch(`${API_BASE_URL}/v1/card/${cardId}`, {
+    const response = await fetchWithAuth(`${API_BASE_URL}/v1/card/${cardId}`, {
       method: 'PATCH',
       headers: getAuthHeaders(),
       body: JSON.stringify({ status: 'inactive' })
@@ -104,7 +124,7 @@ export const api = {
   },
 
   assignCard: async (cardId, userId) => {
-    const response = await fetch(`${API_BASE_URL}/v1/card/${cardId}/assign`, {
+    const response = await fetchWithAuth(`${API_BASE_URL}/v1/card/${cardId}/assign`, {
       method: 'POST',
       headers: getAuthHeaders(),
       body: JSON.stringify({ user_id: userId })
@@ -114,7 +134,7 @@ export const api = {
   },
 
   unassignCard: async (cardId) => {
-    const response = await fetch(`${API_BASE_URL}/v1/card/${cardId}/assign`, {
+    const response = await fetchWithAuth(`${API_BASE_URL}/v1/card/${cardId}/assign`, {
       method: 'DELETE',
       headers: getAuthHeaders()
     });
@@ -123,7 +143,7 @@ export const api = {
   },
 
   deleteCard: async (cardId) => {
-    const response = await fetch(`${API_BASE_URL}/v1/card/${cardId}`, {
+    const response = await fetchWithAuth(`${API_BASE_URL}/v1/card/${cardId}`, {
       method: 'DELETE',
       headers: getAuthHeaders()
     });
@@ -131,19 +151,19 @@ export const api = {
   },
 
   getAllUsers: async () => {
-    const response = await fetch(`${API_BASE_URL}/v1/user`, { headers: getAuthHeaders() });
+    const response = await fetchWithAuth(`${API_BASE_URL}/v1/user`, { headers: getAuthHeaders() });
     if (!response.ok) throw new Error('Erreur lors de la récupération des utilisateurs');
     return response.json();
   },
 
   getUser: async (userId) => {
-    const response = await fetch(`${API_BASE_URL}/v1/user/${userId}`, { headers: getAuthHeaders() });
+    const response = await fetchWithAuth(`${API_BASE_URL}/v1/user/${userId}`, { headers: getAuthHeaders() });
     if (!response.ok) throw new Error("Erreur lors de la récupération de l'utilisateur");
     return response.json();
   },
 
   createUser: async (userData) => {
-    const response = await fetch(`${API_BASE_URL}/v1/user`, {
+    const response = await fetchWithAuth(`${API_BASE_URL}/v1/user`, {
       method: 'POST',
       headers: getAuthHeaders(),
       body: JSON.stringify(userData)
@@ -153,7 +173,7 @@ export const api = {
   },
 
   updateUser: async (userId, updates) => {
-    const response = await fetch(`${API_BASE_URL}/v1/user/${userId}`, {
+    const response = await fetchWithAuth(`${API_BASE_URL}/v1/user/${userId}`, {
       method: 'PATCH',
       headers: getAuthHeaders(),
       body: JSON.stringify(updates)
@@ -163,7 +183,7 @@ export const api = {
   },
 
   updatePassword: async (userId, currentPassword, newPassword) => {
-    const response = await fetch(`${API_BASE_URL}/v1/user/${userId}/password`, {
+    const response = await fetchWithAuth(`${API_BASE_URL}/v1/user/${userId}/password`, {
       method: 'POST',
       headers: getAuthHeaders(),
       body: JSON.stringify({ currentPassword, newPassword })
@@ -176,7 +196,7 @@ export const api = {
   },
 
   adminResetPassword: async (userId, newPassword) => {
-    const response = await fetch(`${API_BASE_URL}/v1/user/${userId}/reset-password`, {
+    const response = await fetchWithAuth(`${API_BASE_URL}/v1/user/${userId}/reset-password`, {
       method: 'POST',
       headers: getAuthHeaders(),
       body: JSON.stringify({ newPassword })
@@ -189,7 +209,7 @@ export const api = {
   },
 
   deleteUser: async (userId) => {
-    const response = await fetch(`${API_BASE_URL}/v1/user/${userId}`, {
+    const response = await fetchWithAuth(`${API_BASE_URL}/v1/user/${userId}`, {
       method: 'DELETE',
       headers: getAuthHeaders()
     });
@@ -197,13 +217,13 @@ export const api = {
   },
 
   getUserByCardId: async (cardId) => {
-    const response = await fetch(`${API_BASE_URL}/v1/user?card_id=${cardId}`, { headers: getAuthHeaders() });
+    const response = await fetchWithAuth(`${API_BASE_URL}/v1/user?card_id=${cardId}`, { headers: getAuthHeaders() });
     if (!response.ok) throw new Error('Utilisateur non trouvé');
     return response.json();
   },
 
   getUserBalance: async (userId) => {
-    const response = await fetch(`${API_BASE_URL}/v1/user/${userId}/balance`, { headers: getAuthHeaders() });
+    const response = await fetchWithAuth(`${API_BASE_URL}/v1/user/${userId}/balance`, { headers: getAuthHeaders() });
     if (!response.ok) throw new Error("Erreur lors de la récupération du solde");
     return response.json();
   },
@@ -215,13 +235,13 @@ export const api = {
     if (limit) params.append('limit', limit);
 
     const url = `${API_BASE_URL}/v1/transactions?${params.toString()}`;
-    const response = await fetch(url, { headers: getAuthHeaders() });
+    const response = await fetchWithAuth(url, { headers: getAuthHeaders() });
     if (!response.ok) throw new Error("Erreur lors de la récupération des transactions");
     return response.json(); // Returns { transactions, pagination }
   },
 
   createTransaction: async (transactionData) => {
-    const response = await fetch(`${API_BASE_URL}/v1/transactions`, {
+    const response = await fetchWithAuth(`${API_BASE_URL}/v1/transactions`, {
       method: 'POST',
       headers: getAuthHeaders(),
       body: JSON.stringify(transactionData)
@@ -234,7 +254,7 @@ export const api = {
   },
 
   updateTransactionComment: async (transactionId, comment) => {
-    const response = await fetch(`${API_BASE_URL}/v1/transactions/${transactionId}/comment`, {
+    const response = await fetchWithAuth(`${API_BASE_URL}/v1/transactions/${transactionId}/comment`, {
       method: 'PATCH',
       headers: getAuthHeaders(),
       body: JSON.stringify({ comment })
@@ -249,7 +269,7 @@ export const api = {
   getBeneficiaries: async () => {
     const currentUserId = getCurrentUserId();
     if (!currentUserId) throw new Error("Utilisateur non connecté");
-    const response = await fetch(`${API_BASE_URL}/v1/user/${currentUserId}/beneficiaries`, { headers: getAuthHeaders() });
+    const response = await fetchWithAuth(`${API_BASE_URL}/v1/user/${currentUserId}/beneficiaries`, { headers: getAuthHeaders() });
     if (!response.ok) {
       const error = await response.json();
       throw new Error(error.error || "Erreur lors de la récupération des bénéficiaires");
@@ -260,7 +280,7 @@ export const api = {
   addBeneficiary: async (userId, comment = '') => {
     const currentUserId = getCurrentUserId();
     if (!currentUserId) throw new Error("Utilisateur non connecté");
-    const response = await fetch(`${API_BASE_URL}/v1/user/${currentUserId}/beneficiaries`, {
+    const response = await fetchWithAuth(`${API_BASE_URL}/v1/user/${currentUserId}/beneficiaries`, {
       method: 'POST',
       headers: getAuthHeaders(),
       body: JSON.stringify({ user_id: userId, comment })
@@ -275,7 +295,7 @@ export const api = {
   updateBeneficiaryComment: async (userId, comment) => {
     const currentUserId = getCurrentUserId();
     if (!currentUserId) throw new Error("Utilisateur non connecté");
-    const response = await fetch(`${API_BASE_URL}/v1/user/${currentUserId}/beneficiaries/${userId}`, {
+    const response = await fetchWithAuth(`${API_BASE_URL}/v1/user/${currentUserId}/beneficiaries/${userId}`, {
       method: 'PATCH',
       headers: getAuthHeaders(),
       body: JSON.stringify({ comment })
@@ -290,7 +310,7 @@ export const api = {
   removeBeneficiary: async (userId) => {
     const currentUserId = getCurrentUserId();
     if (!currentUserId) throw new Error("Utilisateur non connecté");
-    const response = await fetch(`${API_BASE_URL}/v1/user/${currentUserId}/beneficiaries/${userId}`, {
+    const response = await fetchWithAuth(`${API_BASE_URL}/v1/user/${currentUserId}/beneficiaries/${userId}`, {
       method: 'DELETE',
       headers: getAuthHeaders()
     });

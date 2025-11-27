@@ -1,7 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { api } from '../api/api';
 import {
-  RefreshCw,
   Loader2,
   AlertCircle,
   CheckCircle,
@@ -24,15 +23,13 @@ const formatDate = (dateString) => {
   });
 };
 
-function CardManagement({ 
-  cards = [], 
-  currentCardId, 
-  onSelectCard, 
+function CardManagement({
+  cards = [],
+  currentCardId,
+  onSelectCard,
   onToggleStatus,
-  userData, 
-  onCardUpdate,
-  onRefreshCards,
-  refreshing = false
+  userData,
+  onCardUpdate
 }) {
   const [loading, setLoading] = useState(false);
   const [actionType, setActionType] = useState(null);
@@ -89,23 +86,6 @@ function CardManagement({
     }
   };
 
-  const handleRefresh = async () => {
-    setLoading(true);
-    setActionType('refresh');
-    clearMessages();
-    
-    try {
-      await onRefreshCards?.();
-      setSuccess('Informations des cartes mises à jour.');
-      setTimeout(() => setSuccess(''), 3000);
-    } catch (err) {
-      setError(err.message || 'Impossible de rafraîchir les données.');
-    } finally {
-      setLoading(false);
-      setActionType(null);
-    }
-  };
-
   // Si pas de cartes
   if (!cards || cards.length === 0) {
     return (
@@ -115,24 +95,11 @@ function CardManagement({
             <h2 className="text-2xl sm:text-3xl font-bold text-slate-900">Gestion des cartes</h2>
             <p className="text-base text-slate-500 mt-1">Gérez vos cartes et leur sécurité.</p>
           </div>
-          <button
-            onClick={handleRefresh}
-            disabled={loading || refreshing}
-            className="p-2 text-slate-500 bg-white border border-slate-200 rounded-lg shadow-sm hover:bg-slate-50 hover:text-slate-700 disabled:opacity-50 transition-all"
-            aria-label="Actualiser les informations"
-          >
-            {(loading && actionType === 'refresh') || refreshing ? (
-              <Loader2 className="h-5 w-5 animate-spin" />
-            ) : (
-              <RefreshCw className="h-5 w-5" />
-            )}
-          </button>
         </div>
 
         <CardList
           cards={[]}
           userName={userData?.name}
-          refreshing={refreshing}
           showBalance={false}
         />
       </div>
@@ -147,25 +114,11 @@ function CardManagement({
         <div>
           <h2 className="text-2xl sm:text-3xl font-bold text-slate-900">Gestion des cartes</h2>
           <p className="text-base text-slate-500 mt-1">
-            {cards.length > 1 
+            {cards.length > 1
               ? `Vous avez ${cards.length} cartes. Sélectionnez une carte pour la gérer.`
               : 'Gérez les informations et la sécurité de votre carte.'
             }
           </p>
-        </div>
-        <div className="flex items-center gap-3 flex-shrink-0">
-          <button
-            onClick={handleRefresh}
-            disabled={loading || refreshing}
-            className="p-2 text-slate-500 bg-white border border-slate-200 rounded-lg shadow-sm hover:bg-slate-50 hover:text-slate-700 disabled:opacity-50 transition-all"
-            aria-label="Actualiser les informations"
-          >
-            {(loading && actionType === 'refresh') || refreshing ? (
-              <Loader2 className="h-5 w-5 animate-spin" />
-            ) : (
-              <RefreshCw className="h-5 w-5" />
-            )}
-          </button>
         </div>
       </div>
 
