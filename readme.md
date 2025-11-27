@@ -45,8 +45,10 @@ docker run -d \
   ghcr.io/itsmrval/cashless/socket-reader:main
 ```
 
-**ATM client:**
+**ATM:**
 ```bash
+wget https://raw.githubusercontent.com/itsmrval/cashless/main/clients/atm/atm.conf.example -O atm.conf
+
 docker run -it \
   --name cashless-atm \
   -v $(pwd)/atm.conf:/app/atm.conf \
