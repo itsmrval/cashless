@@ -418,9 +418,6 @@ if __name__ == '__main__':
     ssl_context = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
     ssl_context.load_cert_chain(cert_file, key_file)
 
-    # Déclaration globale avant la boucle
-    global reader, detection_thread, running, server_should_stop
-
     # Boucle principale : attendre un lecteur, démarrer le serveur, arrêter si déconnecté, recommencer
     while True:
         # Attendre qu'un lecteur soit détecté
