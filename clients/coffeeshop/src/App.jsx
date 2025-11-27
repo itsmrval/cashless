@@ -109,6 +109,18 @@ function App() {
             cardId: result.user.card_id
           });
           setBalance(result.user.balance);
+          
+          // 🔄 Démarrer la mise à jour automatique de la balance toutes les secondes
+          console.log('🔄 Démarrage de la mise à jour automatique de la balance');
+          const balanceInterval = setInterval(() => {
+            if (newSocket && newSocket.connected) {
+              console.log('📡 Demande de mise à jour de la balance...');
+              newSocket.emit('get_balance');
+            }
+          }, 1000); // Toutes les 1 seconde
+          
+          // Stocker l'intervalle pour le nettoyer plus tard
+          newSocket.balanceInterval = balanceInterval;
         }
       } else if (result.blocked) {
         console.log('Carte bloquée !');
@@ -235,6 +247,14 @@ function App() {
 
     newSocket.on('card_removed', (data) => {
       console.log('Carte retirée via Socket.IO:', data);
+      
+      // ⏹️ Arrêter la mise à jour automatique de la balance
+      if (newSocket.balanceInterval) {
+        clearInterval(newSocket.balanceInterval);
+        newSocket.balanceInterval = null;
+        console.log('⏹️ Mise à jour automatique de la balance arrêtée');
+      }
+      
       setUser(null);
       setBalance(0);
       setIsPinVerified(false);
@@ -254,6 +274,12 @@ function App() {
 
     newSocket.on('balance_result', (result) => {
       console.log('Réponse balance reçue:', result);
+      
+      // Mettre à jour la balance en temps réel
+      if (result.success) {
+        console.log('💰 Balance mise à jour:', result.balance);
+        setBalance(result.balance);
+      }
       
       // Utiliser setPendingProduct avec une fonction pour obtenir la valeur actuelle
       setPendingProduct(currentPending => {
