@@ -2,7 +2,7 @@
 #include <stdio.h>
 #include <string.h>
 
-#define VERSION "1.0.0"
+#define VERSION "1.1.0"
 
 static void clear_screen()
 {
