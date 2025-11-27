@@ -45,14 +45,13 @@ docker run -d \
   ghcr.io/itsmrval/cashless/socket-reader:main
 ```
 
-For running the ATM C client, run following bin
-
 **ATM client:**
-
 ```bash
-wget https://github.com/itsmrval/cashless/releases/latest/download/atm
-chmod +x atm
-./atm atm.conf
+docker run -it \
+  --name cashless-atm \
+  -v $(pwd)/atm.conf:/app/atm.conf \
+  --privileged \
+  ghcr.io/itsmrval/cashless/atm:main
 ```
 
 ## Deployment
