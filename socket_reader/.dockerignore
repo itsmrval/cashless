@@ -1,0 +1,61 @@
+# Python artifacts
+__pycache__
+*.pyc
+*.pyo
+*.pyd
+.Python
+*.so
+*.egg
+*.egg-info
+dist
+build
+*.whl
+
+# Environment and secrets
+.env
+.env.local
+.env.*
+
+# Git
+.git
+.gitignore
+.github
+
+# Documentation (keep DOCKER.md if needed for reference)
+*.md
+!DOCKER.md
+
+# IDE and editor files
+.vscode
+.idea
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Test and coverage
+tests/
+test_*.py
+*_test.py
+.pytest_cache
+.coverage
+htmlcov/
+.tox/
+
+# Logs
+*.log
+logs/
+
+# Other project directories (parent directories)
+../api
+../clients
+../website
+../ansible
+../assignator
+../card_software
+../dev_front
+
+# Docker files (don't need these inside the image)
+Dockerfile
+.dockerignore
+docker-compose.yml

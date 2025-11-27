@@ -25,6 +25,19 @@ socket_reader/.socket_reader.pid
 socket_reader/socket_reader.log
 socket_reader/__pycache__/
 socket_reader/*.pyc
+socket_reader/.env
+
+# Socket reader build artifacts
+socket_reader/*.egg-info
+socket_reader/dist/
+socket_reader/build/
+
+# Logs
+socket_reader/*.log
+socket_reader/logs/
+
+# macOS files
 package-lock.json
 socket_reader/certs/.DS_Store
 socket_reader/.DS_Store
+.DS_Store

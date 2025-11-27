@@ -6,6 +6,7 @@ The aim is to enable secure top-ups, payments, and transfers between users, term
 
 #### Quick Links
 - [Structure](#structure)
+- [Docker Deployment](#docker-deployment)
 - [Deployment](#deployment)
   - [Create a card](#create-a-card)
   - [Socket Reader](#socket-reader)
@@ -26,6 +27,41 @@ cashless/
 ├   ├── atm/         # ATM client that allow to setup a PIN code, see transactions
 ├   └── coffeeshop/  # Coffe shop client example that allow payments
 └── docker-compose.yml
+```
+
+## Docker images
+
+Run pre-built Docker images
+
+**API:**
+```bash
+docker run -d \
+  --name cashless-api \
+  -p 3002:3002 \
+  -e MONGO_URI="mongodb://admin:admin@host.docker.internal:27017/cashless?authSource=admin" \
+  -e PORT=3002 \
+  ghcr.io/itsmrval/cashless-api:latest
+```
+
+**Website:**
+```bash
+docker run -d \
+  --name cashless-website \
+  -p 3001:80 \
+  ghcr.io/itsmrval/cashless-website:latest
+```
+
+**Socket reader:**
+```bash
+docker run -d \
+  --name cashless-socket-reader \
+  -p 8001:8001 \
+  -e API_BASE_URL="https://api.cashless.iut.valentinp.fr/v1" \
+  -e DEST_USERNAME="merchant_user" \
+  -e DEST_PASSWORD="merchant_pass" \
+  --privileged \
+  --device /dev/bus/usb:/dev/bus/usb \
+  ghcr.io/itsmrval/cashless-socket-reader:latest
 ```
 
 ## Deployment
