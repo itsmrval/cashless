@@ -34,10 +34,11 @@ current_card_token = None
 current_card_activated = None
 detection_thread = None
 running = True
+server_should_stop = False
 
 
 def card_detection_loop():
-    global reader, current_card_id, current_connection, current_card_token, current_card_activated, running
+    global reader, current_card_id, current_connection, current_card_token, current_card_activated, running, server_should_stop
     
     logger.info("Démarrage de la boucle de détection des cartes")
     
@@ -46,7 +47,7 @@ def card_detection_loop():
             # 🔍 Vérifier si le lecteur est toujours connecté
             if reader is None or not is_reader_connected(reader):
                 if reader is not None:
-                    logger.warning("⚠️ Lecteur déconnecté ! Attente d'un nouveau lecteur...")
+                    logger.warning("Lecteur déconnecté ! Arrêt du serveur...")
                     
                     # Si une carte était insérée, notifier qu'elle a été retirée
                     if current_card_id:
@@ -63,12 +64,13 @@ def card_detection_loop():
                         logger.info("Événement 'card_removed' envoyé (lecteur déconnecté)")
                     
                     reader = None
-                
-                # 🔄 Attendre qu'un lecteur soit détecté
-                logger.info("🔍 Recherche d'un lecteur de cartes...")
-                reader = wait_for_reader()
-                logger.info(f"✅ Lecteur détecté et initialisé: {reader}")
-                continue
+                    
+                    # Signaler que le serveur doit s'arrêter
+                    server_should_stop = True
+                    running = False
+                    logger.info("Arrêt du serveur demandé")
+                    socketio.stop()
+                    return
             
             connection = check_card_present(reader)
             
@@ -136,7 +138,7 @@ def card_detection_loop():
             
             # En cas d'erreur, vérifier si c'est un problème de lecteur
             if reader and not is_reader_connected(reader):
-                logger.warning("⚠️ Erreur liée à la déconnexion du lecteur")
+                logger.warning("Erreur liée à la déconnexion du lecteur")
                 reader = None
             
             time.sleep(2)
@@ -384,18 +386,6 @@ def handle_get_balance():
             'error': result.get('error', 'Erreur inconnue')
         })
 
-def initialize_reader():
-    global reader, detection_thread
-    
-    logger.info("Initialisation du lecteur de cartes...")
-    
-    reader = wait_for_reader()
-    logger.info(f"Lecteur initialisé: {reader}")
-    
-    detection_thread = threading.Thread(target=card_detection_loop, daemon=True)
-    detection_thread.start()
-    logger.info("Thread de détection démarré")
-
 
 if __name__ == '__main__':
     if len(sys.argv) != 4:
@@ -423,24 +413,46 @@ if __name__ == '__main__':
 
     logger.info(f"Merchant authenticated successfully: {login_result['name']} (ID: {login_result['user_id']})")
 
-    init_thread = threading.Thread(target=initialize_reader, daemon=True)
-    init_thread.start()
-
-    time.sleep(2)
-
     cert_file = os.path.join(os.path.dirname(__file__), 'certs', 'cert.pem')
     key_file = os.path.join(os.path.dirname(__file__), 'certs', 'key.pem')
     ssl_context = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
     ssl_context.load_cert_chain(cert_file, key_file)
 
-    logger.info("Démarrage du serveur Flask-SocketIO sur https://0.0.0.0:8001")
-
-    socketio.run(
-        app,
-        host='0.0.0.0',
-        port=8001,
-        debug=False,
-        use_reloader=False,
-        ssl_context=ssl_context,
-        allow_unsafe_werkzeug=True
-    )
+    # Boucle principale : attendre un lecteur, démarrer le serveur, arrêter si déconnecté, recommencer
+    while True:
+        global reader, detection_thread, running, server_should_stop
+        
+        # Attendre qu'un lecteur soit détecté
+        logger.info("Recherche d'un lecteur de cartes...")
+        reader = wait_for_reader()
+        logger.info(f"Lecteur détecté: {reader}")
+        
+        # Réinitialiser les variables
+        running = True
+        server_should_stop = False
+        
+        # Démarrer le thread de détection de cartes
+        detection_thread = threading.Thread(target=card_detection_loop, daemon=True)
+        detection_thread.start()
+        logger.info("Thread de détection démarré")
+        
+        time.sleep(1)
+        
+        logger.info("Démarrage du serveur Flask-SocketIO sur https://0.0.0.0:8001")
+        
+        try:
+            socketio.run(
+                app,
+                host='0.0.0.0',
+                port=8001,
+                debug=False,
+                use_reloader=False,
+                ssl_context=ssl_context,
+                allow_unsafe_werkzeug=True
+            )
+        except Exception as e:
+            logger.error(f"Erreur serveur: {e}")
+        
+        logger.info("Serveur arrêté")
+        logger.info("Attente d'un nouveau lecteur pour redémarrer...")
+        time.sleep(2)
