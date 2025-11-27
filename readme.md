@@ -40,7 +40,7 @@ docker run -d \
   -p 3002:3002 \
   -e MONGO_URI="mongodb://admin:admin@host.docker.internal:27017/cashless?authSource=admin" \
   -e PORT=3002 \
-  ghcr.io/itsmrval/cashless-api:latest
+  ghcr.io/itsmrval/cashless/api:main
 ```
 
 **Website:**
@@ -48,7 +48,7 @@ docker run -d \
 docker run -d \
   --name cashless-website \
   -p 3001:80 \
-  ghcr.io/itsmrval/cashless-website:latest
+  ghcr.io/itsmrval/cashless/website:main
 ```
 
 **Socket reader:**
@@ -60,7 +60,7 @@ docker run -d \
   -e DEST_USERNAME="merchant_user" \
   -e DEST_PASSWORD="merchant_pass" \
   --privileged \
-  ghcr.io/itsmrval/cashless-socket-reader:latest
+  ghcr.io/itsmrval/cashless/socket-reader:main
 ```
 
 ## Deployment
