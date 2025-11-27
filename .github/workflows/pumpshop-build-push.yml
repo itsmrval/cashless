@@ -1,4 +1,4 @@
-name: Build and Push Pumpshop Docker Image
+name: Pumpshop docker image
 
 on:
   push:
@@ -51,7 +51,7 @@ jobs:
             type=semver,pattern={{major}}.{{minor}}
             type=sha
 
-      - name: Build and push pumpshop
+      - name:  pumpshop
         uses: docker/build-push-action@v5
         with:
           context: ./clients/pumpshop

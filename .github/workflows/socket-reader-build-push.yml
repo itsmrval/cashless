@@ -1,4 +1,4 @@
-name: Build and Push Socket Reader Docker Image
+name: Socket reader docker image
 
 on:
   push:
@@ -51,7 +51,7 @@ jobs:
             type=semver,pattern={{major}}.{{minor}}
             type=sha
 
-      - name: Build and push socket reader
+      - name:  socket reader
         uses: docker/build-push-action@v5
         with:
           context: ./socket_reader
