@@ -561,7 +561,7 @@ function App() {
                 </div>
 
                 <div className="bg-gradient-to-br from-gray-50 to-gray-100 border-3 border-black p-6 rounded-2xl shadow-lg">
-                  <h3 className="text-xl font-semibold text-gray-900 mb-4">📝 Instructions</h3>
+                  <h3 className="text-xl font-semibold text-gray-900 mb-4">Instructions</h3>
                   <ul className="space-y-3 text-gray-700">
                     <li className="flex items-start">
                       <span className="text-gray-900 font-bold mr-3">1.</span>
@@ -1019,7 +1019,7 @@ function App() {
                     isCardBlocked ? 'font-semibold text-red-600' : ''
                   }`}>
                     {isCardBlocked 
-                      ? 'Contactez un administrateur pour débloquer votre carte' 
+                      ? 'reférez-vous à un ATM pour débloquer votre carte' 
                       : 'Entrez votre code PIN à 4 chiffres'}
                   </p>
                   {!isCardBlocked && (
