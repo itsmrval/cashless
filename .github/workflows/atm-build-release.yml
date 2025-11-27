@@ -1,0 +1,54 @@
+name: ATM build and release
+
+on:
+  push:
+    branches:
+      - main
+    tags:
+      - 'v*'
+    paths:
+      - 'clients/atm/**'
+  pull_request:
+    branches:
+      - main
+    paths:
+      - 'clients/atm/**'
+
+jobs:
+  build-atm:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            gcc \
+            make \
+            pkg-config \
+            libpcsclite-dev \
+            libcurl4-openssl-dev
+
+      - name: Build ATM binary
+        run: |
+          cd clients/atm
+          make clean
+          make
+
+      - name: Upload binary as artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: atm-binary
+          path: clients/atm/atm
+
+      - name: Create Release
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v1
+        with:
+          files: clients/atm/atm
+          generate_release_notes: true

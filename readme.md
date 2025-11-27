@@ -29,27 +29,9 @@ cashless/
 └── docker-compose.yml
 ```
 
-## Docker images
+## Running software
 
-Run pre-built Docker images
-
-**API:**
-```bash
-docker run -d \
-  --name cashless-api \
-  -p 3002:3002 \
-  -e MONGO_URI="mongodb://admin:admin@host.docker.internal:27017/cashless?authSource=admin" \
-  -e PORT=3002 \
-  ghcr.io/itsmrval/cashless/api:main
-```
-
-**Website:**
-```bash
-docker run -d \
-  --name cashless-website \
-  -p 3001:80 \
-  ghcr.io/itsmrval/cashless/website:main
-```
+Use pre-built Docker images for API, website, clients or socket_reader for example:
 
 **Socket reader:**
 ```bash
@@ -61,6 +43,16 @@ docker run -d \
   -e DEST_PASSWORD="merchant_pass" \
   --privileged \
   ghcr.io/itsmrval/cashless/socket-reader:main
+```
+
+For running the ATM C client, run following bin
+
+**ATM client:**
+
+```bash
+wget https://github.com/itsmrval/cashless/releases/latest/download/atm
+chmod +x atm
+./atm atm.conf
 ```
 
 ## Deployment
