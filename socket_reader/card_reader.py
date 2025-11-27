@@ -30,6 +30,19 @@ def wait_for_reader():
         time.sleep(2)
 
 
+def is_reader_connected(reader):
+    """Vérifie si le lecteur est toujours connecté"""
+    try:
+        r = readers()
+        # Vérifier si le lecteur est toujours dans la liste
+        for available_reader in r:
+            if str(available_reader) == str(reader):
+                return True
+        return False
+    except Exception:
+        return False
+
+
 def check_card_present(reader):
     try:
         connection = reader.createConnection()

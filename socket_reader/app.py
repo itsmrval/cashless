@@ -7,7 +7,7 @@ import threading
 import time
 import logging
 import sys
-from card_reader import wait_for_reader, check_card_present, read_card_id, read_version, is_card_still_present, verify_pin, sign_challenge, check_pin_defined
+from card_reader import wait_for_reader, check_card_present, read_card_id, read_version, is_card_still_present, verify_pin, sign_challenge, check_pin_defined, is_reader_connected
 import api
 from api import get_challenge, card_auth_with_signature, fetch_user_by_card, create_transaction
 import ssl
@@ -43,8 +43,31 @@ def card_detection_loop():
     
     while running:
         try:
-            if reader is None:
-                time.sleep(1)
+            # 🔍 Vérifier si le lecteur est toujours connecté
+            if reader is None or not is_reader_connected(reader):
+                if reader is not None:
+                    logger.warning("⚠️ Lecteur déconnecté ! Attente d'un nouveau lecteur...")
+                    
+                    # Si une carte était insérée, notifier qu'elle a été retirée
+                    if current_card_id:
+                        old_card_id = current_card_id
+                        current_card_id = None
+                        current_connection = None
+                        current_card_token = None
+                        current_card_activated = None
+                        
+                        socketio.emit('card_removed', {
+                            'card_id': old_card_id,
+                            'timestamp': time.time()
+                        })
+                        logger.info("Événement 'card_removed' envoyé (lecteur déconnecté)")
+                    
+                    reader = None
+                
+                # 🔄 Attendre qu'un lecteur soit détecté
+                logger.info("🔍 Recherche d'un lecteur de cartes...")
+                reader = wait_for_reader()
+                logger.info(f"✅ Lecteur détecté et initialisé: {reader}")
                 continue
             
             connection = check_card_present(reader)
@@ -109,7 +132,13 @@ def card_detection_loop():
             time.sleep(0.5)
             
         except Exception as e:
-            logger.error(f"Erreur dans la boucle de détection: {e}")
+            logger.error(f"❌ Erreur dans la boucle de détection: {e}")
+            
+            # En cas d'erreur, vérifier si c'est un problème de lecteur
+            if reader and not is_reader_connected(reader):
+                logger.warning("⚠️ Erreur liée à la déconnexion du lecteur")
+                reader = None
+            
             time.sleep(2)
     
     logger.info("Boucle de détection arrêtée")
