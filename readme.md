@@ -60,7 +60,6 @@ docker run -d \
   -e DEST_USERNAME="merchant_user" \
   -e DEST_PASSWORD="merchant_pass" \
   --privileged \
-  --device /dev/bus/usb:/dev/bus/usb \
   ghcr.io/itsmrval/cashless-socket-reader:latest
 ```
 
