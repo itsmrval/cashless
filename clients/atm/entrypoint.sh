@@ -14,8 +14,5 @@ else
     exit 1
 fi
 
-echo "Checking for readers..."
-pcsc_scan -n 2>&1 || echo "pcsc_scan check completed"
-
 echo "Starting ATM..."
 exec ./atm atm.conf
