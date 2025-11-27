@@ -1,9 +1,15 @@
-FROM python:3.11-slim
+FROM ubuntu:22.04
+
+ENV DEBIAN_FRONTEND=noninteractive
 
 RUN apt-get update && apt-get install -y \
+    python3 \
+    python3-pip \
     pcscd \
     pcsc-tools \
+    libpcsclite1 \
     libpcsclite-dev \
+    libccid \
     gcc \
     swig \
     && rm -rf /var/lib/apt/lists/*
@@ -11,10 +17,12 @@ RUN apt-get update && apt-get install -y \
 WORKDIR /app
 
 COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
+RUN pip3 install --no-cache-dir -r requirements.txt
 
 COPY . .
 
+RUN chmod +x entrypoint.sh
+
 EXPOSE 8001
 
-CMD python app.py "${API_BASE_URL}" "${DEST_USERNAME}" "${DEST_PASSWORD}"
+ENTRYPOINT ["./entrypoint.sh"]
