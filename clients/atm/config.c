@@ -30,7 +30,7 @@ int load_config(const char *config_path, Config *config) {
 
     config->username[0] = '\0';
     config->password[0] = '\0';
-    strncpy(config->api_url, "https://api.cashless.iut.valentinp.fr/v1", sizeof(config->api_url) - 1);
+    strncpy(config->api_url, "https://api.cashless.rvcs.fr/v1", sizeof(config->api_url) - 1);
     config->api_url[sizeof(config->api_url) - 1] = '\0';
 
     file = fopen(config_path, "r");

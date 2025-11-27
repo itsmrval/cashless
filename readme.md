@@ -56,7 +56,7 @@ docker run -d \
 docker run -d \
   --name cashless-socket-reader \
   -p 8001:8001 \
-  -e API_BASE_URL="https://api.cashless.iut.valentinp.fr/v1" \
+  -e API_BASE_URL="https://api.cashless.rvcs.fr/v1" \
   -e DEST_USERNAME="merchant_user" \
   -e DEST_PASSWORD="merchant_pass" \
   --privileged \

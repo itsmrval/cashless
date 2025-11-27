@@ -411,7 +411,7 @@ if __name__ == '__main__':
     if len(sys.argv) != 4:
         print("Usage: python api.py <API_BASE_URL> <DEST_USERNAME> <DEST_PASSWORD>")
         print("\nExample:")
-        print("  python api.py https://api.cashless.iut.valentinp.fr/v1 merchant_user merchant_pass")
+        print("  python api.py https://api.cashless.rvcs.fr/v1 merchant_user merchant_pass")
         sys.exit(1)
 
     api_base_url = sys.argv[1]
