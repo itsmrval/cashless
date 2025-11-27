@@ -41,6 +41,27 @@ function App() {
   const [cardErrorMessage, setCardErrorMessage] = useState('');
   const [pendingProduct, setPendingProduct] = useState(null);
 
+  // Empêcher la mise en veille du navigateur
+  useEffect(() => {
+    let wakeLock = null;
+    const requestWakeLock = async () => {
+      try {
+        if ('wakeLock' in navigator) {
+          wakeLock = await navigator.wakeLock.request('screen');
+          console.log('Wake Lock activé - le navigateur ne se mettra pas en veille');
+        }
+      } catch (err) {
+        console.log('Wake Lock non supporté ou refusé:', err);
+      }
+    };
+    requestWakeLock();
+    return () => {
+      if (wakeLock) {
+        wakeLock.release().then(() => console.log('Wake Lock désactivé'));
+      }
+    };
+  }, []);
+
   useEffect(() => {
     console.log('Connexion au serveur Socket.IO...', API_BASE_URL);
     
