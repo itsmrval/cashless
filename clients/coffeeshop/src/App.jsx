@@ -150,12 +150,59 @@ function App() {
       console.log('Résultat de transaction reçu:', result);
       
       if (result.success) {
-        console.log('Transaction réussie - Nouveau solde:', result.new_balance);
+        console.log('✅ Transaction validée - Nouveau solde:', result.new_balance);
         // Mettre à jour le solde immédiatement
         setBalance(result.new_balance);
         setNewBalanceAmount(result.new_balance);
+        
+        // ✅ TRANSACTION VALIDÉE - Commencer la distribution ATOMIQUEMENT
+        setTimeout(() => {
+          setShowPaymentAnimation(false);
+          setIsPreparingDrink(true);
+          setPreparationProgress(0);
+          setPreparationStep(0);
+          
+          const totalDuration = 6000; // 6 secondes au total
+          const stepDuration = 2000; // 2 secondes par étape
+          const steps = ['Chauffage de l\'eau...', 'Préparation de votre boisson...', 'Distribution en cours...'];
+          
+          // Progression fluide
+          const interval = 50;
+          const totalSteps = totalDuration / interval;
+          let currentStep = 0;
+          
+          const progressInterval = setInterval(() => {
+            currentStep++;
+            const progress = (currentStep / totalSteps) * 100;
+            setPreparationProgress(progress);
+            
+            // Changer l'étape toutes les 2 secondes
+            const currentStepIndex = Math.floor((currentStep * interval) / stepDuration);
+            if (currentStepIndex < steps.length) {
+              setPreparationStep(currentStepIndex);
+            }
+            
+            if (currentStep >= totalSteps) {
+              clearInterval(progressInterval);
+              setIsPreparingDrink(false);
+              setSelectedProduct(null);
+              setPreparationStep(0);
+              
+              // Afficher l'animation de boisson prête
+              setShowDrinkReadyAnimation(true);
+              setTimeout(() => {
+                setShowDrinkReadyAnimation(false);
+              }, 3000);
+            }
+          }, interval);
+        }, 2500);
+        
       } else {
-        console.error('Erreur transaction:', result.error);
+        console.error('❌ Transaction refusée:', result.error);
+        
+        // ❌ TRANSACTION REFUSÉE - Annuler la distribution
+        setIsPreparingDrink(false);
+        setSelectedProduct(null);
         
         // Afficher l'animation de refus de paiement pour toutes les erreurs de transaction
         // En particulier pour solde insuffisant au moment du paiement
@@ -352,7 +399,7 @@ function App() {
   };
 
   const processPaymentForProduct = (product) => {
-    console.log('Création de la transaction via Socket.IO...');
+    console.log('💳 Création de la transaction via Socket.IO...');
     
     // Envoyer la transaction au serveur
     if (socket && socket.connected) {
@@ -365,7 +412,10 @@ function App() {
       setPaymentAmount(product.price);
       setShowPaymentAnimation(true);
       
-      // Ne pas réenregistrer le listener ici car il est déjà dans useEffect
+      // ⚠️ ATOMICITÉ : La distribution ne commencera QUE si la transaction est validée
+      // Le listener 'transaction_result' gère la distribution UNIQUEMENT en cas de succès
+      console.log('⏳ Attente de la validation de la transaction...');
+      
     } else {
       console.error('Socket non connecté pour la transaction');
       setMessageType('error');
@@ -374,47 +424,8 @@ function App() {
       return;
     }
     
-    // Masquer l'animation après 2.5 secondes et commencer la préparation
-    setTimeout(() => {
-      setShowPaymentAnimation(false);
-      setIsPreparingDrink(true);
-      setPreparationProgress(0);
-      setPreparationStep(0);
-      
-      const totalDuration = 6000; // 6 secondes au total
-      const stepDuration = 2000; // 2 secondes par étape
-      const steps = ['Chauffage de l\'eau...', 'Préparation de votre boisson...', 'Distribution en cours...'];
-      
-      // Progression fluide
-      const interval = 50;
-      const totalSteps = totalDuration / interval;
-      let currentStep = 0;
-      
-      const progressInterval = setInterval(() => {
-        currentStep++;
-        const progress = (currentStep / totalSteps) * 100;
-        setPreparationProgress(progress);
-        
-        // Changer l'étape toutes les 2 secondes
-        const currentStepIndex = Math.floor((currentStep * interval) / stepDuration);
-        if (currentStepIndex < steps.length) {
-          setPreparationStep(currentStepIndex);
-        }
-        
-        if (currentStep >= totalSteps) {
-          clearInterval(progressInterval);
-          setIsPreparingDrink(false);
-          setSelectedProduct(null);
-          setPreparationStep(0);
-          
-          // Afficher l'animation de boisson prête
-          setShowDrinkReadyAnimation(true);
-          setTimeout(() => {
-            setShowDrinkReadyAnimation(false);
-          }, 3000);
-        }
-      }, interval);
-    }, 2500);
+    // ❌ SUPPRIMÉ : La distribution automatique après 2.5s
+    // La distribution ne se fera que si transaction_result.success === true
   };
 
   return (
