@@ -280,7 +280,6 @@ function App() {
     }
   };
 
-  // Sélection d'un carburant - ouvre le sélecteur de montant
   const handleFuelSelect = (fuel) => {
     if (!user) {
       setMessage('Veuillez insérer votre carte');
@@ -298,20 +297,16 @@ function App() {
 
     if (isFueling) return;
 
-    // Vérifier que le solde n'est pas à 0
     if (balance <= 0) {
       setShowInsufficientBalance(true);
       return;
     }
 
-    // Sélectionner le carburant et ouvrir le sélecteur de montant
     setSelectedFuel(fuel);
     setShowAmountSelector(true);
   };
 
-  // Confirmer le montant et lancer la pré-autorisation
   const handleConfirmAmount = () => {
-    // Mode plein : pré-autorisation du solde entier
     const amount = balance;
 
     if (amount <= 0) {
@@ -320,12 +315,10 @@ function App() {
       return;
     }
 
-    // Effectuer la pré-autorisation
     setShowAmountSelector(false);
     processPreAuthorization(amount);
   };
 
-  // Traiter la pré-autorisation
   const processPreAuthorization = (amount) => {
     setTpeMode('preauth');
     setTpeMessage('Pré-autorisation...');
@@ -382,7 +375,6 @@ function App() {
     }
   };
 
-  // Arrêter le ravitaillement manuellement
   const stopFueling = () => {
     if (fuelingIntervalRef) {
       clearInterval(fuelingIntervalRef);
@@ -513,10 +505,8 @@ function App() {
 
     return (
       <div className="bg-gradient-to-b from-gray-700 to-gray-900 rounded-xl lg:rounded-2xl p-2 sm:p-3 lg:p-4 shadow-2xl border-2 lg:border-3 border-black w-full max-w-[240px] sm:max-w-[260px] lg:max-w-[300px] transform scale-[0.85] sm:scale-90 lg:scale-100 origin-top">
-        {/* Écran du TPE */}
         <div className="bg-gradient-to-b from-slate-100 to-slate-200 rounded-lg lg:rounded-xl p-2 lg:p-3 mb-2 lg:mb-3 border border-slate-300 shadow-inner">
           <div className="bg-white rounded-md lg:rounded-lg p-2 min-h-[60px] sm:min-h-[70px] lg:min-h-[80px] border border-slate-200">
-            {/* Status de la carte */}
             <div className="flex items-center justify-between mb-1 lg:mb-2 pb-1 border-b border-slate-200">
               <span className="text-slate-600 text-[10px] sm:text-xs font-medium truncate">
                 {user && isPinVerified ? user.name : user ? 'Carte détectée' : 'Insérer carte'}
@@ -527,13 +517,11 @@ function App() {
                 </span>
               )}
             </div>
-            
-            {/* Message principal */}
+
             <div className="text-slate-800 text-xs sm:text-sm lg:text-base font-bold text-center mb-1">
               {tpeMessage || (selectedFuel ? `${selectedFuel.shortName} - ${selectedFuel.price.toFixed(3)}€/L` : 'PRÊT')}
             </div>
-            
-            {/* Zone de saisie */}
+
             <div className="bg-slate-100 rounded-md lg:rounded-lg p-1.5 sm:p-2 text-center border border-slate-200">
               <span className="text-slate-900 text-lg sm:text-xl lg:text-2xl font-mono tracking-widest font-bold">
                 {displayText || '----'}
@@ -545,9 +533,7 @@ function App() {
           </div>
         </div>
 
-        {/* Clavier du TPE */}
         <div className="grid grid-cols-3 gap-1 mb-2 lg:mb-3">
-          {/* Rangées de chiffres */}
           {[1, 2, 3, 4, 5, 6, 7, 8, 9].map(num => (
             <button
               key={num}
@@ -558,8 +544,7 @@ function App() {
               {num}
             </button>
           ))}
-          
-          {/* Rangée du bas */}
+
           <button
             onClick={() => handleTpeButton('C')}
             disabled={tpeMode === 'processing' || tpeMode === 'success' || isCardBlocked}
@@ -583,7 +568,6 @@ function App() {
           </button>
         </div>
 
-        {/* Boutons Annuler / Valider */}
         <div className="grid grid-cols-2 gap-1 mb-2 lg:mb-3">
           <button
             onClick={() => handleTpeButton('X')}
@@ -601,7 +585,6 @@ function App() {
           </button>
         </div>
 
-        {/* Indicateurs LED */}
         <div className="flex justify-center gap-2 sm:gap-3 lg:gap-4 py-1.5 lg:py-2 border-t border-gray-600">
           <div className="flex items-center gap-1">
             <div className={`w-1.5 h-1.5 lg:w-2 lg:h-2 rounded-full ${user ? 'bg-green-400 shadow-lg shadow-green-400/50' : 'bg-gray-600'}`}
@@ -620,7 +603,6 @@ function App() {
           </div>
         </div>
 
-        {/* Fente carte stylisée */}
         <div className="mt-1 flex flex-col items-center">
           <div className="w-20 sm:w-24 lg:w-28 h-1.5 lg:h-2 bg-black rounded-full border border-gray-600 shadow-inner relative overflow-hidden">
             <div className="absolute inset-0 bg-gradient-to-b from-gray-700 to-transparent opacity-50"></div>
@@ -631,7 +613,6 @@ function App() {
     );
   };
 
-  // Rendu des pompes à carburant
   const renderFuelPumps = () => {
     return (
       <div className="flex flex-wrap justify-center gap-4 lg:gap-6">
@@ -642,7 +623,6 @@ function App() {
           
           return (
             <div key={fuel.id} className="flex flex-col items-center scale-75 lg:scale-90">
-              {/* Corps de la pompe */}
               <div
                 onClick={() => !isDisabled && handleFuelSelect(fuel)}
                 className={`relative cursor-pointer transition-all duration-300 ${
@@ -650,9 +630,7 @@ function App() {
                 } ${isSelected ? 'scale-105 z-40' : 'z-10'}`}
                 style={{ filter: isSelected ? 'drop-shadow(0 0 20px rgba(255,255,255,0.3))' : '' }}
               >
-                {/* Structure principale de la pompe */}
                 <div className="relative w-36 h-56 bg-gradient-to-b from-gray-100 to-gray-300 rounded-t-3xl shadow-2xl border-4 border-gray-400">
-                  {/* Bandeau supérieur coloré */}
                   <div
                     className="absolute top-0 left-0 right-0 h-10 rounded-t-2xl"
                     style={{ background: `linear-gradient(135deg, ${fuel.color}, ${fuel.darkColor})` }}
@@ -662,7 +640,6 @@ function App() {
                     </div>
                   </div>
 
-                  {/* Écran digital */}
                   <div className="absolute top-14 left-2 right-2 bg-black rounded-lg p-2 border-2 border-gray-600">
                     <div className="text-green-400 text-xs mb-1">{fuel.name}</div>
                     <div className="text-green-400 text-lg font-mono tabular-nums">
@@ -671,7 +648,6 @@ function App() {
                     <div className="text-green-400 text-xs">€/Litre</div>
                   </div>
 
-                  {/* Logo/Icône centrale */}
                   <div className="absolute top-36 left-1/2 transform -translate-x-1/2">
                     <div
                       className="w-10 h-10 rounded-full flex items-center justify-center border-2 border-gray-400 shadow-lg"
@@ -681,14 +657,12 @@ function App() {
                     </div>
                   </div>
 
-                  {/* Grille de ventilation */}
                   <div className="absolute top-48 left-4 right-4 h-4 grid grid-cols-6 gap-1">
                     {[...Array(12)].map((_, i) => (
                       <div key={i} className="bg-gray-400 rounded-sm h-1"></div>
                     ))}
                   </div>
 
-                  {/* Indicateur de sélection/pompage */}
                   {isSelected && (
                     <div className="absolute bottom-2 left-2 right-2">
                       <div
@@ -703,20 +677,15 @@ function App() {
                   )}
                 </div>
 
-                {/* Base de la pompe */}
                 <div className="w-36 h-5 bg-gradient-to-b from-gray-400 to-gray-500 border-4 border-gray-400 border-t-0"></div>
                 <div className="w-40 h-2 bg-gray-600 -mt-0.5 mx-auto"></div>
 
-                {/* Tuyau et pistolet */}
                 <div className="absolute top-20 -right-5 flex flex-col items-start">
-                  {/* Support du pistolet */}
                   <div className="w-8 h-14 bg-gray-700 rounded-r-lg border-2 border-gray-600 flex items-center justify-center">
                     <div className="w-1 h-10 bg-gray-800 rounded-full"></div>
                   </div>
 
-                  {/* Pistolet */}
                   <div className="relative mt-1 ml-1">
-                    {/* Tuyau courbé */}
                     <svg width="24" height="36" className="absolute -top-4 -left-1">
                       <path
                         d="M 6 0 Q 6 14, 12 20 L 12 36"
@@ -726,31 +695,25 @@ function App() {
                         strokeLinecap="round"
                       />
                     </svg>
-                    
-                    {/* Corps du pistolet */}
+
                     <div
                       className="relative w-10 rounded-lg shadow-lg border-2 border-gray-700 z-10"
                       style={{ backgroundColor: fuel.color, height: '60px' }}
                     >
-                      {/* Poignée */}
                       <div className="absolute top-3 left-1 right-1 h-7 bg-black bg-opacity-30 rounded-md"></div>
-                      
-                      {/* Gâchette */}
+
                       <div className="absolute top-5 left-2 w-5 h-5 bg-gray-900 rounded-md border-2 border-gray-700"></div>
-                      
-                      {/* Bec verseur */}
+
                       <div
                         className="absolute -bottom-1 left-3 w-3 h-5 rounded-b-lg"
                         style={{ backgroundColor: fuel.darkColor }}
                       ></div>
 
-                      {/* Détails métalliques */}
                       <div className="absolute top-1 left-1 right-1 h-0.5 bg-gray-300 rounded-full"></div>
                     </div>
                   </div>
                 </div>
 
-                {/* Effet lumineux si en cours de pompage */}
                 {isPumping && (
                   <div
                     className="absolute top-10 left-1/2 transform -translate-x-1/2 w-2 h-2 rounded-full animate-ping"
@@ -759,7 +722,6 @@ function App() {
                 )}
               </div>
 
-              {/* Numéro de pompe */}
               <div className="mt-1 text-gray-400 text-xs">Pompe {fuel.octane}</div>
             </div>
           );
@@ -772,7 +734,6 @@ function App() {
     return null;
   };
 
-  // Modal de sélection du montant
   const renderAmountSelector = () => {
     if (!showAmountSelector || !selectedFuel) return null;
 
@@ -847,7 +808,6 @@ function App() {
     );
   };
 
-  // Rendu du ravitaillement en cours
   const renderFuelingDisplay = () => {
     if (!isFueling || !selectedFuel) return null;
 

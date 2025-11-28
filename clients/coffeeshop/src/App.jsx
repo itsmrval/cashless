@@ -10,23 +10,21 @@ function App() {
   const [apiConnected, setApiConnected] = useState(false);
   const [apiError, setApiError] = useState(null);
   const [isInitializing, setIsInitializing] = useState(true);
-  
-  // États utilisateur
+
   const [user, setUser] = useState(null);
   const [balance, setBalance] = useState(0);
   const [isPinVerified, setIsPinVerified] = useState(false);
   const [pinAttempts, setPinAttempts] = useState(3);
   const [isCardBlocked, setIsCardBlocked] = useState(false);
   const [isVerifyingPin, setIsVerifyingPin] = useState(false);
-  
-  // États panier et commande
+
   const [selectedProduct, setSelectedProduct] = useState(null);
   const [showPinModal, setShowPinModal] = useState(false);
   const [showConfirmation, setShowConfirmation] = useState(false);
   const [sugarLevel, setSugarLevel] = useState(2);
   const [pin, setPin] = useState('');
   const [message, setMessage] = useState('');
-  const [messageType, setMessageType] = useState('info'); // 'success', 'error', 'info', 'payment'
+  const [messageType, setMessageType] = useState('info');
   const [isPreparingDrink, setIsPreparingDrink] = useState(false);
   const [preparationProgress, setPreparationProgress] = useState(0);
   const [preparationStep, setPreparationStep] = useState(0);
@@ -50,7 +48,6 @@ function App() {
           wakeLock = await navigator.wakeLock.request('screen');
         }
       } catch (err) {
-        // Wake Lock not supported
       }
     };
     requestWakeLock();
@@ -362,12 +359,10 @@ function App() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 relative">
-      {/* Popup d'erreur lecteur - même design que les popups de paiement */}
       {!apiConnected && (
         <div className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-[100] pointer-events-auto">
           <div className="bg-white rounded-3xl shadow-2xl p-8 max-w-md w-full animate-slideDown pointer-events-none">
             <div className="text-center">
-              {/* Icône d'erreur animée */}
               <div className="relative mb-6 flex justify-center">
                 <div className="w-24 h-24 bg-red-100 rounded-full flex items-center justify-center animate-scaleIn">
                   <svg className="w-16 h-16 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -376,19 +371,15 @@ function App() {
                 </div>
               </div>
 
-              {/* Titre */}
               <h2 className="text-2xl font-bold text-gray-900 mb-2">Lecteur indisponible</h2>
 
-              {/* Message d'erreur */}
               <div className="mb-4">
                 <p className="text-lg text-gray-700 mb-1">{apiError || 'Connexion au serveur impossible'}</p>
                 <p className="text-sm text-gray-500">Reconnexion au lecteur en cours...</p>
               </div>
 
-              {/* Divider */}
               <div className="w-full h-px bg-gray-200 my-4"></div>
 
-              {/* Indicateur de reconnexion */}
               <div>
                 <div className="flex items-center justify-center space-x-2 text-red-600">
                   <div className="w-2 h-2 bg-red-600 rounded-full animate-bounce" style={{ animationDelay: '0s' }}></div>
@@ -417,12 +408,10 @@ function App() {
         </div>
       )}
 
-      {/* Page d'attente de carte */}
       {!user ? (
         <div className="min-h-screen flex items-center">
           <div className="container mx-auto px-6">
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center max-w-7xl mx-auto">
-              {/* Colonne gauche - Texte et instructions */}
               <div className="space-y-8">
                 <div>
                   <h2 className="text-5xl font-bold text-gray-800 mb-4">En attente de carte</h2>
@@ -453,10 +442,8 @@ function App() {
                 </div>
               </div>
 
-              {/* Colonne droite - Lecteur de carte */}
               <div className="flex justify-center lg:justify-end">
                 <div className="relative">
-                  {/* Lecteur de carte SVG */}
                   <svg width="350" height="500" viewBox="0 0 350 500" className="drop-shadow-2xl">
                     <defs>
                       <linearGradient id="readerGradient" x1="0%" y1="0%" x2="0%" y2="100%">
@@ -523,7 +510,6 @@ function App() {
         </div>
       ) : (
         <>
-          {/* Notifications popup en haut à droite */}
           {message && (messageType === 'success' || messageType === 'error') && (
             <div className="fixed top-28 right-6 z-[100] max-w-md animate-slideRight">
               <div className={`p-4 rounded-xl font-semibold shadow-2xl border-2 ${
@@ -535,8 +521,7 @@ function App() {
               </div>
             </div>
           )}
-          
-          {/* Messages info en haut de la page */}
+
           {message && messageType === 'info' && !showPinModal && (
             <div className="container mx-auto px-6 mt-28">
               <div className="p-4 rounded-xl text-center font-semibold shadow-lg border-2 bg-blue-50 text-blue-700 border-blue-300">
@@ -545,7 +530,6 @@ function App() {
             </div>
           )}
 
-          {/* Logo en haut à gauche */}
           <div className="fixed top-6 left-6 z-50">
             <img src={logo} alt="Logo" className="h-20 md:h-24 object-contain" />
           </div>
@@ -559,7 +543,6 @@ function App() {
                   className="bg-white border-3 border-black rounded-3xl shadow-lg hover:shadow-xl transition-all duration-300 cursor-pointer hover:scale-[1.02] overflow-hidden h-40"
                 >
                   <div className="flex items-stretch h-full">
-                    {/* Image de la boisson à gauche */}
                     <div className="w-2/5 bg-gradient-to-br from-slate-100 to-slate-200 relative overflow-hidden">
                       <img 
                         src={product.image} 
@@ -570,8 +553,7 @@ function App() {
                         }}
                       />
                     </div>
-                    
-                    {/* Informations à droite */}
+
                     <div className="w-3/5 p-4 flex flex-col justify-between bg-white">
                       <div>
                         <h3 className="text-lg font-bold text-gray-900 mb-2 leading-tight">
@@ -595,12 +577,10 @@ function App() {
             </div>
           </main>
 
-          {/* Processing Payment Modal */}
           {showProcessingPayment && (
             <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50 p-4">
               <div className="bg-white border-3 border-black rounded-2xl shadow-2xl p-8 max-w-md w-full animate-slideDown">
                 <div className="text-center">
-                  {/* Spinner icon */}
                   <div className="relative mb-6 flex justify-center">
                     <div className="w-24 h-24 bg-gray-100 rounded-full flex items-center justify-center">
                       <div className="animate-spin">
@@ -623,12 +603,10 @@ function App() {
             </div>
           )}
 
-          {/* Animation de paiement */}
           {showPaymentAnimation && (
             <div className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50 p-4">
               <div className="bg-white border-3 border-black rounded-2xl shadow-2xl p-8 max-w-sm w-full animate-slideDown">
                 <div className="text-center">
-                  {/* Icône de succès animée */}
                   <div className="relative mb-6 flex justify-center">
                     <div className="w-24 h-24 bg-gray-100 rounded-full flex items-center justify-center animate-scaleIn">
                       <svg className="w-16 h-16 text-gray-900 animate-checkmark" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -637,19 +615,15 @@ function App() {
                     </div>
                   </div>
 
-                  {/* Titre */}
                   <h2 className="text-2xl font-bold text-gray-900 mb-2">Paiement réussi</h2>
 
-                  {/* Montant débité */}
                   <div className="mb-4">
                     <p className="text-3xl font-bold text-red-600 mb-1">-{paymentAmount.toFixed(2)}€</p>
                     <p className="text-sm text-gray-500">Montant débité</p>
                   </div>
 
-                  {/* Divider */}
                   <div className="w-full h-px bg-gray-200 my-4"></div>
 
-                  {/* Nouveau solde */}
                   <div>
                     <p className="text-sm text-gray-600 mb-1">Nouveau solde</p>
                     <p className="text-2xl font-bold text-gray-900">{newBalanceAmount.toFixed(2)}€</p>
@@ -659,12 +633,10 @@ function App() {
             </div>
           )}
 
-          {/* Animation de paiement refusé */}
           {showPaymentRejectedAnimation && (
             <div className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50 p-4">
               <div className="bg-white border-3 border-black rounded-2xl shadow-2xl p-8 max-w-sm w-full animate-slideDown">
                 <div className="text-center">
-                  {/* Icône d'erreur animée */}
                   <div className="relative mb-6 flex justify-center">
                     <div className="w-24 h-24 bg-red-100 rounded-full flex items-center justify-center animate-scaleIn">
                       <svg className="w-16 h-16 text-red-600 animate-shake" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -673,25 +645,20 @@ function App() {
                     </div>
                   </div>
 
-                  {/* Titre */}
                   <h2 className="text-2xl font-bold text-gray-900 mb-2">Solde insuffisant</h2>
 
-                  {/* Montant requis */}
                   <div className="mb-4">
                     <p className="text-3xl font-bold text-red-600 mb-1">{rejectedAmount.toFixed(2)}€</p>
                     <p className="text-sm text-gray-500">Montant requis</p>
                   </div>
 
-                  {/* Divider */}
                   <div className="w-full h-px bg-gray-200 my-4"></div>
 
-                  {/* Solde disponible */}
                   <div>
                     <p className="text-sm text-gray-600 mb-1">Solde disponible</p>
                     <p className="text-2xl font-bold text-gray-900">{rejectedBalance.toFixed(2)}€</p>
                   </div>
 
-                  {/* Message d'erreur */}
                   <div className="mt-6 bg-red-50 border-3 border-red-200 rounded-xl p-4">
                     <p className="text-sm text-red-700 font-medium">
                       Veuillez recharger votre compte
@@ -702,12 +669,10 @@ function App() {
             </div>
           )}
 
-          {/* Animation d'erreur de carte (inactive/bloquée) */}
           {showCardErrorAnimation && (
             <div className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50 p-4">
               <div className="bg-white border-3 border-black rounded-2xl shadow-2xl p-8 max-w-md w-full animate-slideDown">
                 <div className="text-center">
-                  {/* Icône d'alerte animée */}
                   <div className="relative mb-6 flex justify-center">
                     <div className="bg-gradient-to-br from-gray-100 to-gray-200 p-8 rounded-2xl inline-block">
                       <svg className="w-16 h-16 text-gray-900" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -715,11 +680,9 @@ function App() {
                       </svg>
                     </div>
                   </div>
-                  
-                  {/* Titre */}
+
                   <h2 className="text-3xl font-bold text-gray-900 mb-6">Carte inactive</h2>
-                  
-                  {/* Message d'erreur */}
+
                   <div className="bg-gradient-to-br from-gray-50 to-gray-100 border-3 border-black rounded-xl p-6 mb-6">
                     <p className="text-gray-900 font-semibold text-lg mb-2">
                       Authentification refusée
@@ -733,12 +696,10 @@ function App() {
             </div>
           )}
 
-          {/* Animation de boisson prête */}
           {showDrinkReadyAnimation && (
             <div className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50 p-4">
               <div className="bg-white border-3 border-black rounded-2xl shadow-2xl p-8 max-w-sm w-full animate-slideDown">
                 <div className="text-center">
-                  {/* Icône de tasse animée */}
                   <div className="relative mb-6 flex justify-center">
                     <div className="w-24 h-24 bg-gray-100 rounded-full flex items-center justify-center animate-scaleIn">
                       <svg className="w-16 h-16 text-gray-900" fill="currentColor" viewBox="0 0 20 20">
@@ -747,11 +708,9 @@ function App() {
                     </div>
                   </div>
 
-                  {/* Titre */}
                   <h2 className="text-2xl font-bold text-gray-900 mb-2">Votre boisson est prête !</h2>
                   <p className="text-lg text-gray-600 mb-4">Bon appétit !</p>
 
-                  {/* Message convivial */}
                   <div className="bg-gradient-to-br from-gray-50 to-gray-100 border-3 border-black rounded-xl p-4">
                     <p className="text-sm text-gray-900 font-medium">
                       Récupérez votre boisson au distributeur
@@ -804,7 +763,6 @@ function App() {
             </div>
           )}
 
-          {/* Modal de confirmation avec sélecteur de sucre */}
           {showConfirmation && selectedProduct && (
             <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50 p-4">
               <div className="bg-white border-3 border-black rounded-2xl shadow-2xl p-6 max-w-md w-full animate-slideDown">
@@ -879,7 +837,6 @@ function App() {
             </div>
           )}
 
-          {/* Modal de vérification PIN initiale */}
           {showPinModal && !selectedProduct && user && (
             <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
               <div className={`bg-gradient-to-br rounded-2xl shadow-2xl p-8 max-w-md w-full animate-slideDown ${

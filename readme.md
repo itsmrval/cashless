@@ -82,13 +82,13 @@ ansible-playbook assign_card.yml
 ```
 Plug a flashed card into the reader, then run the playbook.
 
-**APDU Commands Used by Assignator:**
+**APDU commands used by assignator:**
 - `READ_CARD_ID (0x01)` - Verify card is unassigned (returns all zeros)
 - `READ_VERSION (0x02)` - Check firmware version
 - `ASSIGN_CARD (0x08)` - Write card ID and PUK to card (one-time operation)
 - `WRITE_PRIVATE_KEY_CHUNK (0x0A)` - Write cryptographic private key for challenge signing
 
-### Socket Reader
+### Socket reader
 
 WebSocket service that broadcasts real-time card insertion/removal events to connected clients.
 
@@ -110,7 +110,7 @@ The service runs on `https://0.0.0.0:8001` and supports:
 - Challenge signing and cryptographic authentication
 - SSL/TLS encrypted communication
 
-**APDU Commands Used by Socket Reader:**
+**APDU commands used by socket reader:**
 - `READ_CARD_ID (0x01)` - Detect and read card ID
 - `READ_VERSION (0x02)` - Check card firmware version
 - `IS_PIN_DEFINED (0x0E)` - Verify if card is activated
@@ -128,7 +128,7 @@ make
 ```
 Example for the ATM client.
 
-**APDU Commands Used by ATM Client:**
+**APDU commands used by ATM client:**
 - `READ_CARD_ID (0x01)` - Detect and read card ID
 - `READ_VERSION (0x02)` - Check card firmware version
 - `WRITE_PIN_ONLY (0x09)` - Setup PIN during activation
@@ -140,7 +140,7 @@ Example for the ATM client.
 
 The ATM client provides a complete card management interface including PIN setup, PUK-based unlock, and transaction viewing.
 
-## API Endpoints
+## API endpoints
 
 ### Authentication
 
@@ -184,7 +184,7 @@ The ATM client provides a complete card management interface including PIN setup
 
 ## Smart Card Protocol (APDU)
 
-### Supported Commands (CLA=0x80)
+### Supported commands (CLA=0x80)
 
 The card communicates via PC/SC protocol with APDU commands:
 
@@ -203,7 +203,7 @@ The card communicates via PC/SC protocol with APDU commands:
 | `0x0D` | GET_REMAINING_ATTEMPTS | 2 bytes out | Query remaining PIN/PUK attempts without consuming them |
 | `0x0E` | IS_PIN_DEFINED | 1 byte out | Check if PIN is defined (0x00=not defined, 0x01=defined) |
 
-### Status Codes (SW1/SW2)
+### Status codes (SW1/SW2)
 
 | SW1 | SW2 | Meaning |
 |-----|-----|---------|
@@ -220,7 +220,7 @@ The card communicates via PC/SC protocol with APDU commands:
 | `0x6D` | `0x00` | Invalid INS code |
 | `0x6E` | `0x00` | Invalid CLA code |
 
-### EEPROM Memory Layout
+### EEPROM memory layout
 
 | Address | Size | Content |
 |---------|------|---------|
@@ -233,7 +233,7 @@ The card communicates via PC/SC protocol with APDU commands:
 | `0x23-0x24` | 2 bytes | Private key size (16-bit big-endian) |
 | `0x25+` | up to 1920 bytes | Private key data (31 chunks × 64 bytes max) |
 
-### ATR (Answer-To-Reset)
+### ATR
 
 ```
 3B F9 01 05 05 00 00 63 61 73 68 6C 65 73 73
@@ -247,7 +247,7 @@ Format breakdown:
 
 Card identifies itself with the string "cashless".
 
-### Card States
+### Card states
 
 | State | Description | Client Action |
 |------|-------------|---------------|
@@ -255,7 +255,7 @@ Card identifies itself with the string "cashless".
 | `active` | Card activated with PIN | Request PIN → authentication |
 | `inactive` | Card deactivated | Display error, deny access |
 
-**PIN/PUK Security:**
+**PIN/PUK security:**
 - Both PIN and PUK have 3 attempts before lockout
 - Failed attempts return `0x63 0xCn` where n = remaining attempts
 - When attempts reach 0: PIN returns `0x69 0x83`, PUK returns `0x69 0x84`
