@@ -74,7 +74,7 @@ function App() {
       transports: ['polling', 'websocket'],
       reconnection: true,
       reconnectionDelay: 500,
-      reconnectionAttempts: 10,
+      reconnectionAttempts: Infinity,
       timeout: 3000,
       forceNew: true
     });
