@@ -131,11 +131,11 @@ function App() {
           });
           setBalance(result.user.balance);
           
-          // 🔄 Démarrer la mise à jour automatique de la balance toutes les secondes
-          console.log('🔄 Démarrage de la mise à jour automatique de la balance');
+          // Demarrer la mise a jour automatique de la balance toutes les secondes
+          console.log('Demarrage de la mise a jour automatique de la balance');
           const balanceInterval = setInterval(() => {
             if (newSocket && newSocket.connected) {
-              console.log('📡 Demande de mise à jour de la balance...');
+              console.log('Demande de mise a jour de la balance...');
               newSocket.emit('get_balance');
             }
           }, 1000); // Toutes les 1 seconde
@@ -179,103 +179,19 @@ function App() {
       }
     });
 
-    newSocket.on('transaction_result', (result) => {
-      console.log('Résultat de transaction reçu:', result);
-      
-      if (result.success) {
-        console.log('✅ Transaction validée - Nouveau solde:', result.new_balance);
-        // Mettre à jour le solde immédiatement
-        setBalance(result.new_balance);
-        setNewBalanceAmount(result.new_balance);
-        
-        // ✅ TRANSACTION VALIDÉE - Commencer la distribution ATOMIQUEMENT
-        setTimeout(() => {
-          setShowPaymentAnimation(false);
-          setIsPreparingDrink(true);
-          setPreparationProgress(0);
-          setPreparationStep(0);
-          
-          const totalDuration = 6000; // 6 secondes au total
-          const stepDuration = 2000; // 2 secondes par étape
-          const steps = ['Chauffage de l\'eau...', 'Préparation de votre boisson...', 'Distribution en cours...'];
-          
-          // Progression fluide
-          const interval = 50;
-          const totalSteps = totalDuration / interval;
-          let currentStep = 0;
-          
-          const progressInterval = setInterval(() => {
-            currentStep++;
-            const progress = (currentStep / totalSteps) * 100;
-            setPreparationProgress(progress);
-            
-            // Changer l'étape toutes les 2 secondes
-            const currentStepIndex = Math.floor((currentStep * interval) / stepDuration);
-            if (currentStepIndex < steps.length) {
-              setPreparationStep(currentStepIndex);
-            }
-            
-            if (currentStep >= totalSteps) {
-              clearInterval(progressInterval);
-              setIsPreparingDrink(false);
-              setSelectedProduct(null);
-              setPreparationStep(0);
-              
-              // Afficher l'animation de boisson prête
-              setShowDrinkReadyAnimation(true);
-              setTimeout(() => {
-                setShowDrinkReadyAnimation(false);
-              }, 3000);
-            }
-          }, interval);
-        }, 2500);
-        
-      } else {
-        console.error('❌ Transaction refusée:', result.error);
-        
-        // ❌ TRANSACTION REFUSÉE - Annuler la distribution
-        setIsPreparingDrink(false);
-        setSelectedProduct(null);
-        
-        // Afficher l'animation de refus de paiement pour toutes les erreurs de transaction
-        // En particulier pour solde insuffisant au moment du paiement
-        // Utiliser setRejectedAmount avec une fonction pour obtenir la valeur actuelle
-        setRejectedAmount(prev => {
-          // Obtenir le montant du paiement actuel
-          setPaymentAmount(current => {
-            setRejectedAmount(current);
-            return current;
-          });
-          return prev;
-        });
-        
-        // Utiliser setRejectedBalance avec une fonction pour obtenir la valeur actuelle
-        setBalance(currentBalance => {
-          setRejectedBalance(currentBalance);
-          return currentBalance;
-        });
-        
-        setShowPaymentRejectedAnimation(true);
-        
-        // Masquer l'animation de paiement en cours si elle est affichée
-        setShowPaymentAnimation(false);
-        
-        setTimeout(() => {
-          setShowPaymentRejectedAnimation(false);
-        }, 3000);
-      }
-    });
+    // Note: transaction_result listeners are now set up per-transaction
+    // using socket.once() in processPaymentForProduct() for atomicity
 
     newSocket.on('card_removed', (data) => {
-      console.log('Carte retirée via Socket.IO:', data);
-      
-      // ⏹️ Arrêter la mise à jour automatique de la balance
+      console.log('Carte retiree via Socket.IO:', data);
+
+      // Stop automatic balance updates
       if (newSocket.balanceInterval) {
         clearInterval(newSocket.balanceInterval);
         newSocket.balanceInterval = null;
-        console.log('⏹️ Mise à jour automatique de la balance arrêtée');
+        console.log('Mise a jour automatique de la balance arretee');
       }
-      
+
       setUser(null);
       setBalance(0);
       setIsPinVerified(false);
@@ -291,14 +207,18 @@ function App() {
       setMessage('');
       setMessageType('info');
       setPendingProduct(null);
+      setShowPaymentAnimation(false);
+      setShowPaymentRejectedAnimation(false);
+      setIsPreparingDrink(false);
+      setShowDrinkReadyAnimation(false);
     });
 
     newSocket.on('balance_result', (result) => {
-      console.log('Réponse balance reçue:', result);
-      
-      // Mettre à jour la balance en temps réel
+      console.log('Reponse balance recue:', result);
+
+      // Mettre a jour la balance en temps reel
       if (result.success) {
-        console.log('💰 Balance mise à jour:', result.balance);
+        console.log('Balance mise a jour:', result.balance);
         setBalance(result.balance);
       }
       
@@ -446,33 +366,96 @@ function App() {
   };
 
   const processPaymentForProduct = (product) => {
-    console.log('💳 Création de la transaction via Socket.IO...');
-    
+    console.log('Creation de la transaction via Socket.IO...');
+
     // Envoyer la transaction au serveur
     if (socket && socket.connected) {
+      // Store payment amount for later use
+      setPaymentAmount(product.price);
+
+      // Set up one-time listener for this specific transaction
+      socket.once('transaction_result', (result) => {
+        if (result.success) {
+          console.log('Transaction validee - Nouveau solde:', result.new_balance);
+          // Update balance
+          setBalance(result.new_balance);
+          setNewBalanceAmount(result.new_balance);
+
+          // Show payment success animation ONLY after validation
+          setShowPaymentAnimation(true);
+
+          // Start drink preparation after showing success
+          setTimeout(() => {
+            setShowPaymentAnimation(false);
+            setIsPreparingDrink(true);
+            setPreparationProgress(0);
+            setPreparationStep(0);
+
+            const totalDuration = 6000;
+            const stepDuration = 2000;
+            const steps = ['Chauffage de l\'eau...', 'Préparation de votre boisson...', 'Distribution en cours...'];
+
+            const interval = 50;
+            const totalSteps = totalDuration / interval;
+            let currentStep = 0;
+
+            const progressInterval = setInterval(() => {
+              currentStep++;
+              const progress = (currentStep / totalSteps) * 100;
+              setPreparationProgress(progress);
+
+              const currentStepIndex = Math.floor((currentStep * interval) / stepDuration);
+              if (currentStepIndex < steps.length) {
+                setPreparationStep(currentStepIndex);
+              }
+
+              if (currentStep >= totalSteps) {
+                clearInterval(progressInterval);
+                setIsPreparingDrink(false);
+                setSelectedProduct(null);
+                setPreparationStep(0);
+
+                setShowDrinkReadyAnimation(true);
+                setTimeout(() => {
+                  setShowDrinkReadyAnimation(false);
+                }, 3000);
+              }
+            }, interval);
+          }, 2500);
+
+        } else {
+          console.error('Transaction refusee:', result.error);
+
+          // Transaction failed - show rejection
+          setIsPreparingDrink(false);
+          setSelectedProduct(null);
+
+          setRejectedAmount(product.price);
+          setRejectedBalance(result.new_balance || balance);
+
+          setShowPaymentRejectedAnimation(true);
+
+          setTimeout(() => {
+            setShowPaymentRejectedAnimation(false);
+          }, 3000);
+        }
+      });
+
+      // Send transaction request
       socket.emit('create_transaction', {
         amount: product.price,
         merchant: 'CoffeeShop'
       });
-      
-      // Afficher l'animation de paiement immédiatement
-      setPaymentAmount(product.price);
-      setShowPaymentAnimation(true);
-      
-      // ⚠️ ATOMICITÉ : La distribution ne commencera QUE si la transaction est validée
-      // Le listener 'transaction_result' gère la distribution UNIQUEMENT en cas de succès
-      console.log('⏳ Attente de la validation de la transaction...');
-      
+
+      console.log('Attente de la validation de la transaction...');
+
     } else {
-      console.error('Socket non connecté pour la transaction');
+      console.error('Socket non connecte pour la transaction');
       setMessageType('error');
       setMessage('Erreur: connexion perdue');
       setTimeout(() => setMessage(''), 3000);
       return;
     }
-    
-    // ❌ SUPPRIMÉ : La distribution automatique après 2.5s
-    // La distribution ne se fera que si transaction_result.success === true
   };
 
   return (
