@@ -9,7 +9,6 @@ function App() {
   const [socket, setSocket] = useState(null);
   const [apiConnected, setApiConnected] = useState(false);
   const [apiError, setApiError] = useState(null);
-  const [reconnectAttempts, setReconnectAttempts] = useState(0);
   const [isInitializing, setIsInitializing] = useState(true);
   
   // États utilisateur
@@ -43,30 +42,26 @@ function App() {
   const [pendingProduct, setPendingProduct] = useState(null);
   const [showProcessingPayment, setShowProcessingPayment] = useState(false);
 
-  // Empêcher la mise en veille du navigateur
   useEffect(() => {
     let wakeLock = null;
     const requestWakeLock = async () => {
       try {
         if ('wakeLock' in navigator) {
           wakeLock = await navigator.wakeLock.request('screen');
-          console.log('Wake Lock activé - le navigateur ne se mettra pas en veille');
         }
       } catch (err) {
-        console.log('Wake Lock non supporté ou refusé:', err);
+        // Wake Lock not supported
       }
     };
     requestWakeLock();
     return () => {
       if (wakeLock) {
-        wakeLock.release().then(() => console.log('Wake Lock désactivé'));
+        wakeLock.release();
       }
     };
   }, []);
 
   useEffect(() => {
-    console.log('Connexion au serveur Socket.IO...', API_BASE_URL);
-    
     const newSocket = io(API_BASE_URL, {
       transports: ['polling', 'websocket'],
       reconnection: true,
@@ -79,62 +74,43 @@ function App() {
     setSocket(newSocket);
 
     newSocket.on('connect', () => {
-      console.log('Socket.IO connecté - ID:', newSocket.id);
-      console.log('Transport:', newSocket.io.engine.transport.name);
       setApiConnected(true);
       setApiError(null);
-      setReconnectAttempts(0);
       setIsInitializing(false);
     });
 
     newSocket.on('card_inserted', (data) => {
-      console.log('CARTE DÉTECTÉE VIA SOCKET.IO');
-      console.log('Données reçues:', data);
-
       if (data.card_id && data.card_id !== null) {
         setUser({ name: `Carte ${data.card_id.substring(0, 8)}`, cardId: data.card_id });
         setBalance(0);
         setPinAttempts(3);
         setIsCardBlocked(false);
 
-        // Check if card is activated (PIN defined)
         if (data.activated === false) {
-          console.log('Carte non activée - PIN non défini');
-
-          // Set error message and show animation
           setCardErrorMessage("PIN non défini.\nActivez votre carte à la borne ATM.");
           setShowCardErrorAnimation(true);
           setShowPinModal(false);
-
-          // Popup will remain until card is removed
         } else {
-          // Card is activated, show PIN modal
           setShowPinModal(true);
         }
       }
     });
 
     newSocket.on('pin_verification_result', (result) => {
-      console.log('Résultat de vérification PIN reçu:', result);
       setIsVerifyingPin(false);
-      
+
       if (result.success) {
-        console.log('PIN correct !');
         setIsPinVerified(true);
         setShowPinModal(false);
         setPin('');
         setPinAttempts(3);
-        
+
         if (result.user) {
-          console.log('Données utilisateur reçues:', result.user);
           setUser({
             name: result.user.name,
             cardId: result.user.card_id
           });
           setBalance(result.user.balance);
-          
-          // Start automatic balance updates with response-based timing
-          console.log('Demarrage de la mise a jour automatique de la balance');
 
           const requestBalance = () => {
             if (newSocket && newSocket.connected) {
@@ -142,37 +118,28 @@ function App() {
             }
           };
 
-          // Initial request
           requestBalance();
-
-          // Store flag to enable auto-updates
           newSocket.balanceAutoUpdate = true;
         }
       } else if (result.blocked) {
-        console.log('Carte bloquée !');
         setIsCardBlocked(true);
         setPinAttempts(0);
         setMessageType('error');
         setMessage('Carte bloquée ! 0 tentative restante. Contactez un administrateur.');
       } else if (result.attempts_remaining !== undefined && result.attempts_remaining !== null) {
-        console.log(`PIN incorrect - ${result.attempts_remaining} tentative(s) restante(s)`);
         setPinAttempts(result.attempts_remaining);
         setPin('');
         setMessageType('error');
         setMessage(`Code PIN incorrect ! ${result.attempts_remaining} tentative(s) restante(s).`);
         setTimeout(() => setMessage(''), 3000);
       } else if (result.error) {
-        console.error('Erreur:', result.error);
-        
-        // Vérifier si c'est une erreur de carte inactive/bloquée
         if (result.error.includes('inactive') || result.error.includes('bloquée') || result.error.includes('bloquee')) {
           setCardErrorMessage(result.error);
           setShowCardErrorAnimation(true);
           setShowPinModal(false);
-          
+
           setTimeout(() => {
             setShowCardErrorAnimation(false);
-            // Rouvrir le modal PIN après la fermeture de l'animation
             setShowPinModal(true);
             setPin('');
           }, 4000);
@@ -184,16 +151,9 @@ function App() {
       }
     });
 
-    // Note: transaction_result listeners are now set up per-transaction
-    // using socket.once() in processPaymentForProduct() for atomicity
-
     newSocket.on('card_removed', (data) => {
-      console.log('Carte retiree via Socket.IO:', data);
-
-      // Stop automatic balance updates
       if (newSocket.balanceAutoUpdate) {
         newSocket.balanceAutoUpdate = false;
-        console.log('Mise a jour automatique de la balance arretee');
       }
 
       setUser(null);
@@ -218,26 +178,20 @@ function App() {
     });
 
     newSocket.on('balance_result', (result) => {
-      console.log('Reponse balance recue:', result);
-
-      // Update balance in real-time
       if (result.success) {
-        console.log('Balance mise a jour:', result.balance);
         setBalance(result.balance);
       }
 
-      // Schedule next request only after receiving response (prevents spam)
       if (newSocket.balanceAutoUpdate) {
         setTimeout(() => {
           if (newSocket && newSocket.connected && newSocket.balanceAutoUpdate) {
             newSocket.emit('get_balance');
           }
-        }, 1000); // Wait 1 second after response before next request
+        }, 1000);
       }
     });
 
     newSocket.on('disconnect', (reason) => {
-      console.log('🔌 Socket.IO déconnecté - Raison:', reason);
       setApiConnected(false);
       if (reason === 'io server disconnect') {
         setApiError('Le serveur a fermé la connexion');
@@ -247,24 +201,12 @@ function App() {
     });
 
     newSocket.on('connect_error', (error) => {
-      console.error('❌ Erreur de connexion Socket.IO:', error.message);
-      console.error('   Description:', error.description);
       setApiConnected(false);
       setApiError('Impossible de se connecter au serveur');
       setIsInitializing(false);
     });
-    
-    newSocket.on('error', (error) => {
-      console.error('Erreur Socket.IO:', error);
-    });
-
-    // Test: écouter tous les événements
-    newSocket.onAny((eventName, ...args) => {
-      console.log('Événement Socket.IO reçu:', eventName, args);
-    });
 
     return () => {
-      console.log('Fermeture de la connexion Socket.IO');
       if (newSocket) {
         newSocket.close();
       }
@@ -273,7 +215,6 @@ function App() {
   }, []);
 
   const handleProductClick = (product) => {
-    console.log('handleProductClick appelé', { user, isPinVerified, balance, product });
     if (!user) {
       setMessageType('info');
       setMessage('Veuillez insérer votre carte');
@@ -286,20 +227,15 @@ function App() {
       return;
     }
 
-    // Check balance immediately without waiting for API
     if (balance < product.price) {
-      // Afficher l'animation de refus
       setRejectedAmount(product.price);
       setRejectedBalance(balance);
       setShowPaymentRejectedAnimation(true);
 
-      // Masquer l'animation après 3 secondes
       setTimeout(() => {
         setShowPaymentRejectedAnimation(false);
       }, 3000);
     } else {
-      // Solde suffisant, ouvrir directement le modal de confirmation
-      console.log('Ouverture du modal de confirmation');
       setSelectedProduct(product);
       setSugarLevel(2);
       setShowConfirmation(true);
@@ -322,14 +258,11 @@ function App() {
     }
     
     if (!isPinVerified && !selectedProduct) {
-      console.log('Envoi de la demande de vérification PIN:', pin);
       setIsVerifyingPin(true);
-      
+
       if (socket && socket.connected) {
-        console.log('Utilisation du socket existant pour verify_pin');
         socket.emit('verify_pin', { pin });
       } else {
-        console.error('Socket non connecté !');
         setIsVerifyingPin(false);
         setMessageType('error');
         setMessage('Erreur: Socket non connecté');
@@ -344,32 +277,20 @@ function App() {
   };
 
   const processPaymentForProduct = (product) => {
-    console.log('Creation de la transaction via Socket.IO...');
-
-    // Show processing payment modal
     setShowProcessingPayment(true);
 
-    // Envoyer la transaction au serveur
     if (socket && socket.connected) {
-      // Store payment amount for later use
       setPaymentAmount(product.price);
 
-      // Set up one-time listener for this specific transaction
       socket.once('transaction_result', (result) => {
         if (result.success) {
-          console.log('Transaction validee - Nouveau solde:', result.new_balance);
-          // Update balance
           setBalance(result.new_balance);
           setNewBalanceAmount(result.new_balance);
 
-          // Wait 1.5s before hiding processing modal and showing success
           setTimeout(() => {
             setShowProcessingPayment(false);
-
-            // Show payment success animation ONLY after validation
             setShowPaymentAnimation(true);
 
-            // Start drink preparation after showing success
             setTimeout(() => {
               setShowPaymentAnimation(false);
               setIsPreparingDrink(true);
@@ -410,12 +331,7 @@ function App() {
           }, 1500);
 
         } else {
-          console.error('Transaction refusee:', result.error);
-
-          // Hide processing modal
           setShowProcessingPayment(false);
-
-          // Transaction failed - show rejection
           setIsPreparingDrink(false);
           setSelectedProduct(null);
 
@@ -430,16 +346,12 @@ function App() {
         }
       });
 
-      // Send transaction request
       socket.emit('create_transaction', {
         amount: product.price,
         merchant: 'CoffeeShop'
       });
 
-      console.log('Attente de la validation de la transaction...');
-
     } else {
-      console.error('Socket non connecte pour la transaction');
       setShowProcessingPayment(false);
       setMessageType('error');
       setMessage('Erreur: connexion perdue');
@@ -635,7 +547,7 @@ function App() {
 
           {/* Logo en haut à gauche */}
           <div className="fixed top-6 left-6 z-50">
-            <img src={logo} alt="Logo" className="h-16 md:h-20 object-contain" />
+            <img src={logo} alt="Logo" className="h-20 md:h-24 object-contain" />
           </div>
 
           <main className="container mx-auto px-6 pt-24 flex items-center justify-center min-h-screen">

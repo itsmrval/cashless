@@ -55,7 +55,6 @@ export function AuthProvider({ children }) {
         localStorage.removeItem('cashless_token');
       }
     } catch (error) {
-      console.error("Impossible de réhydrater la session", error);
       localStorage.clear();
     } finally {
       setIsLoading(false);
@@ -80,7 +79,6 @@ export function AuthProvider({ children }) {
           localStorage.setItem('cashless_currentCardId', newCurrentId || '');
         }
       } catch (error) {
-        console.error('Error polling cards:', error);
       }
     }, 30000);
 
@@ -105,7 +103,6 @@ export function AuthProvider({ children }) {
 
       return userCards;
     } catch (e) {
-      console.warn('Could not fetch cards', e);
       return [];
     }
   };

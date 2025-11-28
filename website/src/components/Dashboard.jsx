@@ -66,29 +66,24 @@ function Dashboard() {
     try {
       const [balanceData, transData] = await Promise.all([
         api.getUserBalance(currentUserId).catch(err => {
-          console.error('Failed to fetch balance:', err);
           return { balance: 0 };
         }),
         api.getTransactions(currentUserId).catch(err => {
-          console.error('Failed to fetch transactions:', err);
           return { transactions: [] };
         })
       ]);
       setBalance(balanceData.balance || 0);
       setTransactions(transData.transactions || []);
     } catch (err) {
-      console.error('Error loading dashboard data:', err);
     } finally {
       setLoading(false);
     }
   };
 
-  // Handler pour toggle le statut d'une carte
   const handleToggleCardStatus = async (cardId) => {
     try {
       await toggleCardStatus(cardId);
     } catch (err) {
-      console.error('Error toggling card status:', err);
     }
   };
 

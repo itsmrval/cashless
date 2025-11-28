@@ -10,13 +10,9 @@ const SOCKET_URL = process.env.REACT_APP_SOCKET_URL || 'https://localhost:8001';
 const PRESET_AMOUNTS = [10, 20, 30, 50, 80, 100];
 
 function App() {
-  // État Socket.IO
   const [socket, setSocket] = useState(null);
-  
-  // États de connexion et initialisation
   const [isSocketConnected, setIsSocketConnected] = useState(false);
   const [apiError, setApiError] = useState(null);
-  const [reconnectAttempts, setReconnectAttempts] = useState(0);
   const [isInitializing, setIsInitializing] = useState(true);
   
   // États utilisateur
@@ -27,12 +23,8 @@ function App() {
   const [isCardBlocked, setIsCardBlocked] = useState(false);
   const [isVerifyingPin, setIsVerifyingPin] = useState(false);
   
-  // États erreurs carte
   const [showCardErrorAnimation, setShowCardErrorAnimation] = useState(false);
   const [cardErrorMessage, setCardErrorMessage] = useState('');
-  
-  // États chargement
-  const [isLoadingBalance, setIsLoadingBalance] = useState(false);
   const [showProcessingPayment, setShowProcessingPayment] = useState(false);
   
   // États pompe et carburant
@@ -66,10 +58,7 @@ function App() {
   const [message, setMessage] = useState('');
   const [messageType, setMessageType] = useState('info');
 
-  // Connexion Socket.IO
   useEffect(() => {
-    console.log('Connexion au serveur Socket.IO...', SOCKET_URL);
-    
     const newSocket = io(SOCKET_URL, {
       transports: ['polling', 'websocket'],
       reconnection: true,
@@ -82,26 +71,18 @@ function App() {
     setSocket(newSocket);
 
     newSocket.on('connect', () => {
-      console.log('Socket.IO connecté - ID:', newSocket.id);
-      console.log('Transport:', newSocket.io.engine.transport.name);
       setIsSocketConnected(true);
       setApiError(null);
-      setReconnectAttempts(0);
       setIsInitializing(false);
     });
 
     newSocket.on('connect_error', (error) => {
-      console.error('Erreur de connexion Socket.IO:', error.message);
       setIsSocketConnected(false);
-      setReconnectAttempts(prev => prev + 1);
       setApiError('Impossible de se connecter au serveur');
       setIsInitializing(false);
     });
 
     newSocket.on('card_inserted', (data) => {
-      console.log('CARTE DÉTECTÉE VIA SOCKET.IO');
-      console.log('Données reçues:', data);
-      
       if (data.card_id && data.card_id !== null) {
         setUser({ name: 'Carte détectée', cardId: data.card_id });
         setBalance(0);
@@ -114,28 +95,21 @@ function App() {
     });
 
     newSocket.on('pin_verification_result', (result) => {
-      console.log('Résultat de vérification PIN reçu:', result);
       setIsVerifyingPin(false);
-      
+
       if (result.success) {
-        console.log('PIN correct !');
         setIsPinVerified(true);
         setTpeMode('idle');
         setTpeMessage('Code accepté');
         setTpeInput('');
         setPinAttempts(3);
-        
-        // Récupérer les données utilisateur (nom et solde)
+
         if (result.user) {
-          console.log('Données utilisateur reçues:', result.user);
           setUser({
             name: result.user.name,
             cardId: result.user.card_id
           });
           setBalance(result.user.balance);
-
-          // Start automatic balance updates with response-based timing
-          console.log('Demarrage de la mise a jour automatique de la balance');
 
           const requestBalance = () => {
             if (newSocket && newSocket.connected) {
@@ -143,37 +117,29 @@ function App() {
             }
           };
 
-          // Initial request
           requestBalance();
-
-          // Store flag to enable auto-updates
           newSocket.balanceAutoUpdate = true;
         }
 
         setTimeout(() => setTpeMessage(''), 2000);
       } else if (result.blocked) {
-        console.log('Carte bloquée !');
         setIsCardBlocked(true);
         setPinAttempts(0);
         setTpeMode('error');
         setTpeMessage('CARTE BLOQUÉE');
       } else if (result.attempts_remaining !== undefined && result.attempts_remaining !== null) {
-        console.log(`PIN incorrect - ${result.attempts_remaining} tentative(s) restante(s)`);
         setPinAttempts(result.attempts_remaining);
         setTpeInput('');
         setTpeMode('pin');
         setTpeMessage(`Erreur - ${result.attempts_remaining} essai(s)`);
         setTimeout(() => setTpeMessage('Saisir code PIN'), 2000);
       } else if (result.error) {
-        console.error('Erreur:', result.error);
-        
-        // Vérifier si c'est une erreur de carte inactive/bloquée
         if (result.error.includes('inactive') || result.error.includes('bloquée') || result.error.includes('bloquee')) {
           setCardErrorMessage(result.error);
           setShowCardErrorAnimation(true);
           setTpeMode('error');
           setTpeMessage('Carte inactive');
-          
+
           setTimeout(() => {
             setShowCardErrorAnimation(false);
             setTpeMode('pin');
@@ -192,44 +158,28 @@ function App() {
     });
 
     newSocket.on('balance_result', (result) => {
-      console.log('Reponse balance recue:', result);
-
-      // Update balance in real-time
       if (result.success) {
-        console.log('Balance mise a jour:', result.balance);
         setBalance(result.balance);
       }
 
-      // Schedule next request only after receiving response (prevents spam)
       if (newSocket.balanceAutoUpdate) {
         setTimeout(() => {
           if (newSocket && newSocket.connected && newSocket.balanceAutoUpdate) {
             newSocket.emit('get_balance');
           }
-        }, 1000); // Wait 1 second after response before next request
+        }, 1000);
       }
     });
 
     newSocket.on('card_removed', (data) => {
-      console.log('Carte retiree via Socket.IO:', data);
-
-      // Stop automatic balance updates
       if (newSocket.balanceAutoUpdate) {
         newSocket.balanceAutoUpdate = false;
-        console.log('Mise a jour automatique de la balance arretee');
-      }
-
-      // Note: If card removed during fueling, server should handle refund
-      // Frontend just cleans up state - no client-side transaction possible without card
-      if (isFueling) {
-        console.log('Warning: Card removed during active fueling - server will handle refund');
       }
 
       resetState();
     });
 
     newSocket.on('disconnect', (reason) => {
-      console.log('Socket.IO deconnecte - Raison:', reason);
       setIsSocketConnected(false);
       if (reason === 'io server disconnect') {
         setApiError('Le serveur a ferme la connexion');
@@ -238,23 +188,12 @@ function App() {
       }
     });
 
-    newSocket.on('error', (error) => {
-      console.error('Erreur Socket.IO:', error);
-    });
-
-    // Debug: écouter tous les événements
-    newSocket.onAny((eventName, ...args) => {
-      console.log('Événement Socket.IO reçu:', eventName, args);
-    });
-
     return () => {
-      console.log('Fermeture de la connexion Socket.IO');
       if (newSocket) newSocket.close();
     };
   }, []);
 
   const resetState = useCallback(() => {
-    // Stop fueling interval if present
     if (fuelingIntervalRef) {
       clearInterval(fuelingIntervalRef);
       setFuelingIntervalRef(null);
@@ -407,8 +346,6 @@ function App() {
     setShowProcessingPayment(true);
 
     if (socket && socket.connected) {
-      console.log(`Envoi de la pré-autorisation: ${amount.toFixed(2)}€`);
-
       setPreAuthAmount(amount);
 
       socket.emit('create_transaction', {
@@ -418,19 +355,16 @@ function App() {
 
       socket.once('transaction_result', (result) => {
         if (result.success) {
-          console.log(`Pré-autorisation de ${amount.toFixed(2)}€ acceptée`);
           setBalance(result.new_balance);
           setIsPreAuthActive(true);
           setTpeMode('success');
           setTpeMessage(`${amount.toFixed(2)}€ prélevés`);
 
-          // Wait 1.5s before hiding processing and starting fueling
           setTimeout(() => {
             setShowProcessingPayment(false);
             startFueling(selectedFuel, amount);
           }, 1500);
         } else {
-          console.error('Erreur pré-autorisation:', result.error);
           setShowProcessingPayment(false);
           setIsPreAuthActive(false);
           setPreAuthAmount(0);
@@ -452,7 +386,6 @@ function App() {
       });
 
     } else {
-      console.error('Socket non connecté pour la pré-autorisation');
       setShowProcessingPayment(false);
       setTpeMode('error');
       setTpeMessage('Connexion perdue');
@@ -475,12 +408,9 @@ function App() {
     }
   };
 
-  // Finaliser le ravitaillement et rembourser la différence
   const finalizeFueling = () => {
     const actualAmount = currentLiters * selectedFuel.price;
     const refundToSend = preAuthAmount - actualAmount;
-
-    console.log(`Finalisation: consommé ${actualAmount.toFixed(2)}€, à rembourser ${refundToSend.toFixed(2)}€`);
 
     setPaymentAmount(actualAmount);
     setRefundAmount(refundToSend);
@@ -488,7 +418,6 @@ function App() {
     setIsPreAuthActive(false);
     setIsFueling(false);
 
-    // Function to show success and reset after delay
     const showSuccessAndReset = (finalBalance) => {
       setNewBalanceAmount(finalBalance);
       setShowPaymentSuccess(true);
@@ -508,9 +437,6 @@ function App() {
     };
 
     if (refundToSend > 0 && socket && socket.connected) {
-      console.log(`Envoi du remboursement: ${refundToSend.toFixed(2)}€`);
-
-      // Show processing state while waiting for refund
       setTpeMode('processing');
       setTpeMessage('Remboursement en cours...');
 
@@ -522,12 +448,9 @@ function App() {
 
       socket.once('transaction_result', (result) => {
         if (result.success && result.refund) {
-          console.log('Remboursement réussi - Nouveau solde:', result.new_balance);
           setBalance(result.new_balance);
-          // Show success ONLY after refund completes
           showSuccessAndReset(result.new_balance);
         } else if (!result.success) {
-          console.error('Erreur remboursement:', result.error);
           setTpeMode('error');
           setTpeMessage('Erreur remboursement');
           setMessage(`Erreur de remboursement: ${result.error}`);
@@ -541,11 +464,8 @@ function App() {
       });
 
     } else if (refundToSend <= 0) {
-      console.log('Pas de remboursement nécessaire');
-      // No refund needed, show success immediately
       showSuccessAndReset(balance);
     } else {
-      console.error('Socket non connecté pour le remboursement');
       setTpeMode('error');
       setTpeMessage('Connexion perdue');
       setMessage('Attention: remboursement non envoyé');
@@ -560,53 +480,48 @@ function App() {
 
   const startFueling = (fuel, maxAmount) => {
     const maxLiters = maxAmount / fuel.price;
-    
+
     setIsFueling(true);
     setFuelingProgress(0);
     setCurrentLiters(0);
     setCurrentAmount(0);
     setTpeMode('idle');
     setTpeMessage('Remplissage...');
-    
-    // Vitesse : environ 1 litre par 100ms (rapide pour la démo)
+
     const litersPerTick = 0.05;
     const interval = 50;
-    
+
     const fuelingInterval = setInterval(() => {
       setCurrentLiters(prev => {
         const next = prev + litersPerTick;
         const nextAmount = next * fuel.price;
-        
-        // Arrêter si on atteint le max de la pré-autorisation
+
         if (next >= maxLiters || nextAmount >= maxAmount) {
           clearInterval(fuelingInterval);
           setFuelingIntervalRef(null);
-          
+
           const finalLiters = Math.min(next, maxLiters);
           setCurrentAmount(finalLiters * fuel.price);
           setFuelingProgress(100);
-          
-          // Finaliser automatiquement
+
           setTimeout(() => {
             finalizeFueling();
           }, 500);
-          
+
           return finalLiters;
         }
-        
+
         setCurrentAmount(nextAmount);
         setFuelingProgress((nextAmount / maxAmount) * 100);
         return next;
       });
     }, interval);
-    
+
     setFuelingIntervalRef(fuelingInterval);
   };
 
-  // Rendu du TPE
   const renderTPE = () => {
-    // Le PIN est TOUJOURS masqué avec des points
-    const displayText = (tpeMode === 'pin' || tpeMode === 'processing') 
+    const displayText = (tpeMode === 'pin' || tpeMode === 'processing')
       ? '•'.repeat(tpeInput.length)
       : tpeInput;
 
@@ -867,8 +782,6 @@ function App() {
     );
   };
 
-  // Rendu du sélecteur de mode (info seulement, pas de sélection ici)
-  // Rendu du sélecteur de mode (désactivé)
   const renderModeSelector = () => {
     return null;
   };
