@@ -131,17 +131,20 @@ function App() {
           });
           setBalance(result.user.balance);
           
-          // Demarrer la mise a jour automatique de la balance toutes les secondes
+          // Start automatic balance updates with response-based timing
           console.log('Demarrage de la mise a jour automatique de la balance');
-          const balanceInterval = setInterval(() => {
+
+          const requestBalance = () => {
             if (newSocket && newSocket.connected) {
-              console.log('Demande de mise a jour de la balance...');
               newSocket.emit('get_balance');
             }
-          }, 1000); // Toutes les 1 seconde
-          
-          // Stocker l'intervalle pour le nettoyer plus tard
-          newSocket.balanceInterval = balanceInterval;
+          };
+
+          // Initial request
+          requestBalance();
+
+          // Store flag to enable auto-updates
+          newSocket.balanceAutoUpdate = true;
         }
       } else if (result.blocked) {
         console.log('Carte bloquée !');
@@ -186,9 +189,8 @@ function App() {
       console.log('Carte retiree via Socket.IO:', data);
 
       // Stop automatic balance updates
-      if (newSocket.balanceInterval) {
-        clearInterval(newSocket.balanceInterval);
-        newSocket.balanceInterval = null;
+      if (newSocket.balanceAutoUpdate) {
+        newSocket.balanceAutoUpdate = false;
         console.log('Mise a jour automatique de la balance arretee');
       }
 
@@ -216,10 +218,19 @@ function App() {
     newSocket.on('balance_result', (result) => {
       console.log('Reponse balance recue:', result);
 
-      // Mettre a jour la balance en temps reel
+      // Update balance in real-time
       if (result.success) {
         console.log('Balance mise a jour:', result.balance);
         setBalance(result.balance);
+      }
+
+      // Schedule next request only after receiving response (prevents spam)
+      if (newSocket.balanceAutoUpdate) {
+        setTimeout(() => {
+          if (newSocket && newSocket.connected && newSocket.balanceAutoUpdate) {
+            newSocket.emit('get_balance');
+          }
+        }, 1000); // Wait 1 second after response before next request
       }
       
       // Utiliser setPendingProduct avec une fonction pour obtenir la valeur actuelle

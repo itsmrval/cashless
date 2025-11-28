@@ -33,6 +33,7 @@ function App() {
   
   // États chargement
   const [isLoadingBalance, setIsLoadingBalance] = useState(false);
+  const [showProcessingPayment, setShowProcessingPayment] = useState(false);
   
   // États pompe et carburant
   const [selectedFuel, setSelectedFuel] = useState(null);
@@ -133,17 +134,20 @@ function App() {
           });
           setBalance(result.user.balance);
 
-          // Start automatic balance updates every second
+          // Start automatic balance updates with response-based timing
           console.log('Demarrage de la mise a jour automatique de la balance');
-          const balanceInterval = setInterval(() => {
+
+          const requestBalance = () => {
             if (newSocket && newSocket.connected) {
-              console.log('Demande de mise a jour de la balance...');
               newSocket.emit('get_balance');
             }
-          }, 1000); // Every 1 second
+          };
 
-          // Store interval for cleanup later
-          newSocket.balanceInterval = balanceInterval;
+          // Initial request
+          requestBalance();
+
+          // Store flag to enable auto-updates
+          newSocket.balanceAutoUpdate = true;
         }
 
         setTimeout(() => setTpeMessage(''), 2000);
@@ -195,15 +199,23 @@ function App() {
         console.log('Balance mise a jour:', result.balance);
         setBalance(result.balance);
       }
+
+      // Schedule next request only after receiving response (prevents spam)
+      if (newSocket.balanceAutoUpdate) {
+        setTimeout(() => {
+          if (newSocket && newSocket.connected && newSocket.balanceAutoUpdate) {
+            newSocket.emit('get_balance');
+          }
+        }, 1000); // Wait 1 second after response before next request
+      }
     });
 
     newSocket.on('card_removed', (data) => {
       console.log('Carte retiree via Socket.IO:', data);
 
       // Stop automatic balance updates
-      if (newSocket.balanceInterval) {
-        clearInterval(newSocket.balanceInterval);
-        newSocket.balanceInterval = null;
+      if (newSocket.balanceAutoUpdate) {
+        newSocket.balanceAutoUpdate = false;
         console.log('Mise a jour automatique de la balance arretee');
       }
 
@@ -392,17 +404,18 @@ function App() {
   const processPreAuthorization = (amount) => {
     setTpeMode('preauth');
     setTpeMessage('Pré-autorisation...');
-    
+    setShowProcessingPayment(true);
+
     if (socket && socket.connected) {
       console.log(`Envoi de la pré-autorisation: ${amount.toFixed(2)}€`);
-      
+
       setPreAuthAmount(amount);
-      
+
       socket.emit('create_transaction', {
         amount: amount,
         merchant: 'PumpShop'
       });
-      
+
       socket.once('transaction_result', (result) => {
         if (result.success) {
           console.log(`Pré-autorisation de ${amount.toFixed(2)}€ acceptée`);
@@ -410,23 +423,26 @@ function App() {
           setIsPreAuthActive(true);
           setTpeMode('success');
           setTpeMessage(`${amount.toFixed(2)}€ prélevés`);
-          
+
+          // Wait 1.5s before hiding processing and starting fueling
           setTimeout(() => {
+            setShowProcessingPayment(false);
             startFueling(selectedFuel, amount);
           }, 1500);
         } else {
           console.error('Erreur pré-autorisation:', result.error);
+          setShowProcessingPayment(false);
           setIsPreAuthActive(false);
           setPreAuthAmount(0);
           setTpeMode('error');
-          
+
           if (result.error && result.error.includes('Insufficient')) {
             setTpeMessage('Solde insuffisant');
             setShowInsufficientBalance(true);
           } else {
             setTpeMessage('Erreur');
           }
-          
+
           setTimeout(() => {
             setTpeMode('idle');
             setTpeMessage('');
@@ -434,9 +450,10 @@ function App() {
           }, 3000);
         }
       });
-      
+
     } else {
       console.error('Socket non connecté pour la pré-autorisation');
+      setShowProcessingPayment(false);
       setTpeMode('error');
       setTpeMessage('Connexion perdue');
       setTimeout(() => {
@@ -859,73 +876,84 @@ function App() {
   // Modal de sélection du montant
   const renderAmountSelector = () => {
     if (!showAmountSelector || !selectedFuel) return null;
-    
+
     const maxLitersForAmount = (amount) => (amount / selectedFuel.price).toFixed(1);
-    
+
     return (
-      <div className="fixed inset-0 bg-black bg-opacity-80 flex items-center justify-center z-50 p-4">
-        <div className="bg-gray-800 rounded-2xl shadow-2xl max-w-lg w-full animate-scaleIn border-2 border-gray-700">
-          {/* Header */}
-          <div className="p-6 border-b border-gray-700">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div
-                  className="w-12 h-12 rounded-full flex items-center justify-center"
-                  style={{ backgroundColor: selectedFuel.color }}
-                >
-                  <span className="text-white font-bold text-xs">{selectedFuel.shortName}</span>
-                </div>
-                <div>
-                  <h2 className="text-xl font-bold text-white">{selectedFuel.name}</h2>
-                  <p className="text-gray-400">{selectedFuel.price.toFixed(3)}€/L</p>
-                </div>
+      <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50 p-4">
+        <div className="bg-white border-3 border-black rounded-2xl shadow-2xl p-8 max-w-lg w-full animate-slideDown">
+          <div className="text-center">
+            {/* Header with fuel info */}
+            <div className="flex items-center justify-center gap-3 mb-6">
+              <div
+                className="w-16 h-16 rounded-full flex items-center justify-center"
+                style={{ backgroundColor: selectedFuel.color }}
+              >
+                <span className="text-white font-bold text-lg">{selectedFuel.shortName}</span>
               </div>
+              <div className="text-left">
+                <h2 className="text-2xl font-bold text-gray-900">{selectedFuel.name}</h2>
+                <p className="text-gray-600">{selectedFuel.price.toFixed(3)}€/L</p>
+              </div>
+            </div>
+
+            <h2 className="text-2xl font-bold text-gray-900 mb-2">Faire le plein</h2>
+            <p className="text-lg text-gray-700 mb-6">Voici comment ça fonctionne</p>
+
+            {/* Steps */}
+            <div className="bg-gradient-to-br from-gray-50 to-gray-100 border-3 border-black rounded-xl p-6 mb-6 text-left">
+              <ol className="space-y-3">
+                <li className="flex items-start">
+                  <span className="text-gray-900 font-bold mr-3">1.</span>
+                  <span className="text-gray-700">Une pré-autorisation de <strong className="text-gray-900">{balance.toFixed(2)}€</strong> sera bloquée</span>
+                </li>
+                <li className="flex items-start">
+                  <span className="text-gray-900 font-bold mr-3">2.</span>
+                  <span className="text-gray-700">Faites votre plein librement</span>
+                </li>
+                <li className="flex items-start">
+                  <span className="text-gray-900 font-bold mr-3">3.</span>
+                  <span className="text-gray-700">Arrêtez quand vous voulez</span>
+                </li>
+                <li className="flex items-start">
+                  <span className="text-gray-900 font-bold mr-3">4.</span>
+                  <span className="text-gray-700">Seul le montant réel sera débité</span>
+                </li>
+                <li className="flex items-start">
+                  <span className="text-gray-900 font-bold mr-3">5.</span>
+                  <span className="text-gray-700">Le reste sera débloqué immédiatement</span>
+                </li>
+              </ol>
+            </div>
+
+            {/* Amount info */}
+            <div className="bg-yellow-100 border-2 border-yellow-400 rounded-xl p-4 mb-6">
+              <p className="text-gray-900 font-semibold mb-1">
+                Montant bloqué : {balance.toFixed(2)}€
+              </p>
+              <p className="text-gray-600 text-sm">
+                ≈ {maxLitersForAmount(balance)} litres maximum
+              </p>
+            </div>
+
+            {/* Buttons */}
+            <div className="flex gap-3">
               <button
                 onClick={() => {
                   setShowAmountSelector(false);
                   setSelectedFuel(null);
                 }}
-                className="text-gray-400 hover:text-white text-2xl"
+                className="flex-1 bg-gray-200 hover:bg-gray-300 text-gray-900 font-semibold py-3 rounded-xl transition-all"
               >
-                ✕
+                Annuler
+              </button>
+              <button
+                onClick={handleConfirmAmount}
+                className="flex-1 bg-green-600 hover:bg-green-500 text-white font-bold py-3 rounded-xl transition-all"
+              >
+                Autoriser {balance.toFixed(2)}€
               </button>
             </div>
-          </div>
-
-          {/* Contenu */}
-          <div className="p-6">
-            <h3 className="text-white font-semibold mb-4 text-center">Faire le plein</h3>
-            
-            <div className="bg-gray-700 rounded-xl p-4">
-              <div className="flex items-start gap-3">
-                <div className="text-sm text-gray-300">
-                  <p className="font-semibold text-white mb-2">Comment ça marche ?</p>
-                  <ol className="space-y-1 list-decimal list-inside">
-                    <li>Une pré-autorisation de <strong className="text-green-400">{balance.toFixed(2)}€</strong> sera bloquée</li>
-                    <li>Faites votre plein librement</li>
-                    <li>Arrêtez quand vous voulez</li>
-                    <li>Seul le montant réel sera débité</li>
-                    <li>Le reste sera débloqué immédiatement</li>
-                  </ol>
-                </div>
-              </div>
-              <div className="mt-4 p-3 bg-yellow-900 bg-opacity-50 rounded-lg">
-                <p className="text-yellow-400 text-sm text-center">
-                  Montant bloqué : <strong>{balance.toFixed(2)}€</strong>
-                  <br/>
-                  <span className="text-xs">≈ {maxLitersForAmount(balance)} litres maximum</span>
-                </p>
-              </div>
-            </div>
-          </div>
-
-          <div className="p-6 border-t border-gray-700 bg-gray-900 rounded-b-2xl">
-            <button
-              onClick={handleConfirmAmount}
-              className="w-full bg-green-600 hover:bg-green-500 text-white font-bold py-4 rounded-xl transition-all text-lg"
-            >
-              Autoriser {balance.toFixed(2)}€ et commencer
-            </button>
           </div>
         </div>
       </div>
@@ -1130,6 +1158,34 @@ function App() {
 
       {/* Modal de sélection de montant */}
       {renderAmountSelector()}
+
+      {/* Processing Payment Modal */}
+      {showProcessingPayment && (
+        <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-3xl shadow-2xl p-8 max-w-md w-full animate-slideDown">
+            <div className="text-center">
+              {/* Spinner icon */}
+              <div className="relative mb-6 flex justify-center">
+                <div className="w-24 h-24 bg-blue-100 rounded-full flex items-center justify-center">
+                  <div className="animate-spin">
+                    <svg className="w-16 h-16 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                    </svg>
+                  </div>
+                </div>
+              </div>
+
+              <h2 className="text-2xl font-bold text-gray-900 mb-2">Pré-autorisation en cours</h2>
+              <p className="text-lg text-gray-700 mb-4">Validation du paiement...</p>
+
+              <div className="bg-gradient-to-br from-gray-50 to-gray-100 border-2 border-gray-200 rounded-xl p-4">
+                <p className="text-sm text-gray-600 mb-1">Montant à bloquer</p>
+                <p className="text-3xl font-bold text-gray-900">{preAuthAmount.toFixed(2)}€</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Modal de succès */}
       {showPaymentSuccess && (
