@@ -4,6 +4,10 @@
 This university project is setting up an electronic payment infrastructure based on smart cards.
 The aim is to enable secure top-ups, payments, and transfers between users, terminals, and connected machines.
 
+Dashboard             |  Example web client
+:-:|:--:
+![](https://i.imgur.com/Nw2YLg3.png)  | ![](https://i.imgur.com/L67j3f3.png)
+
 #### Quick Links
 - [Structure](#structure)
 - [Docker Deployment](#docker-deployment)
@@ -115,7 +119,7 @@ The service runs on `https://0.0.0.0:8001` and supports:
 - `READ_VERSION (0x02)` - Check card firmware version
 - `IS_PIN_DEFINED (0x0E)` - Verify if card is activated
 - `VERIFY_PIN (0x06)` - Authenticate user locally on card
-- `SET_CHALLENGE (0x0C)` + `SIGN_CHALLENGE (0x0B)` - Cryptographic authentication with API
+- `SET_CHALLENGE (0x0C)` + `SIGN_CHALLENGE (0x0B)` - Challenge-response authentication with API
 
 See [socket_reader/README.md](socket_reader/README.md) for WebSocket API documentation.
 
@@ -136,7 +140,7 @@ Example for the ATM client.
 - `VERIFY_PIN (0x06)` - Authenticate user locally on card
 - `VERIFY_PUK (0x07)` - Unblock card with PUK and set new PIN
 - `GET_REMAINING_ATTEMPTS (0x0D)` - Check remaining PIN/PUK attempts
-- `SET_CHALLENGE (0x0C)` + `SIGN_CHALLENGE (0x0B)` - Cryptographic authentication with API
+- `SET_CHALLENGE (0x0C)` + `SIGN_CHALLENGE (0x0B)` - Challenge-response authentication with API
 
 The ATM client provides a complete card management interface including PIN setup, PUK-based unlock, and transaction viewing.
 
