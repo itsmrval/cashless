@@ -3,10 +3,8 @@ import fuels from './fuels.json';
 import io from 'socket.io-client';
 import logo from './logo.png';
 
-// URL du serveur Socket.IO (lecteur de carte)
 const SOCKET_URL = process.env.REACT_APP_SOCKET_URL || 'https://localhost:8001';
 
-// Montants prédéfinis pour le mode montant fixe
 const PRESET_AMOUNTS = [10, 20, 30, 50, 80, 100];
 
 function App() {
@@ -14,8 +12,7 @@ function App() {
   const [isSocketConnected, setIsSocketConnected] = useState(false);
   const [apiError, setApiError] = useState(null);
   const [isInitializing, setIsInitializing] = useState(true);
-  
-  // États utilisateur
+
   const [user, setUser] = useState(null);
   const [balance, setBalance] = useState(0);
   const [isPinVerified, setIsPinVerified] = useState(false);
@@ -26,8 +23,7 @@ function App() {
   const [showCardErrorAnimation, setShowCardErrorAnimation] = useState(false);
   const [cardErrorMessage, setCardErrorMessage] = useState('');
   const [showProcessingPayment, setShowProcessingPayment] = useState(false);
-  
-  // États pompe et carburant
+
   const [selectedFuel, setSelectedFuel] = useState(null);
   const [liters, setLiters] = useState('');
   const [isFueling, setIsFueling] = useState(false);
@@ -35,21 +31,18 @@ function App() {
   const [currentLiters, setCurrentLiters] = useState(0);
   const [currentAmount, setCurrentAmount] = useState(0);
   const [fuelingIntervalRef, setFuelingIntervalRef] = useState(null);
-  
-  // États pré-autorisation
-  const [paymentMode, setPaymentMode] = useState('full'); // 'full' = plein avec pré-auth
+
+  const [paymentMode, setPaymentMode] = useState('full');
   const [selectedPresetAmount, setSelectedPresetAmount] = useState(50);
   const [customAmount, setCustomAmount] = useState('');
   const [preAuthAmount, setPreAuthAmount] = useState(0);
   const [isPreAuthActive, setIsPreAuthActive] = useState(false);
   const [showAmountSelector, setShowAmountSelector] = useState(false);
-  
-  // États TPE
+
   const [tpeInput, setTpeInput] = useState('');
-  const [tpeMode, setTpeMode] = useState('idle'); // 'idle', 'pin', 'amount', 'processing', 'success', 'error', 'preauth'
+  const [tpeMode, setTpeMode] = useState('idle');
   const [tpeMessage, setTpeMessage] = useState('');
-  
-  // États modals et messages
+
   const [showPaymentSuccess, setShowPaymentSuccess] = useState(false);
   const [showInsufficientBalance, setShowInsufficientBalance] = useState(false);
   const [paymentAmount, setPaymentAmount] = useState(0);
@@ -227,36 +220,31 @@ function App() {
     setShowPaymentSuccess(false);
   }, [fuelingIntervalRef]);
 
-  // Gestion des boutons du TPE
   const handleTpeButton = (value) => {
     if (isCardBlocked) return;
     
     if (value === 'C') {
-      // Effacer
       setTpeInput('');
       return;
     }
-    
+
     if (value === 'CE') {
-      // Effacer dernier caractère
       setTpeInput(prev => prev.slice(0, -1));
       return;
     }
-    
+
     if (value === 'OK') {
       handleTpeValidate();
       return;
     }
-    
+
     if (value === 'X') {
-      // Annuler
       if (tpeMode === 'amount') {
         setTpeMode('idle');
         setTpeInput('');
         setSelectedFuel(null);
         setLiters('');
       }
-      // Si carte connectée, demander de retirer la carte
       if (user) {
         setTpeMode('idle');
         setTpeInput('');
@@ -266,8 +254,7 @@ function App() {
       }
       return;
     }
-    
-    // Chiffres
+
     if (tpeMode === 'pin' && tpeInput.length < 4) {
       setTpeInput(prev => prev + value);
     } else if (tpeMode === 'amount' && tpeInput.length < 5) {
@@ -286,8 +273,7 @@ function App() {
       setIsVerifyingPin(true);
       setTpeMode('processing');
       setTpeMessage('Vérification...');
-      
-      // Vérification via Socket.IO
+
       if (socket && socket.connected) {
         socket.emit('verify_pin', { pin: tpeInput });
       }

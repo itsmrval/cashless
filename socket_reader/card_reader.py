@@ -11,10 +11,10 @@ MAX_PIN_ATTEMPTS = 3
 
 CMD_READ_CARD_ID = [0x80, 0x01, 0x00, 0x00, SIZE_CARD_ID]
 CMD_READ_VERSION = [0x80, 0x02, 0x00, 0x00, 0x01]
-CMD_VERIFY_PIN = [0x80, 0x06, 0x00, 0x00, SIZE_PIN]  # INS = 0x06 pour verify_pin
-CMD_SET_CHALLENGE = [0x80, 0x0C, 0x00, 0x00, 0x04]  # INS = 0x0C pour set_challenge
-CMD_SIGN_CHALLENGE = [0x80, 0x0B, 0x00, 0x00, 0x00]  # INS = 0x0B pour sign_challenge (Le=0 signifie taille max)
-CMD_CHECK_PIN_DEFINED = [0x80, 0x0E, 0x00, 0x00, 0x01]  # INS = 0x0E pour check if PIN is defined
+CMD_VERIFY_PIN = [0x80, 0x06, 0x00, 0x00, SIZE_PIN]
+CMD_SET_CHALLENGE = [0x80, 0x0C, 0x00, 0x00, 0x04]
+CMD_SIGN_CHALLENGE = [0x80, 0x0B, 0x00, 0x00, 0x00]
+CMD_CHECK_PIN_DEFINED = [0x80, 0x0E, 0x00, 0x00, 0x01]
 SIZE_CHALLENGE = 4
 
 
@@ -31,10 +31,8 @@ def wait_for_reader():
 
 
 def is_reader_connected(reader):
-    """Vérifie si le lecteur est toujours connecté"""
     try:
         r = readers()
-        # Vérifier si le lecteur est toujours dans la liste
         for available_reader in r:
             if str(available_reader) == str(reader):
                 return True
@@ -47,7 +45,6 @@ def check_card_present(reader):
     try:
         connection = reader.createConnection()
         connection.connect()
-        # Petite pause pour stabiliser
         time.sleep(0.1)
         return connection
     except NoCardException:
@@ -119,18 +116,18 @@ def verify_pin(connection, pin):
             }
         
         pin_bytes = [int(c) for c in pin]
-        
+
         cmd = CMD_VERIFY_PIN + pin_bytes
-                
+
         data, sw1, sw2 = connection.transmit(cmd)
-        
+
         if sw1 == 0x90 and sw2 == 0x00:
             return {
                 'success': True,
                 'attempts_remaining': MAX_PIN_ATTEMPTS,
                 'blocked': False
             }
-        
+
         elif sw1 == 0x63 and (sw2 & 0xF0) == 0xC0:
             attempts_remaining = sw2 & 0x0F
             return {
@@ -138,14 +135,14 @@ def verify_pin(connection, pin):
                 'attempts_remaining': attempts_remaining,
                 'blocked': attempts_remaining == 0
             }
-        
+
         elif sw1 == 0x69 and sw2 == 0x83:
             return {
                 'success': False,
                 'attempts_remaining': 0,
                 'blocked': True
             }
-        
+
         else:
             return {
                 'success': False,
@@ -153,7 +150,7 @@ def verify_pin(connection, pin):
                 'blocked': False,
                 'error': f'Unexpected status: SW1={hex(sw1)}, SW2={hex(sw2)}'
             }
-            
+
     except Exception as e:
         return {
             'success': False,
@@ -164,34 +161,19 @@ def verify_pin(connection, pin):
 
 
 def sign_challenge(connection, challenge_hex):
-    """
-    Demande à la carte de signer un challenge.
-    Processus en 2 étapes:
-    1. SET_CHALLENGE: Définir le challenge à signer
-    2. SIGN_CHALLENGE: Récupérer la signature
-    
-    Args:
-        connection: La connexion à la carte
-        challenge_hex: Le challenge en hexadécimal (8 caractères = 4 bytes)
-        
-    Returns:
-        dict: {'success': bool, 'signature': bytes, 'error': str}
-    """
     try:
-        # Convertir le challenge hex en bytes
-        if len(challenge_hex) != 8:  # 4 bytes = 8 caractères hex
+        if len(challenge_hex) != 8:
             return {
                 'success': False,
                 'error': f'Challenge must be 8 hex characters (got {len(challenge_hex)})'
             }
-        
+
         challenge_bytes = bytes.fromhex(challenge_hex)
-        
-        # Étape 1: Définir le challenge (SET_CHALLENGE)
+
         cmd_set = CMD_SET_CHALLENGE + list(challenge_bytes)
-                
+
         data, sw1, sw2 = connection.transmit(cmd_set)
-                
+
         if sw1 != 0x90 or sw2 != 0x00:
             return {
                 'success': False,
@@ -199,15 +181,15 @@ def sign_challenge(connection, challenge_hex):
             }
 
         cmd_sign = CMD_SIGN_CHALLENGE
-                
+
         data, sw1, sw2 = connection.transmit(cmd_sign)
-                
+
         if sw1 == 0x6C:
             expected_size = sw2
-            
+
             cmd_sign_with_size = [0x80, 0x0B, 0x00, 0x00, expected_size]
             data, sw1, sw2 = connection.transmit(cmd_sign_with_size)
-                    
+
         if sw1 == 0x90 and sw2 == 0x00:
             if len(data) > 0:
                 signature = bytes(data)
@@ -220,13 +202,13 @@ def sign_challenge(connection, challenge_hex):
                     'success': False,
                     'error': 'Empty signature received'
                 }
-        
+
         else:
             return {
                 'success': False,
                 'error': f'SIGN_CHALLENGE failed: SW1={hex(sw1)}, SW2={hex(sw2)}'
             }
-            
+
     except Exception as e:
         return {
             'success': False,
@@ -235,21 +217,10 @@ def sign_challenge(connection, challenge_hex):
 
 
 def check_pin_defined(connection):
-    """
-    Check if PIN is defined on the card.
-
-    Returns:
-        dict: {
-            'success': bool,
-            'pin_defined': bool,
-            'error': str (optional)
-        }
-    """
     try:
         data, sw1, sw2 = connection.transmit(CMD_CHECK_PIN_DEFINED)
 
         if sw1 == 0x90 and sw2 == 0x00:
-            # data[0]: 0x01 = PIN defined, 0x00 = PIN not defined
             pin_defined = (data[0] == 0x01)
             return {
                 'success': True,

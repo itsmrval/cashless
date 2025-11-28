@@ -56,7 +56,6 @@ def card_detection_loop():
                     current_card_token = None
                     logger.info(f"Nouvelle carte détectée: {card_id}")
 
-                    # Check if PIN is defined
                     pin_status = check_pin_defined(connection)
                     pin_defined = False
                     if pin_status['success']:
@@ -332,10 +331,9 @@ def handle_get_balance():
         return
     
     logger.info(f"Récupération du solde pour la carte {current_card_id}")
-    
-    # Importer la fonction get_user_balance depuis api
+
     from api import get_user_balance
-    
+
     result = get_user_balance(current_card_token, current_card_id)
     
     if result['success']:
@@ -363,11 +361,9 @@ if __name__ == '__main__':
     dest_username = sys.argv[2]
     dest_password = sys.argv[3]
 
-    # Initialize API module with base URL
     api.init(api_base_url)
     logger.info(f"API configured with base URL: {api_base_url}")
 
-    # Login as merchant to get token and user ID
     logger.info(f"Authenticating merchant user: {dest_username}")
     login_result = api.login_merchant(dest_username, dest_password)
 
@@ -383,7 +379,6 @@ if __name__ == '__main__':
     ssl_context = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
     ssl_context.load_cert_chain(cert_file, key_file)
 
-    # Vérifier qu'un lecteur est connecté au démarrage
     logger.info("Recherche d'un lecteur de cartes...")
     reader = wait_for_reader()
     
@@ -393,8 +388,7 @@ if __name__ == '__main__':
         sys.exit(1)
     
     logger.info(f"Lecteur détecté: {reader}")
-    
-    # Démarrer le thread de détection de cartes
+
     detection_thread = threading.Thread(target=card_detection_loop, daemon=True)
     detection_thread.start()
     logger.info("Thread de détection démarré")
