@@ -249,11 +249,7 @@ function App() {
       console.error('❌ Erreur de connexion Socket.IO:', error.message);
       console.error('   Description:', error.description);
       setApiConnected(false);
-      setReconnectAttempts(prev => {
-        const newCount = prev + 1;
-        setApiError(`Impossible de se connecter au serveur (tentative ${newCount})`);
-        return newCount;
-      });
+      setApiError('Impossible de se connecter au serveur');
       setIsInitializing(false);
     });
     
