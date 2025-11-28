@@ -476,7 +476,7 @@ function App() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 relative">
       {/* Écran de chargement initial */}
       {isInitializing && (
         <div className="fixed inset-0 bg-gradient-to-br from-blue-50 to-indigo-50 flex items-center justify-center z-[100]">
@@ -501,26 +501,40 @@ function App() {
         </div>
       )}
 
-      {/* Écran d'erreur API - Priorité maximale */}
+      {/* Popup d'erreur lecteur - même design que les popups de paiement */}
       {!apiConnected && !isInitializing && (
-        <div className="fixed inset-0 bg-gradient-to-br from-gray-50 to-gray-100 flex items-center justify-center z-[100]">
-          <div className="container mx-auto px-6">
-            <div className="max-w-2xl mx-auto text-center">
-              <div className="bg-white rounded-3xl shadow-2xl p-12 border-3 border-black">
-                <div className="bg-gradient-to-br from-gray-100 to-gray-200 p-8 rounded-2xl inline-block mb-8">
-                  <svg className="w-32 h-32 text-gray-900" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+        <div className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-[100] pointer-events-auto">
+          <div className="bg-white rounded-3xl shadow-2xl p-8 max-w-md w-full animate-slideDown pointer-events-none">
+            <div className="text-center">
+              {/* Icône d'erreur animée */}
+              <div className="relative mb-6 flex justify-center">
+                <div className="w-24 h-24 bg-red-100 rounded-full flex items-center justify-center animate-scaleIn">
+                  <svg className="w-16 h-16 text-red-600 animate-shake" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
                   </svg>
                 </div>
-                <h2 className="text-4xl font-bold text-gray-900 mb-4">Lecteur indisponible</h2>
-                <p className="text-xl text-gray-700 mb-8">{apiError || 'Connexion au serveur impossible'}</p>
+              </div>
 
-                <div className="flex items-center justify-center space-x-2 text-gray-700 mb-4">
-                  <div className="w-3 h-3 bg-gray-700 rounded-full animate-bounce" style={{ animationDelay: '0s' }}></div>
-                  <div className="w-3 h-3 bg-gray-700 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
-                  <div className="w-3 h-3 bg-gray-700 rounded-full animate-bounce" style={{ animationDelay: '0.4s' }}></div>
+              {/* Titre */}
+              <h2 className="text-2xl font-bold text-gray-900 mb-2">Lecteur indisponible</h2>
+
+              {/* Message d'erreur */}
+              <div className="mb-4">
+                <p className="text-lg text-gray-700 mb-1">{apiError || 'Connexion au serveur impossible'}</p>
+                <p className="text-sm text-gray-500">Reconnexion au lecteur en cours...</p>
+              </div>
+
+              {/* Divider */}
+              <div className="w-full h-px bg-gray-200 my-4"></div>
+
+              {/* Indicateur de reconnexion */}
+              <div>
+                <div className="flex items-center justify-center space-x-2 text-red-600 mb-2">
+                  <div className="w-2 h-2 bg-red-600 rounded-full animate-bounce" style={{ animationDelay: '0s' }}></div>
+                  <div className="w-2 h-2 bg-red-600 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
+                  <div className="w-2 h-2 bg-red-600 rounded-full animate-bounce" style={{ animationDelay: '0.4s' }}></div>
                 </div>
-                <p className="text-sm text-gray-600 font-medium">Tentative de reconnexion automatique... (#{reconnectAttempts})</p>
+                <p className="text-sm text-gray-600 font-medium">Tentative #{reconnectAttempts}</p>
               </div>
             </div>
           </div>
