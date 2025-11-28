@@ -92,11 +92,8 @@ function App() {
     newSocket.on('connect_error', (error) => {
       console.error('Erreur de connexion Socket.IO:', error.message);
       setIsSocketConnected(false);
-      setReconnectAttempts(prev => {
-        const newCount = prev + 1;
-        setApiError(`Impossible de se connecter au serveur (tentative ${newCount})`);
-        return newCount;
-      });
+      setReconnectAttempts(prev => prev + 1);
+      setApiError('Impossible de se connecter au serveur');
       setIsInitializing(false);
     });
 
@@ -135,8 +132,20 @@ function App() {
             cardId: result.user.card_id
           });
           setBalance(result.user.balance);
+
+          // Start automatic balance updates every second
+          console.log('Demarrage de la mise a jour automatique de la balance');
+          const balanceInterval = setInterval(() => {
+            if (newSocket && newSocket.connected) {
+              console.log('Demande de mise a jour de la balance...');
+              newSocket.emit('get_balance');
+            }
+          }, 1000); // Every 1 second
+
+          // Store interval for cleanup later
+          newSocket.balanceInterval = balanceInterval;
         }
-        
+
         setTimeout(() => setTpeMessage(''), 2000);
       } else if (result.blocked) {
         console.log('Carte bloquée !');
@@ -178,8 +187,25 @@ function App() {
       }
     });
 
+    newSocket.on('balance_result', (result) => {
+      console.log('Reponse balance recue:', result);
+
+      // Update balance in real-time
+      if (result.success) {
+        console.log('Balance mise a jour:', result.balance);
+        setBalance(result.balance);
+      }
+    });
+
     newSocket.on('card_removed', (data) => {
-      console.log('Carte retirée via Socket.IO:', data);
+      console.log('Carte retiree via Socket.IO:', data);
+
+      // Stop automatic balance updates
+      if (newSocket.balanceInterval) {
+        clearInterval(newSocket.balanceInterval);
+        newSocket.balanceInterval = null;
+        console.log('Mise a jour automatique de la balance arretee');
+      }
 
       // Note: If card removed during fueling, server should handle refund
       // Frontend just cleans up state - no client-side transaction possible without card
@@ -191,10 +217,10 @@ function App() {
     });
 
     newSocket.on('disconnect', (reason) => {
-      console.log('Socket.IO déconnecté - Raison:', reason);
+      console.log('Socket.IO deconnecte - Raison:', reason);
       setIsSocketConnected(false);
       if (reason === 'io server disconnect') {
-        setApiError('Le serveur a fermé la connexion');
+        setApiError('Le serveur a ferme la connexion');
       } else {
         setApiError('Connexion perdue avec le serveur');
       }
@@ -909,81 +935,79 @@ function App() {
   // Rendu du ravitaillement en cours
   const renderFuelingDisplay = () => {
     if (!isFueling || !selectedFuel) return null;
-    
+
     return (
-      <div className="absolute inset-0 bg-gray-900 rounded-2xl z-50 flex flex-col p-6">
-        <div className="flex items-center justify-between mb-6">
-          <h3 className="text-2xl font-bold text-white flex items-center gap-3">
-            <div
-              className="w-12 h-12 rounded-full flex items-center justify-center"
-              style={{ backgroundColor: selectedFuel.color }}
-            >
-              <span className="text-white font-bold text-xs">{selectedFuel.shortName}</span>
+      <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50 p-4">
+        <div className="bg-white border-3 border-black rounded-2xl shadow-2xl p-8 max-w-2xl w-full animate-slideDown">
+          <div className="text-center">
+            {/* Header with fuel info */}
+            <div className="flex items-center justify-between mb-6">
+              <div className="flex items-center gap-3">
+                <div
+                  className="w-16 h-16 rounded-full flex items-center justify-center"
+                  style={{ backgroundColor: selectedFuel.color }}
+                >
+                  <span className="text-white font-bold text-lg">{selectedFuel.shortName}</span>
+                </div>
+                <div className="text-left">
+                  <h2 className="text-2xl font-bold text-gray-900">{selectedFuel.name}</h2>
+                  <p className="text-gray-600">{selectedFuel.price.toFixed(3)}€/L</p>
+                </div>
+              </div>
+              <div className="text-right">
+                <span className="px-4 py-2 rounded-full text-sm font-bold bg-yellow-400 text-gray-900">
+                  {preAuthAmount.toFixed(2)}€
+                </span>
+                <p className="text-gray-500 text-xs mt-1">Pré-autorisé</p>
+              </div>
             </div>
-            {selectedFuel.name}
-          </h3>
-          <div className="text-right">
-            <span className="px-3 py-1 rounded-full text-sm font-bold bg-yellow-500 text-black">
-              {preAuthAmount.toFixed(2)}€
-            </span>
-            <p className="text-gray-400 text-xs mt-1">Pré-autorisé</p>
-          </div>
-        </div>
-        
-        {/* Compteurs style station service */}
-        <div className="flex-1 flex flex-col justify-center">
-          <div className="bg-black rounded-xl p-8 mb-6 border-2" style={{ borderColor: selectedFuel.color }}>
-            <div className="grid grid-cols-2 gap-8">
-              <div className="text-center">
-                <p className="text-gray-500 text-sm mb-2">LITRES</p>
-                <p className="font-mono text-6xl font-bold" style={{ color: selectedFuel.color }}>
+
+            <h2 className="text-2xl font-bold text-gray-900 mb-2">Remplissage en cours</h2>
+            <p className="text-lg text-gray-700 mb-6">Votre plein est en cours...</p>
+
+            {/* Counter cards */}
+            <div className="grid grid-cols-2 gap-4 mb-6">
+              <div className="bg-gradient-to-br from-gray-50 to-gray-100 border-3 border-black rounded-xl p-6">
+                <p className="text-sm text-gray-600 mb-2 font-semibold">LITRES</p>
+                <p className="font-mono text-5xl font-bold text-gray-900">
                   {currentLiters.toFixed(2)}
                 </p>
               </div>
-              <div className="text-center">
-                <p className="text-gray-500 text-sm mb-2">MONTANT</p>
-                <p className="font-mono text-6xl font-bold text-yellow-400">
+              <div className="bg-gradient-to-br from-gray-50 to-gray-100 border-3 border-black rounded-xl p-6">
+                <p className="text-sm text-gray-600 mb-2 font-semibold">MONTANT</p>
+                <p className="font-mono text-5xl font-bold text-gray-900">
                   {currentAmount.toFixed(2)}€
                 </p>
               </div>
             </div>
-            <div className="mt-6 pt-4 border-t border-gray-800 flex justify-between text-sm">
-              <span className="text-gray-500">
-                Prix : {selectedFuel.price.toFixed(3)}€/L
-              </span>
-              <span className="text-gray-500">
-                Reste disponible : {(preAuthAmount - currentAmount).toFixed(2)}€
-              </span>
+
+            {/* Progress bar */}
+            <div className="w-full bg-gray-200 rounded-full h-4 overflow-hidden mb-4">
+              <div
+                className="h-full rounded-full transition-all duration-100 ease-linear relative overflow-hidden"
+                style={{
+                  width: `${fuelingProgress}%`,
+                  backgroundColor: selectedFuel.color
+                }}
+              >
+                <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white to-transparent opacity-30 animate-pulse"></div>
+              </div>
             </div>
-          </div>
-          
-          {/* Barre de progression avec animation */}
-          <div className="relative h-10 bg-gray-800 rounded-full overflow-hidden mb-6 border border-gray-700">
-            <div
-              className="h-full rounded-full transition-all duration-100 relative overflow-hidden"
-              style={{
-                width: `${fuelingProgress}%`,
-                backgroundColor: selectedFuel.color
-              }}
+
+            <div className="flex justify-between text-sm text-gray-600 mb-6">
+              <span>{fuelingProgress.toFixed(0)}% complete</span>
+              <span>Reste : {(preAuthAmount - currentAmount).toFixed(2)}€</span>
+            </div>
+
+            {/* Stop button */}
+            <button
+              onClick={stopFueling}
+              className="w-full bg-red-600 hover:bg-red-500 text-white font-bold py-4 rounded-xl transition-all text-lg"
             >
-              {/* Animation de flux */}
-              <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white to-transparent opacity-30 animate-pulse"></div>
-            </div>
-            <div className="absolute inset-0 flex items-center justify-center">
-              <span className="text-white font-bold text-lg drop-shadow-lg">
-                {fuelingProgress.toFixed(0)}%
-              </span>
-            </div>
+              Arrêter le remplissage
+            </button>
           </div>
         </div>
-        
-        {/* Bouton d'arrêt */}
-        <button
-          onClick={stopFueling}
-          className="w-full bg-red-600 hover:bg-red-500 text-white font-bold py-5 rounded-xl transition-all text-xl flex items-center justify-center gap-3"
-        >
-          Arrêter le remplissage
-        </button>
       </div>
     );
   };
