@@ -897,31 +897,19 @@ function App() {
               </div>
             </div>
 
-            <h2 className="text-2xl font-bold text-gray-900 mb-2">Faire le plein</h2>
-            <p className="text-lg text-gray-700 mb-6">Voici comment ça fonctionne</p>
+            <h2 className="text-2xl font-bold text-gray-900 mb-2">Distribution</h2>
+            <p className="text-lg text-gray-700 mb-6">Détail du fonctionnement</p>
 
             {/* Steps */}
             <div className="bg-gradient-to-br from-gray-50 to-gray-100 border-3 border-black rounded-xl p-6 mb-6 text-left">
               <ol className="space-y-3">
                 <li className="flex items-start">
                   <span className="text-gray-900 font-bold mr-3">1.</span>
-                  <span className="text-gray-700">Une pré-autorisation de <strong className="text-gray-900">{balance.toFixed(2)}€</strong> sera bloquée</span>
+                  <span className="text-gray-700">Une pré-autorisation de <strong className="text-gray-900">{balance.toFixed(2)}€</strong> sera effectuée</span>
                 </li>
                 <li className="flex items-start">
                   <span className="text-gray-900 font-bold mr-3">2.</span>
-                  <span className="text-gray-700">Faites votre plein librement</span>
-                </li>
-                <li className="flex items-start">
-                  <span className="text-gray-900 font-bold mr-3">3.</span>
-                  <span className="text-gray-700">Arrêtez quand vous voulez</span>
-                </li>
-                <li className="flex items-start">
-                  <span className="text-gray-900 font-bold mr-3">4.</span>
-                  <span className="text-gray-700">Seul le montant réel sera débité</span>
-                </li>
-                <li className="flex items-start">
-                  <span className="text-gray-900 font-bold mr-3">5.</span>
-                  <span className="text-gray-700">Le reste sera débloqué immédiatement</span>
+                  <span className="text-gray-700">Faites votre plein puis arrêtez le au montant souhaité</span>
                 </li>
               </ol>
             </div>
@@ -1166,9 +1154,9 @@ function App() {
             <div className="text-center">
               {/* Spinner icon */}
               <div className="relative mb-6 flex justify-center">
-                <div className="w-24 h-24 bg-blue-100 rounded-full flex items-center justify-center">
+                <div className="w-24 h-24 bg-gray-100 rounded-full flex items-center justify-center">
                   <div className="animate-spin">
-                    <svg className="w-16 h-16 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <svg className="w-16 h-16 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
                     </svg>
                   </div>
