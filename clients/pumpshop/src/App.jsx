@@ -180,6 +180,13 @@ function App() {
 
     newSocket.on('card_removed', (data) => {
       console.log('Carte retirée via Socket.IO:', data);
+
+      // Note: If card removed during fueling, server should handle refund
+      // Frontend just cleans up state - no client-side transaction possible without card
+      if (isFueling) {
+        console.log('Warning: Card removed during active fueling - server will handle refund');
+      }
+
       resetState();
     });
 
@@ -209,11 +216,12 @@ function App() {
   }, []);
 
   const resetState = useCallback(() => {
-    // Arrêter le ravitaillement en cours si présent
+    // Stop fueling interval if present
     if (fuelingIntervalRef) {
       clearInterval(fuelingIntervalRef);
       setFuelingIntervalRef(null);
     }
+
     setUser(null);
     setBalance(0);
     setIsPinVerified(false);
@@ -239,6 +247,7 @@ function App() {
     setIsPreAuthActive(false);
     setShowAmountSelector(false);
     setRefundAmount(0);
+    setShowPaymentSuccess(false);
   }, [fuelingIntervalRef]);
 
   // Gestion des boutons du TPE
@@ -427,61 +436,83 @@ function App() {
   const finalizeFueling = () => {
     const actualAmount = currentLiters * selectedFuel.price;
     const refundToSend = preAuthAmount - actualAmount;
-    
+
     console.log(`Finalisation: consommé ${actualAmount.toFixed(2)}€, à rembourser ${refundToSend.toFixed(2)}€`);
-    
+
     setPaymentAmount(actualAmount);
     setRefundAmount(refundToSend);
     setLiters(currentLiters);
     setIsPreAuthActive(false);
     setIsFueling(false);
-    
+
+    // Function to show success and reset after delay
+    const showSuccessAndReset = (finalBalance) => {
+      setNewBalanceAmount(finalBalance);
+      setShowPaymentSuccess(true);
+
+      setTimeout(() => {
+        setShowPaymentSuccess(false);
+        setTpeMode('idle');
+        setTpeMessage('Retirez votre carte');
+        setSelectedFuel(null);
+        setFuelingProgress(0);
+        setCurrentLiters(0);
+        setCurrentAmount(0);
+        setPreAuthAmount(0);
+        setRefundAmount(0);
+        setCustomAmount('');
+      }, 5000);
+    };
+
     if (refundToSend > 0 && socket && socket.connected) {
       console.log(`Envoi du remboursement: ${refundToSend.toFixed(2)}€`);
-      
+
+      // Show processing state while waiting for refund
+      setTpeMode('processing');
+      setTpeMessage('Remboursement en cours...');
+
       socket.emit('create_transaction', {
         amount: refundToSend,
         merchant: 'PumpShop',
         refund: true
       });
-      
+
       socket.once('transaction_result', (result) => {
         if (result.success && result.refund) {
           console.log('Remboursement réussi - Nouveau solde:', result.new_balance);
           setBalance(result.new_balance);
-          setNewBalanceAmount(result.new_balance);
+          // Show success ONLY after refund completes
+          showSuccessAndReset(result.new_balance);
         } else if (!result.success) {
           console.error('Erreur remboursement:', result.error);
+          setTpeMode('error');
+          setTpeMessage('Erreur remboursement');
           setMessage(`Erreur de remboursement: ${result.error}`);
           setMessageType('error');
-          setTimeout(() => setMessage(''), 5000);
+          setTimeout(() => {
+            setMessage('');
+            setTpeMode('idle');
+            setTpeMessage('');
+          }, 5000);
         }
       });
-      
+
     } else if (refundToSend <= 0) {
       console.log('Pas de remboursement nécessaire');
-      setNewBalanceAmount(balance);
+      // No refund needed, show success immediately
+      showSuccessAndReset(balance);
     } else {
       console.error('Socket non connecté pour le remboursement');
+      setTpeMode('error');
+      setTpeMessage('Connexion perdue');
       setMessage('Attention: remboursement non envoyé');
       setMessageType('error');
-      setTimeout(() => setMessage(''), 5000);
+      setTimeout(() => {
+        setMessage('');
+        setTpeMode('idle');
+        setTpeMessage('');
+      }, 5000);
     }
-    
-    setShowPaymentSuccess(true);
-    
-    setTimeout(() => {
-      setShowPaymentSuccess(false);
-      setTpeMode('idle');
-      setTpeMessage('Retirez votre carte');
-      setSelectedFuel(null);
-      setFuelingProgress(0);
-      setCurrentLiters(0);
-      setCurrentAmount(0);
-      setPreAuthAmount(0);
-      setRefundAmount(0);
-      setCustomAmount('');
-    }, 5000);
   };
 
   const startFueling = (fuel, maxAmount) => {
@@ -960,52 +991,40 @@ function App() {
   return (
     <div className="h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 p-4 flex flex-col overflow-hidden">
       {/* Écran de chargement initial */}
-      {isInitializing && (
-        <div className="fixed inset-0 bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 flex items-center justify-center z-[100]">
-          <div className="text-center">
-            <div className="bg-gray-800 rounded-3xl shadow-2xl p-12 border-2 border-gray-700">
-              <div className="bg-gradient-to-br from-gray-700 to-gray-800 p-8 rounded-2xl inline-block mb-8">
-                <div className="animate-spin">
-                  <svg className="w-24 h-24 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+      {/* Popup d'erreur lecteur - même design que les popups de paiement */}
+      {!isSocketConnected && (
+        <div className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-[100] pointer-events-auto">
+          <div className="bg-white rounded-3xl shadow-2xl p-8 max-w-md w-full animate-slideDown pointer-events-none">
+            <div className="text-center">
+              {/* Icône d'erreur animée */}
+              <div className="relative mb-6 flex justify-center">
+                <div className="w-24 h-24 bg-red-100 rounded-full flex items-center justify-center animate-scaleIn">
+                  <svg className="w-16 h-16 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
                   </svg>
                 </div>
               </div>
-              <h2 className="text-3xl font-bold text-white mb-4">Connexion en cours...</h2>
-              <p className="text-lg text-gray-400">Établissement de la connexion avec le lecteur</p>
-              <div className="flex items-center justify-center space-x-2 text-blue-400 mt-8">
-                <div className="w-3 h-3 bg-blue-500 rounded-full animate-bounce" style={{ animationDelay: '0s' }}></div>
-                <div className="w-3 h-3 bg-blue-500 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
-                <div className="w-3 h-3 bg-blue-500 rounded-full animate-bounce" style={{ animationDelay: '0.4s' }}></div>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
 
-      {/* Erreur de connexion */}
-      {!isSocketConnected && !isInitializing && (
-        <div className="fixed inset-0 bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 flex items-center justify-center z-[100]">
-          <div className="bg-gray-800 border-2 border-gray-700 rounded-2xl p-8 max-w-md mx-4 text-center">
-            <div className="bg-gradient-to-br from-gray-700 to-gray-800 p-6 rounded-2xl inline-block mb-6">
-              <svg className="w-20 h-20 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-              </svg>
-            </div>
-            <h2 className="text-2xl font-bold text-white mb-4">Lecteur indisponible</h2>
-            <p className="text-gray-400 mb-6">
-              {apiError || 'Impossible de se connecter au serveur du lecteur de carte'}
-            </p>
-            <div className="flex flex-col gap-3">
-              <div className="flex items-center justify-center space-x-2 text-gray-400 mb-4">
-                <div className="w-3 h-3 bg-gray-500 rounded-full animate-bounce" style={{ animationDelay: '0s' }}></div>
-                <div className="w-3 h-3 bg-gray-500 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
-                <div className="w-3 h-3 bg-gray-500 rounded-full animate-bounce" style={{ animationDelay: '0.4s' }}></div>
+              {/* Titre */}
+              <h2 className="text-2xl font-bold text-gray-900 mb-2">Lecteur indisponible</h2>
+
+              {/* Message d'erreur */}
+              <div className="mb-4">
+                <p className="text-lg text-gray-700 mb-1">{apiError || 'Connexion au serveur impossible'}</p>
+                <p className="text-sm text-gray-500">Reconnexion au lecteur en cours...</p>
               </div>
-              <p className="text-sm text-gray-500 font-medium">Tentative de reconnexion automatique... (#{reconnectAttempts})</p>
-              <code className="bg-black bg-opacity-50 text-gray-400 p-2 rounded text-xs mt-2">
-                {SOCKET_URL}
-              </code>
+
+              {/* Divider */}
+              <div className="w-full h-px bg-gray-200 my-4"></div>
+
+              {/* Indicateur de reconnexion */}
+              <div>
+                <div className="flex items-center justify-center space-x-2 text-red-600">
+                  <div className="w-2 h-2 bg-red-600 rounded-full animate-bounce" style={{ animationDelay: '0s' }}></div>
+                  <div className="w-2 h-2 bg-red-600 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
+                  <div className="w-2 h-2 bg-red-600 rounded-full animate-bounce" style={{ animationDelay: '0.4s' }}></div>
+                </div>
+              </div>
             </div>
           </div>
         </div>
