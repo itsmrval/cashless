@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import products from './element.json';
 import io from 'socket.io-client';
+import logo from './logo.png';
 
 const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || 'https://localhost:8001';
 
@@ -634,7 +635,7 @@ function App() {
 
           {/* Logo en haut à gauche */}
           <div className="fixed top-6 left-6 z-50">
-            <img src="/img/logo.png" alt="Logo" className="h-16 md:h-20 object-contain" />
+            <img src={logo} alt="Logo" className="h-16 md:h-20 object-contain" />
           </div>
 
           <main className="container mx-auto px-6 pt-24 flex items-center justify-center min-h-screen">

@@ -2,42 +2,42 @@
   {
     "name": "coffee",
     "lang": { "fr": "Café", "en": "Coffee" },
-    "price": 1.5,
+    "price": 1.99,
     "image": "https://images.unsplash.com/photo-1509042239860-f550ce710b93?w=400&h=400&fit=crop",
     "composition": ["Espresso pur", "100% Arabica"]
   },
   {
     "name": "chocolate",
     "lang": { "fr": "Chocolat chaud", "en": "Hot Chocolate" },
-    "price": 2.0,
+    "price": 4.99,
     "image": "https://images.unsplash.com/photo-1542990253-0d0f5be5f0ed?w=400&h=400&fit=crop",
     "composition": ["Chocolat noir", "Lait chaud", "Chantilly"]
   },
   {
     "name": "tea",
     "lang": { "fr": "Thé", "en": "Tea" },
-    "price": 1.0,
+    "price": 3.99,
     "image": "https://images.unsplash.com/photo-1564890369478-c89ca6d9cde9?w=400&h=400&fit=crop",
     "composition": ["Thé noir", "Infusion naturelle"]
   },
   {
     "name": "water",
     "lang": { "fr": "Eau", "en": "Water" },
-    "price": 0.5,
+    "price": 0.99,
     "image": "https://images.unsplash.com/photo-1548839140-29a749e1cf4d?w=400&h=400&fit=crop",
     "composition": ["Eau minérale", "Source naturelle"]
   },
   {
     "name": "cappuccino",
     "lang": { "fr": "Cappuccino", "en": "Cappuccino" },
-    "price": 30.5,
+    "price": 9.99,
     "image": "https://images.unsplash.com/photo-1557006021-b85faa2bc5e2?w=400&h=400&fit=crop",
     "composition": ["Espresso", "Mousse de lait", "Cacao en poudre"]
   },
   {
     "name": "latte",
     "lang": { "fr": "Café Latte", "en": "Latte" },
-    "price": 2.5,
+    "price": 7.99,
     "image": "https://images.unsplash.com/photo-1561882468-9110e03e0f78?w=400&h=400&fit=crop",
     "composition": ["Espresso", "Lait vapeur", "Mousse légère"]
   }
