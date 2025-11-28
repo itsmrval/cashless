@@ -477,39 +477,15 @@ function App() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 relative">
-      {/* Écran de chargement initial */}
-      {isInitializing && (
-        <div className="fixed inset-0 bg-gradient-to-br from-blue-50 to-indigo-50 flex items-center justify-center z-[100]">
-          <div className="text-center">
-            <div className="bg-white rounded-3xl shadow-2xl p-12 border-2 border-blue-200">
-              <div className="bg-gradient-to-br from-blue-100 to-blue-200 p-8 rounded-2xl inline-block mb-8">
-                <div className="animate-spin">
-                  <svg className="w-32 h-32 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                  </svg>
-                </div>
-              </div>
-              <h2 className="text-4xl font-bold text-gray-800 mb-4">Connexion en cours...</h2>
-              <p className="text-xl text-gray-600">Établissement de la connexion avec le serveur</p>
-              <div className="flex items-center justify-center space-x-2 text-blue-500 mt-8">
-                <div className="w-3 h-3 bg-blue-500 rounded-full animate-bounce" style={{ animationDelay: '0s' }}></div>
-                <div className="w-3 h-3 bg-blue-500 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
-                <div className="w-3 h-3 bg-blue-500 rounded-full animate-bounce" style={{ animationDelay: '0.4s' }}></div>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
       {/* Popup d'erreur lecteur - même design que les popups de paiement */}
-      {!apiConnected && !isInitializing && (
+      {!apiConnected && (
         <div className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-[100] pointer-events-auto">
           <div className="bg-white rounded-3xl shadow-2xl p-8 max-w-md w-full animate-slideDown pointer-events-none">
             <div className="text-center">
               {/* Icône d'erreur animée */}
               <div className="relative mb-6 flex justify-center">
                 <div className="w-24 h-24 bg-red-100 rounded-full flex items-center justify-center animate-scaleIn">
-                  <svg className="w-16 h-16 text-red-600 animate-shake" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <svg className="w-16 h-16 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
                   </svg>
                 </div>
@@ -529,12 +505,11 @@ function App() {
 
               {/* Indicateur de reconnexion */}
               <div>
-                <div className="flex items-center justify-center space-x-2 text-red-600 mb-2">
+                <div className="flex items-center justify-center space-x-2 text-red-600">
                   <div className="w-2 h-2 bg-red-600 rounded-full animate-bounce" style={{ animationDelay: '0s' }}></div>
                   <div className="w-2 h-2 bg-red-600 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
                   <div className="w-2 h-2 bg-red-600 rounded-full animate-bounce" style={{ animationDelay: '0.4s' }}></div>
                 </div>
-                <p className="text-sm text-gray-600 font-medium">Tentative #{reconnectAttempts}</p>
               </div>
             </div>
           </div>
