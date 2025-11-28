@@ -567,7 +567,7 @@ function App() {
                       </div>
                       <div className="mt-2">
                         <p className="text-2xl font-bold text-gray-900">
-                          {product.price.toFixed(1)}€
+                          {product.price.toFixed(2)}€
                         </p>
                       </div>
                     </div>
@@ -768,7 +768,7 @@ function App() {
               <div className="bg-white border-3 border-black rounded-2xl shadow-2xl p-6 max-w-md w-full animate-slideDown">
                 <div className="mb-6">
                   <h2 className="text-2xl font-bold text-gray-900 mb-2">{selectedProduct.lang.fr}</h2>
-                  <p className="text-3xl font-bold text-gray-900">{selectedProduct.price.toFixed(1)}€</p>
+                  <p className="text-3xl font-bold text-gray-900">{selectedProduct.price.toFixed(2)}€</p>
                 </div>
 
                 <div className="mb-6">

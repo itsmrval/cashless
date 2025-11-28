@@ -86,7 +86,7 @@ Plug a flashed card into the reader, then run the playbook.
 - `READ_CARD_ID (0x01)` - Verify card is unassigned (returns all zeros)
 - `READ_VERSION (0x02)` - Check firmware version
 - `ASSIGN_CARD (0x08)` - Write card ID and PUK to card (one-time operation)
-- `WRITE_PRIVATE_KEY_CHUNK (0x0A)` - Write cryptographic private key for challenge signing
+- `WRITE_PRIVATE_KEY_CHUNK (0x0A)` - Write signing key for challenge-response authentication
 
 ### Socket reader
 
@@ -197,8 +197,8 @@ The card communicates via PC/SC protocol with APDU commands:
 | `0x07` | VERIFY_PUK | 8 bytes in | Verify PUK (4 bytes) + set new PIN (4 bytes) |
 | `0x08` | ASSIGN_CARD | 28 bytes in | Assign card ID (24 bytes) + PUK (4 bytes) - one-time operation |
 | `0x09` | WRITE_PIN_ONLY | 4 bytes in | Write PIN only (4 bytes) |
-| `0x0A` | WRITE_PRIVATE_KEY_CHUNK | 1-65 bytes in | Write RSA private key chunk (index byte + up to 64 bytes data) |
-| `0x0B` | SIGN_CHALLENGE | 4 bytes out | Sign challenge with private key (requires PIN verification) |
+| `0x0A` | WRITE_PRIVATE_KEY_CHUNK | 1-65 bytes in | Write private key chunk (index byte + up to 64 bytes data) |
+| `0x0B` | SIGN_CHALLENGE | 4 bytes out | Sign challenge using XOR with stored key (requires PIN verification) |
 | `0x0C` | SET_CHALLENGE | 4 bytes in | Set 4-byte challenge for signing (requires PIN verification) |
 | `0x0D` | GET_REMAINING_ATTEMPTS | 2 bytes out | Query remaining PIN/PUK attempts without consuming them |
 | `0x0E` | IS_PIN_DEFINED | 1 byte out | Check if PIN is defined (0x00=not defined, 0x01=defined) |
@@ -231,7 +231,7 @@ The card communicates via PC/SC protocol with APDU commands:
 | `0x1E` | 1 byte | PUK attempts remaining (max 3) |
 | `0x1F-0x22` | 4 bytes | PUK (PIN Unblock Key) |
 | `0x23-0x24` | 2 bytes | Private key size (16-bit big-endian) |
-| `0x25+` | up to 1920 bytes | Private key data (31 chunks × 64 bytes max) |
+| `0x25+` | up to 1984 bytes | Private key data (31 chunks × 64 bytes max) |
 
 ### ATR
 
