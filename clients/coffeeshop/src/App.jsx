@@ -40,6 +40,7 @@ function App() {
   const [showCardErrorAnimation, setShowCardErrorAnimation] = useState(false);
   const [cardErrorMessage, setCardErrorMessage] = useState('');
   const [pendingProduct, setPendingProduct] = useState(null);
+  const [showProcessingPayment, setShowProcessingPayment] = useState(false);
 
   // Empêcher la mise en veille du navigateur
   useEffect(() => {
@@ -232,42 +233,6 @@ function App() {
           }
         }, 1000); // Wait 1 second after response before next request
       }
-      
-      // Utiliser setPendingProduct avec une fonction pour obtenir la valeur actuelle
-      setPendingProduct(currentPending => {
-        if (result.success && currentPending) {
-          const currentBalance = result.balance;
-          // Mettre à jour l'affichage du solde
-          setBalance(currentBalance);
-          
-          // Vérifier le solde
-          if (currentBalance < currentPending.price) {
-            // Afficher l'animation de refus
-            setRejectedAmount(currentPending.price);
-            setRejectedBalance(currentBalance);
-            setShowPaymentRejectedAnimation(true);
-            
-            // Masquer l'animation après 3 secondes
-            setTimeout(() => {
-              setShowPaymentRejectedAnimation(false);
-            }, 3000);
-          } else {
-            // Solde suffisant, continuer avec la commande
-            console.log('Ouverture du modal de confirmation');
-            setSelectedProduct(currentPending);
-            setSugarLevel(2);
-            setShowConfirmation(true);
-          }
-        } else if (!result.success) {
-          console.error('Erreur récupération solde:', result.error);
-          setMessageType('error');
-          setMessage('Erreur lors de la vérification du solde');
-          setTimeout(() => setMessage(''), 3000);
-        }
-        
-        // Réinitialiser le produit en attente
-        return null;
-      });
     });
 
     newSocket.on('disconnect', (reason) => {
@@ -323,19 +288,24 @@ function App() {
       setTimeout(() => setMessage(''), 3000);
       return;
     }
-    
-    // Demander le solde actuel à l'API avant de vérifier
-    console.log('Demande du solde actuel à l\'API...');
-    if (socket && socket.connected) {
-      // Stocker le produit en attente
-      setPendingProduct(product);
-      // Demander le solde
-      socket.emit('get_balance');
+
+    // Check balance immediately without waiting for API
+    if (balance < product.price) {
+      // Afficher l'animation de refus
+      setRejectedAmount(product.price);
+      setRejectedBalance(balance);
+      setShowPaymentRejectedAnimation(true);
+
+      // Masquer l'animation après 3 secondes
+      setTimeout(() => {
+        setShowPaymentRejectedAnimation(false);
+      }, 3000);
     } else {
-      console.error('Socket non connecté');
-      setMessageType('error');
-      setMessage('Erreur: connexion perdue');
-      setTimeout(() => setMessage(''), 3000);
+      // Solde suffisant, ouvrir directement le modal de confirmation
+      console.log('Ouverture du modal de confirmation');
+      setSelectedProduct(product);
+      setSugarLevel(2);
+      setShowConfirmation(true);
     }
   };
 
@@ -379,6 +349,9 @@ function App() {
   const processPaymentForProduct = (product) => {
     console.log('Creation de la transaction via Socket.IO...');
 
+    // Show processing payment modal
+    setShowProcessingPayment(true);
+
     // Envoyer la transaction au serveur
     if (socket && socket.connected) {
       // Store payment amount for later use
@@ -392,50 +365,58 @@ function App() {
           setBalance(result.new_balance);
           setNewBalanceAmount(result.new_balance);
 
-          // Show payment success animation ONLY after validation
-          setShowPaymentAnimation(true);
-
-          // Start drink preparation after showing success
+          // Wait 1.5s before hiding processing modal and showing success
           setTimeout(() => {
-            setShowPaymentAnimation(false);
-            setIsPreparingDrink(true);
-            setPreparationProgress(0);
-            setPreparationStep(0);
+            setShowProcessingPayment(false);
 
-            const totalDuration = 6000;
-            const stepDuration = 2000;
-            const steps = ['Chauffage de l\'eau...', 'Préparation de votre boisson...', 'Distribution en cours...'];
+            // Show payment success animation ONLY after validation
+            setShowPaymentAnimation(true);
 
-            const interval = 50;
-            const totalSteps = totalDuration / interval;
-            let currentStep = 0;
+            // Start drink preparation after showing success
+            setTimeout(() => {
+              setShowPaymentAnimation(false);
+              setIsPreparingDrink(true);
+              setPreparationProgress(0);
+              setPreparationStep(0);
 
-            const progressInterval = setInterval(() => {
-              currentStep++;
-              const progress = (currentStep / totalSteps) * 100;
-              setPreparationProgress(progress);
+              const totalDuration = 6000;
+              const stepDuration = 2000;
+              const steps = ['Chauffage de l\'eau...', 'Préparation de votre boisson...', 'Distribution en cours...'];
 
-              const currentStepIndex = Math.floor((currentStep * interval) / stepDuration);
-              if (currentStepIndex < steps.length) {
-                setPreparationStep(currentStepIndex);
-              }
+              const interval = 50;
+              const totalSteps = totalDuration / interval;
+              let currentStep = 0;
 
-              if (currentStep >= totalSteps) {
-                clearInterval(progressInterval);
-                setIsPreparingDrink(false);
-                setSelectedProduct(null);
-                setPreparationStep(0);
+              const progressInterval = setInterval(() => {
+                currentStep++;
+                const progress = (currentStep / totalSteps) * 100;
+                setPreparationProgress(progress);
 
-                setShowDrinkReadyAnimation(true);
-                setTimeout(() => {
-                  setShowDrinkReadyAnimation(false);
-                }, 3000);
-              }
-            }, interval);
-          }, 2500);
+                const currentStepIndex = Math.floor((currentStep * interval) / stepDuration);
+                if (currentStepIndex < steps.length) {
+                  setPreparationStep(currentStepIndex);
+                }
+
+                if (currentStep >= totalSteps) {
+                  clearInterval(progressInterval);
+                  setIsPreparingDrink(false);
+                  setSelectedProduct(null);
+                  setPreparationStep(0);
+
+                  setShowDrinkReadyAnimation(true);
+                  setTimeout(() => {
+                    setShowDrinkReadyAnimation(false);
+                  }, 3000);
+                }
+              }, interval);
+            }, 2500);
+          }, 1500);
 
         } else {
           console.error('Transaction refusee:', result.error);
+
+          // Hide processing modal
+          setShowProcessingPayment(false);
 
           // Transaction failed - show rejection
           setIsPreparingDrink(false);
@@ -462,6 +443,7 @@ function App() {
 
     } else {
       console.error('Socket non connecte pour la transaction');
+      setShowProcessingPayment(false);
       setMessageType('error');
       setMessage('Erreur: connexion perdue');
       setTimeout(() => setMessage(''), 3000);
@@ -654,17 +636,12 @@ function App() {
             </div>
           )}
 
-          {/* Titre principal */}
-          <div className="text-center pt-6 pb-8">
-            <h1 className="text-3xl md:text-4xl font-bold text-gray-900 mb-1">
-              CoffeeShop
-            </h1>
-            <p className="text-lg md:text-xl text-gray-700 font-medium">
-              Sors ta CB pleine de fric
-            </p>
+          {/* Logo en haut à gauche */}
+          <div className="fixed top-6 left-6 z-50">
+            <img src="/img/logo.png" alt="Logo" className="h-16 md:h-20 object-contain" />
           </div>
 
-          <main className="container mx-auto px-6 flex items-center justify-center min-h-[calc(100vh-200px)]">
+          <main className="container mx-auto px-6 pt-24 flex items-center justify-center min-h-screen">
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 gap-4 max-w-7xl w-full">
               {products.map((product, index) => (
                 <div 
@@ -709,32 +686,60 @@ function App() {
             </div>
           </main>
 
+          {/* Processing Payment Modal */}
+          {showProcessingPayment && (
+            <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50 p-4">
+              <div className="bg-white border-3 border-black rounded-2xl shadow-2xl p-8 max-w-md w-full animate-slideDown">
+                <div className="text-center">
+                  {/* Spinner icon */}
+                  <div className="relative mb-6 flex justify-center">
+                    <div className="w-24 h-24 bg-gray-100 rounded-full flex items-center justify-center">
+                      <div className="animate-spin">
+                        <svg className="w-16 h-16 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                        </svg>
+                      </div>
+                    </div>
+                  </div>
+
+                  <h2 className="text-2xl font-bold text-gray-900 mb-2">Paiement en cours</h2>
+                  <p className="text-lg text-gray-700 mb-4">Validation du paiement...</p>
+
+                  <div className="bg-gradient-to-br from-gray-50 to-gray-100 border-3 border-black rounded-xl p-4">
+                    <p className="text-sm text-gray-600 mb-1">Montant</p>
+                    <p className="text-3xl font-bold text-gray-900">{paymentAmount.toFixed(2)}€</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* Animation de paiement */}
           {showPaymentAnimation && (
             <div className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50 p-4">
-              <div className="bg-white rounded-3xl shadow-2xl p-8 max-w-sm w-full animate-slideDown">
+              <div className="bg-white border-3 border-black rounded-2xl shadow-2xl p-8 max-w-sm w-full animate-slideDown">
                 <div className="text-center">
                   {/* Icône de succès animée */}
                   <div className="relative mb-6 flex justify-center">
-                    <div className="w-24 h-24 bg-green-100 rounded-full flex items-center justify-center animate-scaleIn">
-                      <svg className="w-16 h-16 text-green-600 animate-checkmark" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <div className="w-24 h-24 bg-gray-100 rounded-full flex items-center justify-center animate-scaleIn">
+                      <svg className="w-16 h-16 text-gray-900 animate-checkmark" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
                       </svg>
                     </div>
                   </div>
-                  
+
                   {/* Titre */}
                   <h2 className="text-2xl font-bold text-gray-900 mb-2">Paiement réussi</h2>
-                  
+
                   {/* Montant débité */}
                   <div className="mb-4">
                     <p className="text-3xl font-bold text-red-600 mb-1">-{paymentAmount.toFixed(2)}€</p>
                     <p className="text-sm text-gray-500">Montant débité</p>
                   </div>
-                  
+
                   {/* Divider */}
                   <div className="w-full h-px bg-gray-200 my-4"></div>
-                  
+
                   {/* Nouveau solde */}
                   <div>
                     <p className="text-sm text-gray-600 mb-1">Nouveau solde</p>
@@ -748,7 +753,7 @@ function App() {
           {/* Animation de paiement refusé */}
           {showPaymentRejectedAnimation && (
             <div className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50 p-4">
-              <div className="bg-white rounded-3xl shadow-2xl p-8 max-w-sm w-full animate-slideDown">
+              <div className="bg-white border-3 border-black rounded-2xl shadow-2xl p-8 max-w-sm w-full animate-slideDown">
                 <div className="text-center">
                   {/* Icône d'erreur animée */}
                   <div className="relative mb-6 flex justify-center">
@@ -758,27 +763,27 @@ function App() {
                       </svg>
                     </div>
                   </div>
-                  
+
                   {/* Titre */}
                   <h2 className="text-2xl font-bold text-gray-900 mb-2">Solde insuffisant</h2>
-                  
+
                   {/* Montant requis */}
                   <div className="mb-4">
                     <p className="text-3xl font-bold text-red-600 mb-1">{rejectedAmount.toFixed(2)}€</p>
                     <p className="text-sm text-gray-500">Montant requis</p>
                   </div>
-                  
+
                   {/* Divider */}
                   <div className="w-full h-px bg-gray-200 my-4"></div>
-                  
+
                   {/* Solde disponible */}
                   <div>
                     <p className="text-sm text-gray-600 mb-1">Solde disponible</p>
                     <p className="text-2xl font-bold text-gray-900">{rejectedBalance.toFixed(2)}€</p>
                   </div>
-                  
+
                   {/* Message d'erreur */}
-                  <div className="mt-6 bg-red-50 border-2 border-red-200 rounded-xl p-4">
+                  <div className="mt-6 bg-red-50 border-3 border-red-200 rounded-xl p-4">
                     <p className="text-sm text-red-700 font-medium">
                       Veuillez recharger votre compte
                     </p>
@@ -822,24 +827,24 @@ function App() {
           {/* Animation de boisson prête */}
           {showDrinkReadyAnimation && (
             <div className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50 p-4">
-              <div className="bg-white rounded-3xl shadow-2xl p-8 max-w-sm w-full animate-slideDown">
+              <div className="bg-white border-3 border-black rounded-2xl shadow-2xl p-8 max-w-sm w-full animate-slideDown">
                 <div className="text-center">
                   {/* Icône de tasse animée */}
                   <div className="relative mb-6 flex justify-center">
-                    <div className="w-24 h-24 bg-green-100 rounded-full flex items-center justify-center animate-scaleIn">
-                      <svg className="w-16 h-16 text-green-600" fill="currentColor" viewBox="0 0 20 20">
+                    <div className="w-24 h-24 bg-gray-100 rounded-full flex items-center justify-center animate-scaleIn">
+                      <svg className="w-16 h-16 text-gray-900" fill="currentColor" viewBox="0 0 20 20">
                         <path d="M3 1a1 1 0 000 2h1.22l.305 1.222a.997.997 0 00.01.042l1.358 5.43-.893.892C3.74 11.846 4.632 14 6.414 14H15a1 1 0 000-2H6.414l1-1H14a1 1 0 00.894-.553l3-6A1 1 0 0017 3H6.28l-.31-1.243A1 1 0 005 1H3zM16 16.5a1.5 1.5 0 11-3 0 1.5 1.5 0 013 0zM6.5 18a1.5 1.5 0 100-3 1.5 1.5 0 000 3z" />
                       </svg>
                     </div>
                   </div>
-                  
+
                   {/* Titre */}
                   <h2 className="text-2xl font-bold text-gray-900 mb-2">Votre boisson est prête !</h2>
                   <p className="text-lg text-gray-600 mb-4">Bon appétit !</p>
-                  
+
                   {/* Message convivial */}
-                  <div className="bg-green-50 border-2 border-green-200 rounded-xl p-4">
-                    <p className="text-sm text-green-700 font-medium">
+                  <div className="bg-gradient-to-br from-gray-50 to-gray-100 border-3 border-black rounded-xl p-4">
+                    <p className="text-sm text-gray-900 font-medium">
                       Récupérez votre boisson au distributeur
                     </p>
                   </div>
