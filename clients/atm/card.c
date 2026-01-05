@@ -270,8 +270,8 @@ int verify_puk_on_card(const char *puk, const char *new_pin, BYTE *remaining_att
 int sign_challenge_on_card(const unsigned char *challenge, unsigned char *signature, size_t *signature_len)
 {
     LONG rv;
-    BYTE cmd_set_challenge[5 + 4] = {0x80, 0x0C, 0x00, 0x00, 0x04};
-    BYTE cmd_get_signature[5] = {0x80, 0x0B, 0x00, 0x00, 0x04};
+    BYTE cmd_set_challenge[5 + 32] = {0x80, 0x0C, 0x00, 0x00, 0x20};
+    BYTE cmd_get_signature[5] = {0x80, 0x0B, 0x00, 0x00, 0x40};
     BYTE response[258];
     DWORD responseLen;
     SCARD_IO_REQUEST pioSendPci;
@@ -280,12 +280,12 @@ int sign_challenge_on_card(const unsigned char *challenge, unsigned char *signat
     pioSendPci.dwProtocol = dwActiveProtocol;
     pioSendPci.cbPciLength = sizeof(SCARD_IO_REQUEST);
 
-    for (i = 0; i < 4; i++) {
+    for (i = 0; i < 32; i++) {
         cmd_set_challenge[5 + i] = challenge[i];
     }
 
     responseLen = sizeof(response);
-    rv = SCardTransmit(hCard, &pioSendPci, cmd_set_challenge, 9,
+    rv = SCardTransmit(hCard, &pioSendPci, cmd_set_challenge, 37,
                       NULL, response, &responseLen);
 
     if (rv != SCARD_S_SUCCESS) {
@@ -313,7 +313,7 @@ int sign_challenge_on_card(const unsigned char *challenge, unsigned char *signat
     }
 
     int sig_len = responseLen - 2;
-    if (sig_len == 4) {
+    if (sig_len == 64) {
         memcpy(signature, response, sig_len);
         *signature_len = sig_len;
         return 1;

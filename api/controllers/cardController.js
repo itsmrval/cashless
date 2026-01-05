@@ -68,8 +68,8 @@ const updateCard = async (req, res) => {
         return res.status(400).json({ error: 'public_key must be a string' });
       }
       const trimmedKey = req.body.public_key.trim();
-      if (!/^[0-9a-fA-F]{8}$/.test(trimmedKey)) {
-        return res.status(400).json({ error: 'public_key must be 8 hex characters (4 bytes)' });
+      if (!/^[0-9a-fA-F]{64}$/.test(trimmedKey)) {
+        return res.status(400).json({ error: 'public_key must be 64 hex characters (32 bytes)' });
       }
       updates.public_key = trimmedKey;
     }

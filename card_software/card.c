@@ -3,6 +3,7 @@
 #include <avr/eeprom.h>
 #include <avr/pgmspace.h>
 #include <string.h>
+#include "edsign.h"
 
 extern void sendbytet0(uint8_t b);
 extern uint8_t recbytet0(void);
@@ -14,11 +15,15 @@ uint8_t pin_verified = 0;
 #define SIZE_ATR 8
 const char atr_str[SIZE_ATR] PROGMEM = "cashless";
 
-#define CARD_VERSION 111
+#define CARD_VERSION 200
 #define SIZE_CARD_ID 24
 #define SIZE_PIN 4
 #define SIZE_PUK 4
 #define SIZE_PRIVATE_KEY_CHUNK 64
+#define SIZE_CHALLENGE 32
+#define SIZE_ED25519_PRIVATE_KEY 32
+#define SIZE_ED25519_PUBLIC_KEY 32
+#define SIZE_ED25519_SIGNATURE 64
 #define EEPROM_PIN_ADDR 0
 #define EEPROM_CARD_ID_ADDR 4
 #define EEPROM_ASSIGNED_FLAG_ADDR 28
@@ -89,7 +94,7 @@ void read_version()
 
 uint8_t pin_buffer[SIZE_PIN];
 uint8_t puk_buffer[SIZE_PUK];
-uint8_t challenge_buffer[4];
+uint8_t challenge_buffer[SIZE_CHALLENGE];
 
 void write_pin_only()
 {
@@ -411,14 +416,14 @@ void set_challenge()
         return;
     }
 
-    if (p3 != 4) {
+    if (p3 != SIZE_CHALLENGE) {
         sw1 = 0x6c;
-        sw2 = 4;
+        sw2 = SIZE_CHALLENGE;
         return;
     }
 
     sendbytet0(ins);
-    for (i = 0; i < 4; i++) {
+    for (i = 0; i < SIZE_CHALLENGE; i++) {
         challenge_buffer[i] = recbytet0();
     }
 
@@ -428,38 +433,38 @@ void set_challenge()
 void sign_challenge()
 {
     int i;
-    uint8_t key[4];
-    uint8_t signature[4];
+    uint8_t private_key[SIZE_ED25519_PRIVATE_KEY];
+    uint8_t public_key[SIZE_ED25519_PUBLIC_KEY];
+    uint8_t signature[SIZE_ED25519_SIGNATURE];
 
     if (!check_pin_verified()) {
         return;
     }
 
-    if (p3 != 4) {
+    if (p3 != SIZE_ED25519_SIGNATURE) {
         sw1 = 0x6c;
-        sw2 = 4;
+        sw2 = SIZE_ED25519_SIGNATURE;
         return;
     }
 
     uint16_t key_size = ((uint16_t)eeprom_read_byte((uint8_t*)EEPROM_PRIVATE_KEY_SIZE_ADDR) << 8) |
                         (uint16_t)eeprom_read_byte((uint8_t*)(EEPROM_PRIVATE_KEY_SIZE_ADDR + 1));
 
-    if (key_size != 4) {
+    if (key_size != SIZE_ED25519_PRIVATE_KEY) {
         sw1 = 0x6a;
         sw2 = 0x88;
         return;
     }
 
-    for (i = 0; i < 4; i++) {
-        key[i] = eeprom_read_byte((uint8_t*)(EEPROM_PRIVATE_KEY_DATA_ADDR + i));
+    for (i = 0; i < SIZE_ED25519_PRIVATE_KEY; i++) {
+        private_key[i] = eeprom_read_byte((uint8_t*)(EEPROM_PRIVATE_KEY_DATA_ADDR + i));
     }
 
-    for (i = 0; i < 4; i++) {
-        signature[i] = challenge_buffer[i] ^ key[i];
-    }
+    edsign_sec_to_pub(public_key, private_key);
+    edsign_sign(signature, public_key, private_key, challenge_buffer, SIZE_CHALLENGE);
 
     sendbytet0(ins);
-    for (i = 0; i < 4; i++) {
+    for (i = 0; i < SIZE_ED25519_SIGNATURE; i++) {
         sendbytet0(signature[i]);
     }
 

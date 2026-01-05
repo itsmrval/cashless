@@ -2,7 +2,10 @@
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
+#include <fcntl.h>
+#include <unistd.h>
 #include "card.h"
+#include "edsign.h"
 
 int main(int argc, char *argv[])
 {
@@ -73,14 +76,35 @@ int main(int argc, char *argv[])
     }
     puk[SIZE_PUK] = '\0';
 
-    printf("Generating simple key (4 bytes)...\n");
-    unsigned char key_raw[4];
+    printf("Generating Ed25519 keypair...\n");
+    unsigned char key_raw[32];
+    unsigned char public_key[32];
 
-    for (i = 0; i < 4; i++) {
-        key_raw[i] = rand() & 0xFF;
+    int urandom = open("/dev/urandom", O_RDONLY);
+    if (urandom < 0) {
+        printf("Error: Cannot open /dev/urandom\n");
+        disconnect_card();
+        cleanup_card();
+        return 1;
     }
+    if (read(urandom, key_raw, 32) != 32) {
+        printf("Error: Cannot read random bytes\n");
+        close(urandom);
+        disconnect_card();
+        cleanup_card();
+        return 1;
+    }
+    close(urandom);
 
-    int private_key_len = 4;
+    edsign_sec_to_pub(public_key, key_raw);
+
+    int private_key_len = 32;
+
+    printf("Public key (save for API): ");
+    for (i = 0; i < 32; i++) {
+        printf("%02x", public_key[i]);
+    }
+    printf("\n");
 
     printf("Assigning card ID: %s\n", argv[1]);
     printf("Generated PUK: %s\n", puk);

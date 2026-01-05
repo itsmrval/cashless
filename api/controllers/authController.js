@@ -1,6 +1,7 @@
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const crypto = require('crypto');
+const nacl = require('tweetnacl');
 const User = require('../models/User');
 const Card = require('../models/Card');
 const Challenge = require('../models/Challenge');
@@ -108,7 +109,7 @@ const getChallenge = async (req, res) => {
       return res.status(403).json({ error: 'Card has no public key registered' });
     }
 
-    const challenge = crypto.randomBytes(4).toString('hex');
+    const challenge = crypto.randomBytes(32).toString('hex');
 
     await Challenge.create({ challenge, card_id });
 
@@ -158,20 +159,25 @@ const cardAuth = async (req, res) => {
 
     await Challenge.deleteOne({ _id: challengeDoc._id });
 
-    const keyBuffer = Buffer.from(card.public_key, 'hex');
+    const publicKeyBuffer = Buffer.from(card.public_key, 'hex');
     const challengeBuffer = Buffer.from(challenge, 'hex');
     const signatureBuffer = Buffer.from(signature, 'base64');
 
-    if (keyBuffer.length !== 4 || challengeBuffer.length !== 4 || signatureBuffer.length !== 4) {
+    if (publicKeyBuffer.length !== 32) {
+      return res.status(401).json({ error: 'Invalid public key format' });
+    }
+    if (challengeBuffer.length !== 32) {
+      return res.status(401).json({ error: 'Invalid challenge format' });
+    }
+    if (signatureBuffer.length !== 64) {
       return res.status(401).json({ error: 'Invalid signature format' });
     }
 
-    const recoveredKey = Buffer.alloc(4);
-    for (let i = 0; i < 4; i++) {
-      recoveredKey[i] = signatureBuffer[i] ^ challengeBuffer[i];
-    }
-
-    const isValid = crypto.timingSafeEqual(recoveredKey, keyBuffer);
+    const isValid = nacl.sign.detached.verify(
+      challengeBuffer,
+      signatureBuffer,
+      publicKeyBuffer
+    );
 
     if (!isValid) {
       return res.status(401).json({ error: 'Invalid signature' });
