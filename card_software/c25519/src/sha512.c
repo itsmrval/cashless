@@ -5,6 +5,7 @@
  */
 
 #include "sha512.h"
+#include <avr/pgmspace.h>
 
 const struct sha512_state sha512_initial_state = { {
 	0x6a09e667f3bcc908LL, 0xbb67ae8584caa73bLL,
@@ -13,7 +14,7 @@ const struct sha512_state sha512_initial_state = { {
 	0x1f83d9abfb41bd6bLL, 0x5be0cd19137e2179LL,
 } };
 
-static const uint64_t round_k[80] = {
+static const uint64_t round_k[80] PROGMEM = {
 	0x428a2f98d728ae22LL, 0x7137449123ef65cdLL,
 	0xb5c0fbcfec4d3b2fLL, 0xe9b5dba58189dbbcLL,
 	0x3956c25bf348b538LL, 0x59f111f1b605d019LL,
@@ -133,7 +134,9 @@ void sha512_block(struct sha512_state *s, const uint8_t *blk)
 		const uint64_t S0 = rot64(a, 28) ^ rot64(a, 34) ^ rot64(a, 39);
 		const uint64_t S1 = rot64(e, 14) ^ rot64(e, 18) ^ rot64(e, 41);
 		const uint64_t ch = (e & f) ^ ((~e) & g);
-		const uint64_t temp1 = h + S1 + ch + round_k[i] + wi;
+		uint64_t k_val;
+		memcpy_P(&k_val, &round_k[i], sizeof(uint64_t));
+		const uint64_t temp1 = h + S1 + ch + k_val + wi;
 		const uint64_t maj = (a & b) ^ (a & c) ^ (b & c);
 		const uint64_t temp2 = S0 + maj;
 
