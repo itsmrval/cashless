@@ -289,12 +289,16 @@ int sign_challenge_on_card(const unsigned char *challenge, unsigned char *signat
                       NULL, response, &responseLen);
 
     if (rv != SCARD_S_SUCCESS) {
+        printf("DEBUG: SET_CHALLENGE transmit failed: 0x%08lX\n", rv);
         return 0;
     }
 
     if (responseLen < 2 || response[responseLen - 2] != 0x90) {
+        printf("DEBUG: SET_CHALLENGE failed: SW1=0x%02X SW2=0x%02X\n",
+               response[responseLen - 2], response[responseLen - 1]);
         return 0;
     }
+    printf("DEBUG: SET_CHALLENGE success\n");
 
     responseLen = sizeof(response);
     rv = SCardTransmit(hCard, &pioSendPci, cmd_get_signature, 5,
@@ -305,20 +309,25 @@ int sign_challenge_on_card(const unsigned char *challenge, unsigned char *signat
     }
 
     if (responseLen < 2) {
+        printf("DEBUG: SIGN_CHALLENGE response too short: %ld bytes\n", responseLen);
         return 0;
     }
 
     if (response[responseLen - 2] != 0x90) {
+        printf("DEBUG: SIGN_CHALLENGE failed: SW1=0x%02X SW2=0x%02X\n",
+               response[responseLen - 2], response[responseLen - 1]);
         return 0;
     }
 
     int sig_len = responseLen - 2;
+    printf("DEBUG: SIGN_CHALLENGE success, signature length: %d bytes\n", sig_len);
     if (sig_len == 64) {
         memcpy(signature, response, sig_len);
         *signature_len = sig_len;
         return 1;
     }
 
+    printf("DEBUG: Unexpected signature length: %d (expected 64)\n", sig_len);
     return 0;
 }
 
