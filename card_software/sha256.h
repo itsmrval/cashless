@@ -17,7 +17,7 @@
 
 /**************************** DATA TYPES ****************************/
 typedef unsigned char BYTE;             // 8-bit byte
-typedef unsigned int  WORD;             // 32-bit word, change to "long" for 16-bit machines
+typedef unsigned long WORD;             // 32-bit word (AVR is 16-bit arch, must use long)
 
 typedef struct {
 	BYTE data[64];
