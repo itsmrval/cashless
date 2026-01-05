@@ -75,7 +75,6 @@ export const api = {
         }) || null;
       }
     } catch (e) {
-      console.warn('Could not fetch cards', e);
     }
 
     return { user, card, token };

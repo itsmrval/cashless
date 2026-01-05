@@ -73,7 +73,6 @@ function TransactionsList({ userId, loading: parentLoading, onRefresh }) {
       setPaginatedTransactions(response.transactions || []);
       setPaginationData(response.pagination || null);
     } catch (err) {
-      console.error('Error loading transactions:', err);
       setPaginatedTransactions([]);
       setPaginationData(null);
     } finally {
@@ -101,7 +100,6 @@ function TransactionsList({ userId, loading: parentLoading, onRefresh }) {
       const data = await api.getBeneficiaries();
       setBeneficiaries(data);
     } catch (err) {
-      console.error('Error loading beneficiaries:', err);
     } finally {
       setLoadingBeneficiaries(false);
     }
@@ -144,7 +142,6 @@ function TransactionsList({ userId, loading: parentLoading, onRefresh }) {
         try {
           await api.addBeneficiary(manualUserId, beneficiaryComment);
         } catch (err) {
-          console.error('Failed to save beneficiary:', err);
         }
       }
 
@@ -179,7 +176,6 @@ function TransactionsList({ userId, loading: parentLoading, onRefresh }) {
       await loadTransactions();
       if (onRefresh) await onRefresh();
     } catch (err) {
-      console.error('Failed to update comment:', err);
     } finally {
       setUpdatingComment(false);
     }

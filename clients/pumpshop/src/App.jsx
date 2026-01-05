@@ -3,23 +3,16 @@ import fuels from './fuels.json';
 import io from 'socket.io-client';
 import logo from './logo.png';
 
-// URL du serveur Socket.IO (lecteur de carte)
 const SOCKET_URL = process.env.REACT_APP_SOCKET_URL || 'https://localhost:8001';
 
-// Montants prédéfinis pour le mode montant fixe
 const PRESET_AMOUNTS = [10, 20, 30, 50, 80, 100];
 
 function App() {
-  // État Socket.IO
   const [socket, setSocket] = useState(null);
-  
-  // États de connexion et initialisation
   const [isSocketConnected, setIsSocketConnected] = useState(false);
   const [apiError, setApiError] = useState(null);
-  const [reconnectAttempts, setReconnectAttempts] = useState(0);
   const [isInitializing, setIsInitializing] = useState(true);
-  
-  // États utilisateur
+
   const [user, setUser] = useState(null);
   const [balance, setBalance] = useState(0);
   const [isPinVerified, setIsPinVerified] = useState(false);
@@ -27,15 +20,10 @@ function App() {
   const [isCardBlocked, setIsCardBlocked] = useState(false);
   const [isVerifyingPin, setIsVerifyingPin] = useState(false);
   
-  // États erreurs carte
   const [showCardErrorAnimation, setShowCardErrorAnimation] = useState(false);
   const [cardErrorMessage, setCardErrorMessage] = useState('');
-  
-  // États chargement
-  const [isLoadingBalance, setIsLoadingBalance] = useState(false);
   const [showProcessingPayment, setShowProcessingPayment] = useState(false);
-  
-  // États pompe et carburant
+
   const [selectedFuel, setSelectedFuel] = useState(null);
   const [liters, setLiters] = useState('');
   const [isFueling, setIsFueling] = useState(false);
@@ -43,21 +31,18 @@ function App() {
   const [currentLiters, setCurrentLiters] = useState(0);
   const [currentAmount, setCurrentAmount] = useState(0);
   const [fuelingIntervalRef, setFuelingIntervalRef] = useState(null);
-  
-  // États pré-autorisation
-  const [paymentMode, setPaymentMode] = useState('full'); // 'full' = plein avec pré-auth
+
+  const [paymentMode, setPaymentMode] = useState('full');
   const [selectedPresetAmount, setSelectedPresetAmount] = useState(50);
   const [customAmount, setCustomAmount] = useState('');
   const [preAuthAmount, setPreAuthAmount] = useState(0);
   const [isPreAuthActive, setIsPreAuthActive] = useState(false);
   const [showAmountSelector, setShowAmountSelector] = useState(false);
-  
-  // États TPE
+
   const [tpeInput, setTpeInput] = useState('');
-  const [tpeMode, setTpeMode] = useState('idle'); // 'idle', 'pin', 'amount', 'processing', 'success', 'error', 'preauth'
+  const [tpeMode, setTpeMode] = useState('idle');
   const [tpeMessage, setTpeMessage] = useState('');
-  
-  // États modals et messages
+
   const [showPaymentSuccess, setShowPaymentSuccess] = useState(false);
   const [showInsufficientBalance, setShowInsufficientBalance] = useState(false);
   const [paymentAmount, setPaymentAmount] = useState(0);
@@ -66,10 +51,7 @@ function App() {
   const [message, setMessage] = useState('');
   const [messageType, setMessageType] = useState('info');
 
-  // Connexion Socket.IO
   useEffect(() => {
-    console.log('Connexion au serveur Socket.IO...', SOCKET_URL);
-    
     const newSocket = io(SOCKET_URL, {
       transports: ['polling', 'websocket'],
       reconnection: true,
@@ -82,26 +64,18 @@ function App() {
     setSocket(newSocket);
 
     newSocket.on('connect', () => {
-      console.log('Socket.IO connecté - ID:', newSocket.id);
-      console.log('Transport:', newSocket.io.engine.transport.name);
       setIsSocketConnected(true);
       setApiError(null);
-      setReconnectAttempts(0);
       setIsInitializing(false);
     });
 
     newSocket.on('connect_error', (error) => {
-      console.error('Erreur de connexion Socket.IO:', error.message);
       setIsSocketConnected(false);
-      setReconnectAttempts(prev => prev + 1);
       setApiError('Impossible de se connecter au serveur');
       setIsInitializing(false);
     });
 
     newSocket.on('card_inserted', (data) => {
-      console.log('CARTE DÉTECTÉE VIA SOCKET.IO');
-      console.log('Données reçues:', data);
-      
       if (data.card_id && data.card_id !== null) {
         setUser({ name: 'Carte détectée', cardId: data.card_id });
         setBalance(0);
@@ -114,28 +88,21 @@ function App() {
     });
 
     newSocket.on('pin_verification_result', (result) => {
-      console.log('Résultat de vérification PIN reçu:', result);
       setIsVerifyingPin(false);
-      
+
       if (result.success) {
-        console.log('PIN correct !');
         setIsPinVerified(true);
         setTpeMode('idle');
         setTpeMessage('Code accepté');
         setTpeInput('');
         setPinAttempts(3);
-        
-        // Récupérer les données utilisateur (nom et solde)
+
         if (result.user) {
-          console.log('Données utilisateur reçues:', result.user);
           setUser({
             name: result.user.name,
             cardId: result.user.card_id
           });
           setBalance(result.user.balance);
-
-          // Start automatic balance updates with response-based timing
-          console.log('Demarrage de la mise a jour automatique de la balance');
 
           const requestBalance = () => {
             if (newSocket && newSocket.connected) {
@@ -143,37 +110,29 @@ function App() {
             }
           };
 
-          // Initial request
           requestBalance();
-
-          // Store flag to enable auto-updates
           newSocket.balanceAutoUpdate = true;
         }
 
         setTimeout(() => setTpeMessage(''), 2000);
       } else if (result.blocked) {
-        console.log('Carte bloquée !');
         setIsCardBlocked(true);
         setPinAttempts(0);
         setTpeMode('error');
         setTpeMessage('CARTE BLOQUÉE');
       } else if (result.attempts_remaining !== undefined && result.attempts_remaining !== null) {
-        console.log(`PIN incorrect - ${result.attempts_remaining} tentative(s) restante(s)`);
         setPinAttempts(result.attempts_remaining);
         setTpeInput('');
         setTpeMode('pin');
         setTpeMessage(`Erreur - ${result.attempts_remaining} essai(s)`);
         setTimeout(() => setTpeMessage('Saisir code PIN'), 2000);
       } else if (result.error) {
-        console.error('Erreur:', result.error);
-        
-        // Vérifier si c'est une erreur de carte inactive/bloquée
         if (result.error.includes('inactive') || result.error.includes('bloquée') || result.error.includes('bloquee')) {
           setCardErrorMessage(result.error);
           setShowCardErrorAnimation(true);
           setTpeMode('error');
           setTpeMessage('Carte inactive');
-          
+
           setTimeout(() => {
             setShowCardErrorAnimation(false);
             setTpeMode('pin');
@@ -192,44 +151,28 @@ function App() {
     });
 
     newSocket.on('balance_result', (result) => {
-      console.log('Reponse balance recue:', result);
-
-      // Update balance in real-time
       if (result.success) {
-        console.log('Balance mise a jour:', result.balance);
         setBalance(result.balance);
       }
 
-      // Schedule next request only after receiving response (prevents spam)
       if (newSocket.balanceAutoUpdate) {
         setTimeout(() => {
           if (newSocket && newSocket.connected && newSocket.balanceAutoUpdate) {
             newSocket.emit('get_balance');
           }
-        }, 1000); // Wait 1 second after response before next request
+        }, 1000);
       }
     });
 
     newSocket.on('card_removed', (data) => {
-      console.log('Carte retiree via Socket.IO:', data);
-
-      // Stop automatic balance updates
       if (newSocket.balanceAutoUpdate) {
         newSocket.balanceAutoUpdate = false;
-        console.log('Mise a jour automatique de la balance arretee');
-      }
-
-      // Note: If card removed during fueling, server should handle refund
-      // Frontend just cleans up state - no client-side transaction possible without card
-      if (isFueling) {
-        console.log('Warning: Card removed during active fueling - server will handle refund');
       }
 
       resetState();
     });
 
     newSocket.on('disconnect', (reason) => {
-      console.log('Socket.IO deconnecte - Raison:', reason);
       setIsSocketConnected(false);
       if (reason === 'io server disconnect') {
         setApiError('Le serveur a ferme la connexion');
@@ -238,23 +181,12 @@ function App() {
       }
     });
 
-    newSocket.on('error', (error) => {
-      console.error('Erreur Socket.IO:', error);
-    });
-
-    // Debug: écouter tous les événements
-    newSocket.onAny((eventName, ...args) => {
-      console.log('Événement Socket.IO reçu:', eventName, args);
-    });
-
     return () => {
-      console.log('Fermeture de la connexion Socket.IO');
       if (newSocket) newSocket.close();
     };
   }, []);
 
   const resetState = useCallback(() => {
-    // Stop fueling interval if present
     if (fuelingIntervalRef) {
       clearInterval(fuelingIntervalRef);
       setFuelingIntervalRef(null);
@@ -288,36 +220,31 @@ function App() {
     setShowPaymentSuccess(false);
   }, [fuelingIntervalRef]);
 
-  // Gestion des boutons du TPE
   const handleTpeButton = (value) => {
     if (isCardBlocked) return;
     
     if (value === 'C') {
-      // Effacer
       setTpeInput('');
       return;
     }
-    
+
     if (value === 'CE') {
-      // Effacer dernier caractère
       setTpeInput(prev => prev.slice(0, -1));
       return;
     }
-    
+
     if (value === 'OK') {
       handleTpeValidate();
       return;
     }
-    
+
     if (value === 'X') {
-      // Annuler
       if (tpeMode === 'amount') {
         setTpeMode('idle');
         setTpeInput('');
         setSelectedFuel(null);
         setLiters('');
       }
-      // Si carte connectée, demander de retirer la carte
       if (user) {
         setTpeMode('idle');
         setTpeInput('');
@@ -327,8 +254,7 @@ function App() {
       }
       return;
     }
-    
-    // Chiffres
+
     if (tpeMode === 'pin' && tpeInput.length < 4) {
       setTpeInput(prev => prev + value);
     } else if (tpeMode === 'amount' && tpeInput.length < 5) {
@@ -347,15 +273,13 @@ function App() {
       setIsVerifyingPin(true);
       setTpeMode('processing');
       setTpeMessage('Vérification...');
-      
-      // Vérification via Socket.IO
+
       if (socket && socket.connected) {
         socket.emit('verify_pin', { pin: tpeInput });
       }
     }
   };
 
-  // Sélection d'un carburant - ouvre le sélecteur de montant
   const handleFuelSelect = (fuel) => {
     if (!user) {
       setMessage('Veuillez insérer votre carte');
@@ -373,20 +297,16 @@ function App() {
 
     if (isFueling) return;
 
-    // Vérifier que le solde n'est pas à 0
     if (balance <= 0) {
       setShowInsufficientBalance(true);
       return;
     }
 
-    // Sélectionner le carburant et ouvrir le sélecteur de montant
     setSelectedFuel(fuel);
     setShowAmountSelector(true);
   };
 
-  // Confirmer le montant et lancer la pré-autorisation
   const handleConfirmAmount = () => {
-    // Mode plein : pré-autorisation du solde entier
     const amount = balance;
 
     if (amount <= 0) {
@@ -395,20 +315,16 @@ function App() {
       return;
     }
 
-    // Effectuer la pré-autorisation
     setShowAmountSelector(false);
     processPreAuthorization(amount);
   };
 
-  // Traiter la pré-autorisation
   const processPreAuthorization = (amount) => {
     setTpeMode('preauth');
     setTpeMessage('Pré-autorisation...');
     setShowProcessingPayment(true);
 
     if (socket && socket.connected) {
-      console.log(`Envoi de la pré-autorisation: ${amount.toFixed(2)}€`);
-
       setPreAuthAmount(amount);
 
       socket.emit('create_transaction', {
@@ -418,19 +334,16 @@ function App() {
 
       socket.once('transaction_result', (result) => {
         if (result.success) {
-          console.log(`Pré-autorisation de ${amount.toFixed(2)}€ acceptée`);
           setBalance(result.new_balance);
           setIsPreAuthActive(true);
           setTpeMode('success');
           setTpeMessage(`${amount.toFixed(2)}€ prélevés`);
 
-          // Wait 1.5s before hiding processing and starting fueling
           setTimeout(() => {
             setShowProcessingPayment(false);
             startFueling(selectedFuel, amount);
           }, 1500);
         } else {
-          console.error('Erreur pré-autorisation:', result.error);
           setShowProcessingPayment(false);
           setIsPreAuthActive(false);
           setPreAuthAmount(0);
@@ -452,7 +365,6 @@ function App() {
       });
 
     } else {
-      console.error('Socket non connecté pour la pré-autorisation');
       setShowProcessingPayment(false);
       setTpeMode('error');
       setTpeMessage('Connexion perdue');
@@ -463,7 +375,6 @@ function App() {
     }
   };
 
-  // Arrêter le ravitaillement manuellement
   const stopFueling = () => {
     if (fuelingIntervalRef) {
       clearInterval(fuelingIntervalRef);
@@ -475,12 +386,9 @@ function App() {
     }
   };
 
-  // Finaliser le ravitaillement et rembourser la différence
   const finalizeFueling = () => {
     const actualAmount = currentLiters * selectedFuel.price;
     const refundToSend = preAuthAmount - actualAmount;
-
-    console.log(`Finalisation: consommé ${actualAmount.toFixed(2)}€, à rembourser ${refundToSend.toFixed(2)}€`);
 
     setPaymentAmount(actualAmount);
     setRefundAmount(refundToSend);
@@ -488,7 +396,6 @@ function App() {
     setIsPreAuthActive(false);
     setIsFueling(false);
 
-    // Function to show success and reset after delay
     const showSuccessAndReset = (finalBalance) => {
       setNewBalanceAmount(finalBalance);
       setShowPaymentSuccess(true);
@@ -508,9 +415,6 @@ function App() {
     };
 
     if (refundToSend > 0 && socket && socket.connected) {
-      console.log(`Envoi du remboursement: ${refundToSend.toFixed(2)}€`);
-
-      // Show processing state while waiting for refund
       setTpeMode('processing');
       setTpeMessage('Remboursement en cours...');
 
@@ -522,12 +426,9 @@ function App() {
 
       socket.once('transaction_result', (result) => {
         if (result.success && result.refund) {
-          console.log('Remboursement réussi - Nouveau solde:', result.new_balance);
           setBalance(result.new_balance);
-          // Show success ONLY after refund completes
           showSuccessAndReset(result.new_balance);
         } else if (!result.success) {
-          console.error('Erreur remboursement:', result.error);
           setTpeMode('error');
           setTpeMessage('Erreur remboursement');
           setMessage(`Erreur de remboursement: ${result.error}`);
@@ -541,11 +442,8 @@ function App() {
       });
 
     } else if (refundToSend <= 0) {
-      console.log('Pas de remboursement nécessaire');
-      // No refund needed, show success immediately
       showSuccessAndReset(balance);
     } else {
-      console.error('Socket non connecté pour le remboursement');
       setTpeMode('error');
       setTpeMessage('Connexion perdue');
       setMessage('Attention: remboursement non envoyé');
@@ -560,62 +458,55 @@ function App() {
 
   const startFueling = (fuel, maxAmount) => {
     const maxLiters = maxAmount / fuel.price;
-    
+
     setIsFueling(true);
     setFuelingProgress(0);
     setCurrentLiters(0);
     setCurrentAmount(0);
     setTpeMode('idle');
     setTpeMessage('Remplissage...');
-    
-    // Vitesse : environ 1 litre par 100ms (rapide pour la démo)
+
     const litersPerTick = 0.05;
     const interval = 50;
-    
+
     const fuelingInterval = setInterval(() => {
       setCurrentLiters(prev => {
         const next = prev + litersPerTick;
         const nextAmount = next * fuel.price;
-        
-        // Arrêter si on atteint le max de la pré-autorisation
+
         if (next >= maxLiters || nextAmount >= maxAmount) {
           clearInterval(fuelingInterval);
           setFuelingIntervalRef(null);
-          
+
           const finalLiters = Math.min(next, maxLiters);
           setCurrentAmount(finalLiters * fuel.price);
           setFuelingProgress(100);
-          
-          // Finaliser automatiquement
+
           setTimeout(() => {
             finalizeFueling();
           }, 500);
-          
+
           return finalLiters;
         }
-        
+
         setCurrentAmount(nextAmount);
         setFuelingProgress((nextAmount / maxAmount) * 100);
         return next;
       });
     }, interval);
-    
+
     setFuelingIntervalRef(fuelingInterval);
   };
 
-  // Rendu du TPE
   const renderTPE = () => {
-    // Le PIN est TOUJOURS masqué avec des points
-    const displayText = (tpeMode === 'pin' || tpeMode === 'processing') 
+    const displayText = (tpeMode === 'pin' || tpeMode === 'processing')
       ? '•'.repeat(tpeInput.length)
       : tpeInput;
 
     return (
       <div className="bg-gradient-to-b from-gray-700 to-gray-900 rounded-xl lg:rounded-2xl p-2 sm:p-3 lg:p-4 shadow-2xl border-2 lg:border-3 border-black w-full max-w-[240px] sm:max-w-[260px] lg:max-w-[300px] transform scale-[0.85] sm:scale-90 lg:scale-100 origin-top">
-        {/* Écran du TPE */}
         <div className="bg-gradient-to-b from-slate-100 to-slate-200 rounded-lg lg:rounded-xl p-2 lg:p-3 mb-2 lg:mb-3 border border-slate-300 shadow-inner">
           <div className="bg-white rounded-md lg:rounded-lg p-2 min-h-[60px] sm:min-h-[70px] lg:min-h-[80px] border border-slate-200">
-            {/* Status de la carte */}
             <div className="flex items-center justify-between mb-1 lg:mb-2 pb-1 border-b border-slate-200">
               <span className="text-slate-600 text-[10px] sm:text-xs font-medium truncate">
                 {user && isPinVerified ? user.name : user ? 'Carte détectée' : 'Insérer carte'}
@@ -626,13 +517,11 @@ function App() {
                 </span>
               )}
             </div>
-            
-            {/* Message principal */}
+
             <div className="text-slate-800 text-xs sm:text-sm lg:text-base font-bold text-center mb-1">
               {tpeMessage || (selectedFuel ? `${selectedFuel.shortName} - ${selectedFuel.price.toFixed(3)}€/L` : 'PRÊT')}
             </div>
-            
-            {/* Zone de saisie */}
+
             <div className="bg-slate-100 rounded-md lg:rounded-lg p-1.5 sm:p-2 text-center border border-slate-200">
               <span className="text-slate-900 text-lg sm:text-xl lg:text-2xl font-mono tracking-widest font-bold">
                 {displayText || '----'}
@@ -644,9 +533,7 @@ function App() {
           </div>
         </div>
 
-        {/* Clavier du TPE */}
         <div className="grid grid-cols-3 gap-1 mb-2 lg:mb-3">
-          {/* Rangées de chiffres */}
           {[1, 2, 3, 4, 5, 6, 7, 8, 9].map(num => (
             <button
               key={num}
@@ -657,8 +544,7 @@ function App() {
               {num}
             </button>
           ))}
-          
-          {/* Rangée du bas */}
+
           <button
             onClick={() => handleTpeButton('C')}
             disabled={tpeMode === 'processing' || tpeMode === 'success' || isCardBlocked}
@@ -682,7 +568,6 @@ function App() {
           </button>
         </div>
 
-        {/* Boutons Annuler / Valider */}
         <div className="grid grid-cols-2 gap-1 mb-2 lg:mb-3">
           <button
             onClick={() => handleTpeButton('X')}
@@ -700,7 +585,6 @@ function App() {
           </button>
         </div>
 
-        {/* Indicateurs LED */}
         <div className="flex justify-center gap-2 sm:gap-3 lg:gap-4 py-1.5 lg:py-2 border-t border-gray-600">
           <div className="flex items-center gap-1">
             <div className={`w-1.5 h-1.5 lg:w-2 lg:h-2 rounded-full ${user ? 'bg-green-400 shadow-lg shadow-green-400/50' : 'bg-gray-600'}`}
@@ -719,7 +603,6 @@ function App() {
           </div>
         </div>
 
-        {/* Fente carte stylisée */}
         <div className="mt-1 flex flex-col items-center">
           <div className="w-20 sm:w-24 lg:w-28 h-1.5 lg:h-2 bg-black rounded-full border border-gray-600 shadow-inner relative overflow-hidden">
             <div className="absolute inset-0 bg-gradient-to-b from-gray-700 to-transparent opacity-50"></div>
@@ -730,7 +613,6 @@ function App() {
     );
   };
 
-  // Rendu des pompes à carburant
   const renderFuelPumps = () => {
     return (
       <div className="flex flex-wrap justify-center gap-4 lg:gap-6">
@@ -741,7 +623,6 @@ function App() {
           
           return (
             <div key={fuel.id} className="flex flex-col items-center scale-75 lg:scale-90">
-              {/* Corps de la pompe */}
               <div
                 onClick={() => !isDisabled && handleFuelSelect(fuel)}
                 className={`relative cursor-pointer transition-all duration-300 ${
@@ -749,9 +630,7 @@ function App() {
                 } ${isSelected ? 'scale-105 z-40' : 'z-10'}`}
                 style={{ filter: isSelected ? 'drop-shadow(0 0 20px rgba(255,255,255,0.3))' : '' }}
               >
-                {/* Structure principale de la pompe */}
                 <div className="relative w-36 h-56 bg-gradient-to-b from-gray-100 to-gray-300 rounded-t-3xl shadow-2xl border-4 border-gray-400">
-                  {/* Bandeau supérieur coloré */}
                   <div
                     className="absolute top-0 left-0 right-0 h-10 rounded-t-2xl"
                     style={{ background: `linear-gradient(135deg, ${fuel.color}, ${fuel.darkColor})` }}
@@ -761,7 +640,6 @@ function App() {
                     </div>
                   </div>
 
-                  {/* Écran digital */}
                   <div className="absolute top-14 left-2 right-2 bg-black rounded-lg p-2 border-2 border-gray-600">
                     <div className="text-green-400 text-xs mb-1">{fuel.name}</div>
                     <div className="text-green-400 text-lg font-mono tabular-nums">
@@ -770,7 +648,6 @@ function App() {
                     <div className="text-green-400 text-xs">€/Litre</div>
                   </div>
 
-                  {/* Logo/Icône centrale */}
                   <div className="absolute top-36 left-1/2 transform -translate-x-1/2">
                     <div
                       className="w-10 h-10 rounded-full flex items-center justify-center border-2 border-gray-400 shadow-lg"
@@ -780,14 +657,12 @@ function App() {
                     </div>
                   </div>
 
-                  {/* Grille de ventilation */}
                   <div className="absolute top-48 left-4 right-4 h-4 grid grid-cols-6 gap-1">
                     {[...Array(12)].map((_, i) => (
                       <div key={i} className="bg-gray-400 rounded-sm h-1"></div>
                     ))}
                   </div>
 
-                  {/* Indicateur de sélection/pompage */}
                   {isSelected && (
                     <div className="absolute bottom-2 left-2 right-2">
                       <div
@@ -802,20 +677,15 @@ function App() {
                   )}
                 </div>
 
-                {/* Base de la pompe */}
                 <div className="w-36 h-5 bg-gradient-to-b from-gray-400 to-gray-500 border-4 border-gray-400 border-t-0"></div>
                 <div className="w-40 h-2 bg-gray-600 -mt-0.5 mx-auto"></div>
 
-                {/* Tuyau et pistolet */}
                 <div className="absolute top-20 -right-5 flex flex-col items-start">
-                  {/* Support du pistolet */}
                   <div className="w-8 h-14 bg-gray-700 rounded-r-lg border-2 border-gray-600 flex items-center justify-center">
                     <div className="w-1 h-10 bg-gray-800 rounded-full"></div>
                   </div>
 
-                  {/* Pistolet */}
                   <div className="relative mt-1 ml-1">
-                    {/* Tuyau courbé */}
                     <svg width="24" height="36" className="absolute -top-4 -left-1">
                       <path
                         d="M 6 0 Q 6 14, 12 20 L 12 36"
@@ -825,31 +695,25 @@ function App() {
                         strokeLinecap="round"
                       />
                     </svg>
-                    
-                    {/* Corps du pistolet */}
+
                     <div
                       className="relative w-10 rounded-lg shadow-lg border-2 border-gray-700 z-10"
                       style={{ backgroundColor: fuel.color, height: '60px' }}
                     >
-                      {/* Poignée */}
                       <div className="absolute top-3 left-1 right-1 h-7 bg-black bg-opacity-30 rounded-md"></div>
-                      
-                      {/* Gâchette */}
+
                       <div className="absolute top-5 left-2 w-5 h-5 bg-gray-900 rounded-md border-2 border-gray-700"></div>
-                      
-                      {/* Bec verseur */}
+
                       <div
                         className="absolute -bottom-1 left-3 w-3 h-5 rounded-b-lg"
                         style={{ backgroundColor: fuel.darkColor }}
                       ></div>
 
-                      {/* Détails métalliques */}
                       <div className="absolute top-1 left-1 right-1 h-0.5 bg-gray-300 rounded-full"></div>
                     </div>
                   </div>
                 </div>
 
-                {/* Effet lumineux si en cours de pompage */}
                 {isPumping && (
                   <div
                     className="absolute top-10 left-1/2 transform -translate-x-1/2 w-2 h-2 rounded-full animate-ping"
@@ -858,7 +722,6 @@ function App() {
                 )}
               </div>
 
-              {/* Numéro de pompe */}
               <div className="mt-1 text-gray-400 text-xs">Pompe {fuel.octane}</div>
             </div>
           );
@@ -867,13 +730,10 @@ function App() {
     );
   };
 
-  // Rendu du sélecteur de mode (info seulement, pas de sélection ici)
-  // Rendu du sélecteur de mode (désactivé)
   const renderModeSelector = () => {
     return null;
   };
 
-  // Modal de sélection du montant
   const renderAmountSelector = () => {
     if (!showAmountSelector || !selectedFuel) return null;
 
@@ -948,7 +808,6 @@ function App() {
     );
   };
 
-  // Rendu du ravitaillement en cours
   const renderFuelingDisplay = () => {
     if (!isFueling || !selectedFuel) return null;
 

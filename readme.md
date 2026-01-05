@@ -4,6 +4,10 @@
 This university project is setting up an electronic payment infrastructure based on smart cards.
 The aim is to enable secure top-ups, payments, and transfers between users, terminals, and connected machines.
 
+Dashboard             |  Example web client
+:-:|:--:
+![](https://i.imgur.com/Nw2YLg3.png)  | ![](https://i.imgur.com/L67j3f3.png)
+
 #### Quick Links
 - [Structure](#structure)
 - [Docker Deployment](#docker-deployment)
@@ -82,13 +86,13 @@ ansible-playbook assign_card.yml
 ```
 Plug a flashed card into the reader, then run the playbook.
 
-**APDU Commands Used by Assignator:**
+**APDU commands used by assignator:**
 - `READ_CARD_ID (0x01)` - Verify card is unassigned (returns all zeros)
 - `READ_VERSION (0x02)` - Check firmware version
 - `ASSIGN_CARD (0x08)` - Write card ID and PUK to card (one-time operation)
-- `WRITE_PRIVATE_KEY_CHUNK (0x0A)` - Write cryptographic private key for challenge signing
+- `WRITE_PRIVATE_KEY_CHUNK (0x0A)` - Write signing key for challenge-response authentication
 
-### Socket Reader
+### Socket reader
 
 WebSocket service that broadcasts real-time card insertion/removal events to connected clients.
 
@@ -110,12 +114,12 @@ The service runs on `https://0.0.0.0:8001` and supports:
 - Challenge signing and cryptographic authentication
 - SSL/TLS encrypted communication
 
-**APDU Commands Used by Socket Reader:**
+**APDU commands used by socket reader:**
 - `READ_CARD_ID (0x01)` - Detect and read card ID
 - `READ_VERSION (0x02)` - Check card firmware version
 - `IS_PIN_DEFINED (0x0E)` - Verify if card is activated
 - `VERIFY_PIN (0x06)` - Authenticate user locally on card
-- `SET_CHALLENGE (0x0C)` + `SIGN_CHALLENGE (0x0B)` - Cryptographic authentication with API
+- `SET_CHALLENGE (0x0C)` + `SIGN_CHALLENGE (0x0B)` - Challenge-response authentication with API
 
 See [socket_reader/README.md](socket_reader/README.md) for WebSocket API documentation.
 
@@ -128,7 +132,7 @@ make
 ```
 Example for the ATM client.
 
-**APDU Commands Used by ATM Client:**
+**APDU commands used by ATM client:**
 - `READ_CARD_ID (0x01)` - Detect and read card ID
 - `READ_VERSION (0x02)` - Check card firmware version
 - `WRITE_PIN_ONLY (0x09)` - Setup PIN during activation
@@ -136,11 +140,11 @@ Example for the ATM client.
 - `VERIFY_PIN (0x06)` - Authenticate user locally on card
 - `VERIFY_PUK (0x07)` - Unblock card with PUK and set new PIN
 - `GET_REMAINING_ATTEMPTS (0x0D)` - Check remaining PIN/PUK attempts
-- `SET_CHALLENGE (0x0C)` + `SIGN_CHALLENGE (0x0B)` - Cryptographic authentication with API
+- `SET_CHALLENGE (0x0C)` + `SIGN_CHALLENGE (0x0B)` - Challenge-response authentication with API
 
 The ATM client provides a complete card management interface including PIN setup, PUK-based unlock, and transaction viewing.
 
-## API Endpoints
+## API endpoints
 
 ### Authentication
 
@@ -164,7 +168,7 @@ The ATM client provides a complete card management interface including PIN setup
 - `GET /v1/card` - List all cards with user info (JWT required) → `200`
 - `POST /v1/card` - Create a new card `{comment, puk}` (optional, JWT required) → `201`
 - `GET /v1/card/:card_id` - Get card info with associated user (JWT required) → `200`
-- `PATCH /v1/card/:card_id` - Update `{comment, status: "active|inactive|waiting_activation", puk, public_key}` (JWT required) → `200`
+- `PATCH /v1/card/:card_id` - Update `{comment, status: "active|inactive|waiting_activation", puk, secret_key}` (JWT required) → `200`
 - `POST /v1/card/:card_id/assign` - Assign a card to user `{user_id}` (JWT required) → `200`
 - `DELETE /v1/card/:card_id/assign` - Unassign a card from its user (JWT required) → `200`
 - `DELETE /v1/card/:card_id` - Delete a card (JWT required) → `200`
@@ -184,7 +188,7 @@ The ATM client provides a complete card management interface including PIN setup
 
 ## Smart Card Protocol (APDU)
 
-### Supported Commands (CLA=0x80)
+### Supported commands (CLA=0x80)
 
 The card communicates via PC/SC protocol with APDU commands:
 
@@ -197,13 +201,13 @@ The card communicates via PC/SC protocol with APDU commands:
 | `0x07` | VERIFY_PUK | 8 bytes in | Verify PUK (4 bytes) + set new PIN (4 bytes) |
 | `0x08` | ASSIGN_CARD | 28 bytes in | Assign card ID (24 bytes) + PUK (4 bytes) - one-time operation |
 | `0x09` | WRITE_PIN_ONLY | 4 bytes in | Write PIN only (4 bytes) |
-| `0x0A` | WRITE_PRIVATE_KEY_CHUNK | 1-65 bytes in | Write RSA private key chunk (index byte + up to 64 bytes data) |
-| `0x0B` | SIGN_CHALLENGE | 4 bytes out | Sign challenge with private key (requires PIN verification) |
-| `0x0C` | SET_CHALLENGE | 4 bytes in | Set 4-byte challenge for signing (requires PIN verification) |
+| `0x0A` | WRITE_PRIVATE_KEY_CHUNK | 1-65 bytes in | Write secret key chunk (index byte + up to 64 bytes data) |
+| `0x0B` | SIGN_CHALLENGE | 32 bytes out | Sign challenge using HMAC-SHA256 (requires PIN verification) |
+| `0x0C` | SET_CHALLENGE | 32 bytes in | Set 32-byte challenge for signing (requires PIN verification) |
 | `0x0D` | GET_REMAINING_ATTEMPTS | 2 bytes out | Query remaining PIN/PUK attempts without consuming them |
 | `0x0E` | IS_PIN_DEFINED | 1 byte out | Check if PIN is defined (0x00=not defined, 0x01=defined) |
 
-### Status Codes (SW1/SW2)
+### Status codes (SW1/SW2)
 
 | SW1 | SW2 | Meaning |
 |-----|-----|---------|
@@ -220,7 +224,7 @@ The card communicates via PC/SC protocol with APDU commands:
 | `0x6D` | `0x00` | Invalid INS code |
 | `0x6E` | `0x00` | Invalid CLA code |
 
-### EEPROM Memory Layout
+### EEPROM memory layout
 
 | Address | Size | Content |
 |---------|------|---------|
@@ -230,10 +234,10 @@ The card communicates via PC/SC protocol with APDU commands:
 | `0x1D` | 1 byte | PIN attempts remaining (max 3) |
 | `0x1E` | 1 byte | PUK attempts remaining (max 3) |
 | `0x1F-0x22` | 4 bytes | PUK (PIN Unblock Key) |
-| `0x23-0x24` | 2 bytes | Private key size (16-bit big-endian) |
-| `0x25+` | up to 1920 bytes | Private key data (31 chunks × 64 bytes max) |
+| `0x23-0x24` | 2 bytes | Secret key size (16-bit big-endian, always 32 for HMAC-SHA256) |
+| `0x25-0x44` | 32 bytes | Secret key for HMAC-SHA256 signing |
 
-### ATR (Answer-To-Reset)
+### ATR
 
 ```
 3B F9 01 05 05 00 00 63 61 73 68 6C 65 73 73
@@ -247,7 +251,7 @@ Format breakdown:
 
 Card identifies itself with the string "cashless".
 
-### Card States
+### Card states
 
 | State | Description | Client Action |
 |------|-------------|---------------|
@@ -255,7 +259,7 @@ Card identifies itself with the string "cashless".
 | `active` | Card activated with PIN | Request PIN → authentication |
 | `inactive` | Card deactivated | Display error, deny access |
 
-**PIN/PUK Security:**
+**PIN/PUK security:**
 - Both PIN and PUK have 3 attempts before lockout
 - Failed attempts return `0x63 0xCn` where n = remaining attempts
 - When attempts reach 0: PIN returns `0x69 0x83`, PUK returns `0x69 0x84`

@@ -13,7 +13,6 @@ import {
 import CardList from './cards/CardList';
 import CardItem from './cards/CardItem';
 
-// Fonction utilitaire pour formater les dates
 const formatDate = (dateString) => {
   if (!dateString) return '-';
   return new Date(dateString).toLocaleDateString('fr-FR', {
@@ -40,7 +39,6 @@ function CardManagement({
   const currentCard = cards.find(c => c._id === currentCardId) || cards[0] || null;
   const otherCards = cards.filter(c => c._id !== (currentCard?._id));
 
-  // Handler pour sélectionner une carte et fermer la liste
   const handleSelectCard = (cardId) => {
     onSelectCard?.(cardId);
     setExpanded(false);
@@ -86,7 +84,6 @@ function CardManagement({
     }
   };
 
-  // Si pas de cartes
   if (!cards || cards.length === 0) {
     return (
       <div className="max-w-4xl mx-auto space-y-6 font-sans">
@@ -108,8 +105,6 @@ function CardManagement({
 
   return (
     <div className="max-w-4xl mx-auto space-y-6 font-sans">
-      
-      {/* --- En-tête et Actions --- */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div>
           <h2 className="text-2xl sm:text-3xl font-bold text-slate-900">Gestion des cartes</h2>
@@ -122,7 +117,6 @@ function CardManagement({
         </div>
       </div>
 
-      {/* --- Alertes de Statut --- */}
       {error && (
         <div className="flex items-center gap-3 bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg">
           <AlertCircle className="h-5 w-5 flex-shrink-0" />
@@ -136,18 +130,15 @@ function CardManagement({
         </div>
       )}
 
-      {/* --- Section Cartes avec même style que CardList --- */}
       <div className="space-y-4">
         <h3 className="text-lg font-semibold text-slate-800 flex items-center gap-2">
           <CreditCard className="w-5 h-5 text-slate-400" />
           {expanded ? 'Toutes les cartes' : 'Carte sélectionnée'}
         </h3>
 
-        {/* Mode non-étendu : carte principale + aperçu empilé */}
         {!expanded && currentCard && (
           <div className="flex justify-center">
             <div className="relative w-full max-w-[340px]">
-              {/* Carte principale */}
               <div className="relative z-10">
                 <CardItem
                   card={currentCard}
@@ -158,7 +149,6 @@ function CardManagement({
                 />
               </div>
 
-            {/* Aperçu empilé des autres cartes */}
             {otherCards.length > 0 && (
               <>
                 {otherCards.slice(0, 2).map((card, index) => (
@@ -180,11 +170,9 @@ function CardManagement({
           </div>
         )}
 
-        {/* Mode étendu : toutes les cartes en liste verticale */}
         {expanded && (
           <div className="flex justify-center">
             <div className="flex flex-col gap-4 w-full max-w-[340px]">
-              {/* Carte sélectionnée */}
               <div className="relative">
                 <div className="absolute -left-3 top-1/2 -translate-y-1/2 w-1.5 h-12 bg-blue-500 rounded-r-full"></div>
                 <CardItem
@@ -196,7 +184,6 @@ function CardManagement({
                 />
               </div>
 
-              {/* Autres cartes - même taille, en dessous */}
               {otherCards.map((card) => (
                 <div key={card._id} className="transition-all duration-300 hover:scale-[1.01]">
                   <CardItem
@@ -212,7 +199,6 @@ function CardManagement({
           </div>
         )}
 
-        {/* Bouton pour voir/sélectionner les cartes */}
         {cards.length > 1 && (
           <div className="flex justify-center">
             <div className="w-full max-w-[340px]">
@@ -237,11 +223,8 @@ function CardManagement({
         )}
       </div>
 
-      {/* --- Grille d'Informations de la carte sélectionnée --- */}
       {currentCard && (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          
-          {/* Carte "Détails" */}
           <div className="p-6 bg-white rounded-xl shadow-sm border border-slate-100 space-y-5">
             <h4 className="text-sm font-semibold text-slate-500 uppercase tracking-wide">Détails de la carte</h4>
             <div>
@@ -266,7 +249,6 @@ function CardManagement({
             )}
           </div>
 
-          {/* Carte "Statut" */}
           <div className="p-6 bg-white rounded-xl shadow-sm border border-slate-100 space-y-5">
             <h4 className="text-sm font-semibold text-slate-500 uppercase tracking-wide">Statut & Actions</h4>
             <div>
@@ -283,7 +265,6 @@ function CardManagement({
               </p>
             </div>
 
-            {/* Action rapide */}
             {(currentCard?.status === 'active' || currentCard?.status === 'inactive') && (
               <button
                 onClick={() => handleToggleCardStatus(currentCard._id)}

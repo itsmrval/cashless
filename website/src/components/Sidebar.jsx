@@ -76,7 +76,7 @@ function Sidebar({ activeTab, setActiveTab }) {
                 className="inline-flex items-center gap-1 mt-1 px-2 py-0.5 rounded-md text-xs font-semibold bg-gradient-to-r from-blue-100 to-indigo-100 text-blue-700 hover:from-blue-200 hover:to-indigo-200 transition-all"
               >
                 <ShieldCheck className="w-3 h-3" />
-                Accès Admin
+                Administration
                 <ChevronRight className="w-3 h-3" />
               </button>
             ) : (

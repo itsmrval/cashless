@@ -1,4 +1,3 @@
-// src/pages/admin/AdminDashboard.jsx
 import React, { useState, useEffect } from 'react';
 import { api } from '../../api/api';
 import { Users, CreditCard, TrendingUp, AlertCircle, Loader2 } from 'lucide-react';
@@ -72,7 +71,6 @@ export default function AdminDashboard() {
         <p className="text-slate-500 mt-1">Vue d'ensemble du système Cashless</p>
       </div>
 
-      {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <div className="bg-white rounded-xl shadow-sm border border-slate-100 p-6">
           <div className="flex items-center justify-between">
@@ -123,9 +121,7 @@ export default function AdminDashboard() {
         </div>
       </div>
 
-      {/* Recent Activity */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Recent Users */}
         <div className="bg-white rounded-xl shadow-sm border border-slate-100 p-6">
           <h3 className="text-lg font-semibold text-slate-900 mb-4">Utilisateurs</h3>
           {stats.recentUsers.length > 0 ? (
@@ -147,7 +143,6 @@ export default function AdminDashboard() {
           )}
         </div>
 
-        {/* Recent Cards */}
         <div className="bg-white rounded-xl shadow-sm border border-slate-100 p-6">
           <h3 className="text-lg font-semibold text-slate-900 mb-4">Cartes</h3>
           {stats.recentCards.length > 0 ? (

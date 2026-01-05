@@ -3,6 +3,7 @@
 #include <avr/eeprom.h>
 #include <avr/pgmspace.h>
 #include <string.h>
+#include "hmac_sha256.h"
 
 extern void sendbytet0(uint8_t b);
 extern uint8_t recbytet0(void);
@@ -14,11 +15,14 @@ uint8_t pin_verified = 0;
 #define SIZE_ATR 8
 const char atr_str[SIZE_ATR] PROGMEM = "cashless";
 
-#define CARD_VERSION 111
+#define CARD_VERSION 201
 #define SIZE_CARD_ID 24
 #define SIZE_PIN 4
 #define SIZE_PUK 4
 #define SIZE_PRIVATE_KEY_CHUNK 64
+#define SIZE_CHALLENGE 32
+#define SIZE_SECRET_KEY 32
+#define SIZE_HMAC_SIGNATURE 32
 #define EEPROM_PIN_ADDR 0
 #define EEPROM_CARD_ID_ADDR 4
 #define EEPROM_ASSIGNED_FLAG_ADDR 28
@@ -89,7 +93,9 @@ void read_version()
 
 uint8_t pin_buffer[SIZE_PIN];
 uint8_t puk_buffer[SIZE_PUK];
-uint8_t challenge_buffer[4];
+uint8_t challenge_buffer[SIZE_CHALLENGE];
+uint8_t secret_key_buffer[SIZE_SECRET_KEY];
+uint8_t signature_buffer[SIZE_HMAC_SIGNATURE];
 
 void write_pin_only()
 {
@@ -299,7 +305,7 @@ void is_pin_defined()
 }
 
 uint8_t card_id_buffer[SIZE_CARD_ID];
-uint8_t private_key_chunk_buffer[SIZE_PRIVATE_KEY_CHUNK];
+#define private_key_chunk_buffer signature_buffer
 
 void assign_card()
 {
@@ -411,14 +417,14 @@ void set_challenge()
         return;
     }
 
-    if (p3 != 4) {
+    if (p3 != SIZE_CHALLENGE) {
         sw1 = 0x6c;
-        sw2 = 4;
+        sw2 = SIZE_CHALLENGE;
         return;
     }
 
     sendbytet0(ins);
-    for (i = 0; i < 4; i++) {
+    for (i = 0; i < SIZE_CHALLENGE; i++) {
         challenge_buffer[i] = recbytet0();
     }
 
@@ -428,39 +434,35 @@ void set_challenge()
 void sign_challenge()
 {
     int i;
-    uint8_t key[4];
-    uint8_t signature[4];
 
     if (!check_pin_verified()) {
         return;
     }
 
-    if (p3 != 4) {
+    if (p3 != SIZE_HMAC_SIGNATURE) {
         sw1 = 0x6c;
-        sw2 = 4;
+        sw2 = SIZE_HMAC_SIGNATURE;
         return;
     }
 
     uint16_t key_size = ((uint16_t)eeprom_read_byte((uint8_t*)EEPROM_PRIVATE_KEY_SIZE_ADDR) << 8) |
                         (uint16_t)eeprom_read_byte((uint8_t*)(EEPROM_PRIVATE_KEY_SIZE_ADDR + 1));
 
-    if (key_size != 4) {
+    if (key_size != SIZE_SECRET_KEY) {
         sw1 = 0x6a;
         sw2 = 0x88;
         return;
     }
 
-    for (i = 0; i < 4; i++) {
-        key[i] = eeprom_read_byte((uint8_t*)(EEPROM_PRIVATE_KEY_DATA_ADDR + i));
+    for (i = 0; i < SIZE_SECRET_KEY; i++) {
+        secret_key_buffer[i] = eeprom_read_byte((uint8_t*)(EEPROM_PRIVATE_KEY_DATA_ADDR + i));
     }
 
-    for (i = 0; i < 4; i++) {
-        signature[i] = challenge_buffer[i] ^ key[i];
-    }
+    hmac_sha256(secret_key_buffer, SIZE_SECRET_KEY, challenge_buffer, SIZE_CHALLENGE, signature_buffer);
 
     sendbytet0(ins);
-    for (i = 0; i < 4; i++) {
-        sendbytet0(signature[i]);
+    for (i = 0; i < SIZE_HMAC_SIGNATURE; i++) {
+        sendbytet0(signature_buffer[i]);
     }
 
     sw1 = 0x90;

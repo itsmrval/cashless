@@ -63,15 +63,15 @@ const updateCard = async (req, res) => {
       updates.puk = req.body.puk;
     }
 
-    if (req.body.public_key !== undefined) {
-      if (typeof req.body.public_key !== 'string') {
-        return res.status(400).json({ error: 'public_key must be a string' });
+    if (req.body.secret_key !== undefined) {
+      if (typeof req.body.secret_key !== 'string') {
+        return res.status(400).json({ error: 'secret_key must be a string' });
       }
-      const trimmedKey = req.body.public_key.trim();
-      if (!/^[0-9a-fA-F]{8}$/.test(trimmedKey)) {
-        return res.status(400).json({ error: 'public_key must be 8 hex characters (4 bytes)' });
+      const trimmedKey = req.body.secret_key.trim();
+      if (!/^[0-9a-fA-F]{64}$/.test(trimmedKey)) {
+        return res.status(400).json({ error: 'secret_key must be 64 hex characters (32 bytes)' });
       }
-      updates.public_key = trimmedKey;
+      updates.secret_key = trimmedKey;
     }
 
     if (Object.keys(updates).length === 0) {

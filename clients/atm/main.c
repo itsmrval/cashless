@@ -340,8 +340,8 @@ int main(int argc, char *argv[])
                                 continue;
                             }
 
-                            unsigned char challenge_bytes[4];
-                            for (size_t i = 0; i < 4; i++) {
+                            unsigned char challenge_bytes[32];
+                            for (size_t i = 0; i < 32; i++) {
                                 sscanf(challenge + 2*i, "%2hhx", &challenge_bytes[i]);
                             }
 

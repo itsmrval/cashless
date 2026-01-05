@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import products from './element.json';
 import io from 'socket.io-client';
+import logo from './logo.png';
 
 const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || 'https://localhost:8001';
 
@@ -8,25 +9,22 @@ function App() {
   const [socket, setSocket] = useState(null);
   const [apiConnected, setApiConnected] = useState(false);
   const [apiError, setApiError] = useState(null);
-  const [reconnectAttempts, setReconnectAttempts] = useState(0);
   const [isInitializing, setIsInitializing] = useState(true);
-  
-  // États utilisateur
+
   const [user, setUser] = useState(null);
   const [balance, setBalance] = useState(0);
   const [isPinVerified, setIsPinVerified] = useState(false);
   const [pinAttempts, setPinAttempts] = useState(3);
   const [isCardBlocked, setIsCardBlocked] = useState(false);
   const [isVerifyingPin, setIsVerifyingPin] = useState(false);
-  
-  // États panier et commande
+
   const [selectedProduct, setSelectedProduct] = useState(null);
   const [showPinModal, setShowPinModal] = useState(false);
   const [showConfirmation, setShowConfirmation] = useState(false);
   const [sugarLevel, setSugarLevel] = useState(2);
   const [pin, setPin] = useState('');
   const [message, setMessage] = useState('');
-  const [messageType, setMessageType] = useState('info'); // 'success', 'error', 'info', 'payment'
+  const [messageType, setMessageType] = useState('info');
   const [isPreparingDrink, setIsPreparingDrink] = useState(false);
   const [preparationProgress, setPreparationProgress] = useState(0);
   const [preparationStep, setPreparationStep] = useState(0);
@@ -42,30 +40,25 @@ function App() {
   const [pendingProduct, setPendingProduct] = useState(null);
   const [showProcessingPayment, setShowProcessingPayment] = useState(false);
 
-  // Empêcher la mise en veille du navigateur
   useEffect(() => {
     let wakeLock = null;
     const requestWakeLock = async () => {
       try {
         if ('wakeLock' in navigator) {
           wakeLock = await navigator.wakeLock.request('screen');
-          console.log('Wake Lock activé - le navigateur ne se mettra pas en veille');
         }
       } catch (err) {
-        console.log('Wake Lock non supporté ou refusé:', err);
       }
     };
     requestWakeLock();
     return () => {
       if (wakeLock) {
-        wakeLock.release().then(() => console.log('Wake Lock désactivé'));
+        wakeLock.release();
       }
     };
   }, []);
 
   useEffect(() => {
-    console.log('Connexion au serveur Socket.IO...', API_BASE_URL);
-    
     const newSocket = io(API_BASE_URL, {
       transports: ['polling', 'websocket'],
       reconnection: true,
@@ -78,62 +71,43 @@ function App() {
     setSocket(newSocket);
 
     newSocket.on('connect', () => {
-      console.log('Socket.IO connecté - ID:', newSocket.id);
-      console.log('Transport:', newSocket.io.engine.transport.name);
       setApiConnected(true);
       setApiError(null);
-      setReconnectAttempts(0);
       setIsInitializing(false);
     });
 
     newSocket.on('card_inserted', (data) => {
-      console.log('CARTE DÉTECTÉE VIA SOCKET.IO');
-      console.log('Données reçues:', data);
-
       if (data.card_id && data.card_id !== null) {
         setUser({ name: `Carte ${data.card_id.substring(0, 8)}`, cardId: data.card_id });
         setBalance(0);
         setPinAttempts(3);
         setIsCardBlocked(false);
 
-        // Check if card is activated (PIN defined)
         if (data.activated === false) {
-          console.log('Carte non activée - PIN non défini');
-
-          // Set error message and show animation
           setCardErrorMessage("PIN non défini.\nActivez votre carte à la borne ATM.");
           setShowCardErrorAnimation(true);
           setShowPinModal(false);
-
-          // Popup will remain until card is removed
         } else {
-          // Card is activated, show PIN modal
           setShowPinModal(true);
         }
       }
     });
 
     newSocket.on('pin_verification_result', (result) => {
-      console.log('Résultat de vérification PIN reçu:', result);
       setIsVerifyingPin(false);
-      
+
       if (result.success) {
-        console.log('PIN correct !');
         setIsPinVerified(true);
         setShowPinModal(false);
         setPin('');
         setPinAttempts(3);
-        
+
         if (result.user) {
-          console.log('Données utilisateur reçues:', result.user);
           setUser({
             name: result.user.name,
             cardId: result.user.card_id
           });
           setBalance(result.user.balance);
-          
-          // Start automatic balance updates with response-based timing
-          console.log('Demarrage de la mise a jour automatique de la balance');
 
           const requestBalance = () => {
             if (newSocket && newSocket.connected) {
@@ -141,37 +115,28 @@ function App() {
             }
           };
 
-          // Initial request
           requestBalance();
-
-          // Store flag to enable auto-updates
           newSocket.balanceAutoUpdate = true;
         }
       } else if (result.blocked) {
-        console.log('Carte bloquée !');
         setIsCardBlocked(true);
         setPinAttempts(0);
         setMessageType('error');
         setMessage('Carte bloquée ! 0 tentative restante. Contactez un administrateur.');
       } else if (result.attempts_remaining !== undefined && result.attempts_remaining !== null) {
-        console.log(`PIN incorrect - ${result.attempts_remaining} tentative(s) restante(s)`);
         setPinAttempts(result.attempts_remaining);
         setPin('');
         setMessageType('error');
         setMessage(`Code PIN incorrect ! ${result.attempts_remaining} tentative(s) restante(s).`);
         setTimeout(() => setMessage(''), 3000);
       } else if (result.error) {
-        console.error('Erreur:', result.error);
-        
-        // Vérifier si c'est une erreur de carte inactive/bloquée
         if (result.error.includes('inactive') || result.error.includes('bloquée') || result.error.includes('bloquee')) {
           setCardErrorMessage(result.error);
           setShowCardErrorAnimation(true);
           setShowPinModal(false);
-          
+
           setTimeout(() => {
             setShowCardErrorAnimation(false);
-            // Rouvrir le modal PIN après la fermeture de l'animation
             setShowPinModal(true);
             setPin('');
           }, 4000);
@@ -183,16 +148,9 @@ function App() {
       }
     });
 
-    // Note: transaction_result listeners are now set up per-transaction
-    // using socket.once() in processPaymentForProduct() for atomicity
-
     newSocket.on('card_removed', (data) => {
-      console.log('Carte retiree via Socket.IO:', data);
-
-      // Stop automatic balance updates
       if (newSocket.balanceAutoUpdate) {
         newSocket.balanceAutoUpdate = false;
-        console.log('Mise a jour automatique de la balance arretee');
       }
 
       setUser(null);
@@ -217,26 +175,20 @@ function App() {
     });
 
     newSocket.on('balance_result', (result) => {
-      console.log('Reponse balance recue:', result);
-
-      // Update balance in real-time
       if (result.success) {
-        console.log('Balance mise a jour:', result.balance);
         setBalance(result.balance);
       }
 
-      // Schedule next request only after receiving response (prevents spam)
       if (newSocket.balanceAutoUpdate) {
         setTimeout(() => {
           if (newSocket && newSocket.connected && newSocket.balanceAutoUpdate) {
             newSocket.emit('get_balance');
           }
-        }, 1000); // Wait 1 second after response before next request
+        }, 1000);
       }
     });
 
     newSocket.on('disconnect', (reason) => {
-      console.log('🔌 Socket.IO déconnecté - Raison:', reason);
       setApiConnected(false);
       if (reason === 'io server disconnect') {
         setApiError('Le serveur a fermé la connexion');
@@ -246,24 +198,12 @@ function App() {
     });
 
     newSocket.on('connect_error', (error) => {
-      console.error('❌ Erreur de connexion Socket.IO:', error.message);
-      console.error('   Description:', error.description);
       setApiConnected(false);
       setApiError('Impossible de se connecter au serveur');
       setIsInitializing(false);
     });
-    
-    newSocket.on('error', (error) => {
-      console.error('Erreur Socket.IO:', error);
-    });
-
-    // Test: écouter tous les événements
-    newSocket.onAny((eventName, ...args) => {
-      console.log('Événement Socket.IO reçu:', eventName, args);
-    });
 
     return () => {
-      console.log('Fermeture de la connexion Socket.IO');
       if (newSocket) {
         newSocket.close();
       }
@@ -272,7 +212,6 @@ function App() {
   }, []);
 
   const handleProductClick = (product) => {
-    console.log('handleProductClick appelé', { user, isPinVerified, balance, product });
     if (!user) {
       setMessageType('info');
       setMessage('Veuillez insérer votre carte');
@@ -285,20 +224,15 @@ function App() {
       return;
     }
 
-    // Check balance immediately without waiting for API
     if (balance < product.price) {
-      // Afficher l'animation de refus
       setRejectedAmount(product.price);
       setRejectedBalance(balance);
       setShowPaymentRejectedAnimation(true);
 
-      // Masquer l'animation après 3 secondes
       setTimeout(() => {
         setShowPaymentRejectedAnimation(false);
       }, 3000);
     } else {
-      // Solde suffisant, ouvrir directement le modal de confirmation
-      console.log('Ouverture du modal de confirmation');
       setSelectedProduct(product);
       setSugarLevel(2);
       setShowConfirmation(true);
@@ -321,14 +255,11 @@ function App() {
     }
     
     if (!isPinVerified && !selectedProduct) {
-      console.log('Envoi de la demande de vérification PIN:', pin);
       setIsVerifyingPin(true);
-      
+
       if (socket && socket.connected) {
-        console.log('Utilisation du socket existant pour verify_pin');
         socket.emit('verify_pin', { pin });
       } else {
-        console.error('Socket non connecté !');
         setIsVerifyingPin(false);
         setMessageType('error');
         setMessage('Erreur: Socket non connecté');
@@ -343,32 +274,20 @@ function App() {
   };
 
   const processPaymentForProduct = (product) => {
-    console.log('Creation de la transaction via Socket.IO...');
-
-    // Show processing payment modal
     setShowProcessingPayment(true);
 
-    // Envoyer la transaction au serveur
     if (socket && socket.connected) {
-      // Store payment amount for later use
       setPaymentAmount(product.price);
 
-      // Set up one-time listener for this specific transaction
       socket.once('transaction_result', (result) => {
         if (result.success) {
-          console.log('Transaction validee - Nouveau solde:', result.new_balance);
-          // Update balance
           setBalance(result.new_balance);
           setNewBalanceAmount(result.new_balance);
 
-          // Wait 1.5s before hiding processing modal and showing success
           setTimeout(() => {
             setShowProcessingPayment(false);
-
-            // Show payment success animation ONLY after validation
             setShowPaymentAnimation(true);
 
-            // Start drink preparation after showing success
             setTimeout(() => {
               setShowPaymentAnimation(false);
               setIsPreparingDrink(true);
@@ -409,12 +328,7 @@ function App() {
           }, 1500);
 
         } else {
-          console.error('Transaction refusee:', result.error);
-
-          // Hide processing modal
           setShowProcessingPayment(false);
-
-          // Transaction failed - show rejection
           setIsPreparingDrink(false);
           setSelectedProduct(null);
 
@@ -429,16 +343,12 @@ function App() {
         }
       });
 
-      // Send transaction request
       socket.emit('create_transaction', {
         amount: product.price,
         merchant: 'CoffeeShop'
       });
 
-      console.log('Attente de la validation de la transaction...');
-
     } else {
-      console.error('Socket non connecte pour la transaction');
       setShowProcessingPayment(false);
       setMessageType('error');
       setMessage('Erreur: connexion perdue');
@@ -449,12 +359,10 @@ function App() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 relative">
-      {/* Popup d'erreur lecteur - même design que les popups de paiement */}
       {!apiConnected && (
         <div className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-[100] pointer-events-auto">
           <div className="bg-white rounded-3xl shadow-2xl p-8 max-w-md w-full animate-slideDown pointer-events-none">
             <div className="text-center">
-              {/* Icône d'erreur animée */}
               <div className="relative mb-6 flex justify-center">
                 <div className="w-24 h-24 bg-red-100 rounded-full flex items-center justify-center animate-scaleIn">
                   <svg className="w-16 h-16 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -463,19 +371,15 @@ function App() {
                 </div>
               </div>
 
-              {/* Titre */}
               <h2 className="text-2xl font-bold text-gray-900 mb-2">Lecteur indisponible</h2>
 
-              {/* Message d'erreur */}
               <div className="mb-4">
                 <p className="text-lg text-gray-700 mb-1">{apiError || 'Connexion au serveur impossible'}</p>
                 <p className="text-sm text-gray-500">Reconnexion au lecteur en cours...</p>
               </div>
 
-              {/* Divider */}
               <div className="w-full h-px bg-gray-200 my-4"></div>
 
-              {/* Indicateur de reconnexion */}
               <div>
                 <div className="flex items-center justify-center space-x-2 text-red-600">
                   <div className="w-2 h-2 bg-red-600 rounded-full animate-bounce" style={{ animationDelay: '0s' }}></div>
@@ -504,12 +408,10 @@ function App() {
         </div>
       )}
 
-      {/* Page d'attente de carte */}
       {!user ? (
         <div className="min-h-screen flex items-center">
           <div className="container mx-auto px-6">
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center max-w-7xl mx-auto">
-              {/* Colonne gauche - Texte et instructions */}
               <div className="space-y-8">
                 <div>
                   <h2 className="text-5xl font-bold text-gray-800 mb-4">En attente de carte</h2>
@@ -540,10 +442,8 @@ function App() {
                 </div>
               </div>
 
-              {/* Colonne droite - Lecteur de carte */}
               <div className="flex justify-center lg:justify-end">
                 <div className="relative">
-                  {/* Lecteur de carte SVG */}
                   <svg width="350" height="500" viewBox="0 0 350 500" className="drop-shadow-2xl">
                     <defs>
                       <linearGradient id="readerGradient" x1="0%" y1="0%" x2="0%" y2="100%">
@@ -610,7 +510,6 @@ function App() {
         </div>
       ) : (
         <>
-          {/* Notifications popup en haut à droite */}
           {message && (messageType === 'success' || messageType === 'error') && (
             <div className="fixed top-28 right-6 z-[100] max-w-md animate-slideRight">
               <div className={`p-4 rounded-xl font-semibold shadow-2xl border-2 ${
@@ -622,8 +521,7 @@ function App() {
               </div>
             </div>
           )}
-          
-          {/* Messages info en haut de la page */}
+
           {message && messageType === 'info' && !showPinModal && (
             <div className="container mx-auto px-6 mt-28">
               <div className="p-4 rounded-xl text-center font-semibold shadow-lg border-2 bg-blue-50 text-blue-700 border-blue-300">
@@ -632,9 +530,8 @@ function App() {
             </div>
           )}
 
-          {/* Logo en haut à gauche */}
           <div className="fixed top-6 left-6 z-50">
-            <img src="/img/logo.png" alt="Logo" className="h-16 md:h-20 object-contain" />
+            <img src={logo} alt="Logo" className="h-20 md:h-24 object-contain" />
           </div>
 
           <main className="container mx-auto px-6 pt-24 flex items-center justify-center min-h-screen">
@@ -646,7 +543,6 @@ function App() {
                   className="bg-white border-3 border-black rounded-3xl shadow-lg hover:shadow-xl transition-all duration-300 cursor-pointer hover:scale-[1.02] overflow-hidden h-40"
                 >
                   <div className="flex items-stretch h-full">
-                    {/* Image de la boisson à gauche */}
                     <div className="w-2/5 bg-gradient-to-br from-slate-100 to-slate-200 relative overflow-hidden">
                       <img 
                         src={product.image} 
@@ -657,8 +553,7 @@ function App() {
                         }}
                       />
                     </div>
-                    
-                    {/* Informations à droite */}
+
                     <div className="w-3/5 p-4 flex flex-col justify-between bg-white">
                       <div>
                         <h3 className="text-lg font-bold text-gray-900 mb-2 leading-tight">
@@ -672,7 +567,7 @@ function App() {
                       </div>
                       <div className="mt-2">
                         <p className="text-2xl font-bold text-gray-900">
-                          {product.price.toFixed(1)}€
+                          {product.price.toFixed(2)}€
                         </p>
                       </div>
                     </div>
@@ -682,12 +577,10 @@ function App() {
             </div>
           </main>
 
-          {/* Processing Payment Modal */}
           {showProcessingPayment && (
             <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50 p-4">
               <div className="bg-white border-3 border-black rounded-2xl shadow-2xl p-8 max-w-md w-full animate-slideDown">
                 <div className="text-center">
-                  {/* Spinner icon */}
                   <div className="relative mb-6 flex justify-center">
                     <div className="w-24 h-24 bg-gray-100 rounded-full flex items-center justify-center">
                       <div className="animate-spin">
@@ -710,12 +603,10 @@ function App() {
             </div>
           )}
 
-          {/* Animation de paiement */}
           {showPaymentAnimation && (
             <div className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50 p-4">
               <div className="bg-white border-3 border-black rounded-2xl shadow-2xl p-8 max-w-sm w-full animate-slideDown">
                 <div className="text-center">
-                  {/* Icône de succès animée */}
                   <div className="relative mb-6 flex justify-center">
                     <div className="w-24 h-24 bg-gray-100 rounded-full flex items-center justify-center animate-scaleIn">
                       <svg className="w-16 h-16 text-gray-900 animate-checkmark" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -724,19 +615,15 @@ function App() {
                     </div>
                   </div>
 
-                  {/* Titre */}
                   <h2 className="text-2xl font-bold text-gray-900 mb-2">Paiement réussi</h2>
 
-                  {/* Montant débité */}
                   <div className="mb-4">
                     <p className="text-3xl font-bold text-red-600 mb-1">-{paymentAmount.toFixed(2)}€</p>
                     <p className="text-sm text-gray-500">Montant débité</p>
                   </div>
 
-                  {/* Divider */}
                   <div className="w-full h-px bg-gray-200 my-4"></div>
 
-                  {/* Nouveau solde */}
                   <div>
                     <p className="text-sm text-gray-600 mb-1">Nouveau solde</p>
                     <p className="text-2xl font-bold text-gray-900">{newBalanceAmount.toFixed(2)}€</p>
@@ -746,12 +633,10 @@ function App() {
             </div>
           )}
 
-          {/* Animation de paiement refusé */}
           {showPaymentRejectedAnimation && (
             <div className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50 p-4">
               <div className="bg-white border-3 border-black rounded-2xl shadow-2xl p-8 max-w-sm w-full animate-slideDown">
                 <div className="text-center">
-                  {/* Icône d'erreur animée */}
                   <div className="relative mb-6 flex justify-center">
                     <div className="w-24 h-24 bg-red-100 rounded-full flex items-center justify-center animate-scaleIn">
                       <svg className="w-16 h-16 text-red-600 animate-shake" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -760,25 +645,20 @@ function App() {
                     </div>
                   </div>
 
-                  {/* Titre */}
                   <h2 className="text-2xl font-bold text-gray-900 mb-2">Solde insuffisant</h2>
 
-                  {/* Montant requis */}
                   <div className="mb-4">
                     <p className="text-3xl font-bold text-red-600 mb-1">{rejectedAmount.toFixed(2)}€</p>
                     <p className="text-sm text-gray-500">Montant requis</p>
                   </div>
 
-                  {/* Divider */}
                   <div className="w-full h-px bg-gray-200 my-4"></div>
 
-                  {/* Solde disponible */}
                   <div>
                     <p className="text-sm text-gray-600 mb-1">Solde disponible</p>
                     <p className="text-2xl font-bold text-gray-900">{rejectedBalance.toFixed(2)}€</p>
                   </div>
 
-                  {/* Message d'erreur */}
                   <div className="mt-6 bg-red-50 border-3 border-red-200 rounded-xl p-4">
                     <p className="text-sm text-red-700 font-medium">
                       Veuillez recharger votre compte
@@ -789,12 +669,10 @@ function App() {
             </div>
           )}
 
-          {/* Animation d'erreur de carte (inactive/bloquée) */}
           {showCardErrorAnimation && (
             <div className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50 p-4">
               <div className="bg-white border-3 border-black rounded-2xl shadow-2xl p-8 max-w-md w-full animate-slideDown">
                 <div className="text-center">
-                  {/* Icône d'alerte animée */}
                   <div className="relative mb-6 flex justify-center">
                     <div className="bg-gradient-to-br from-gray-100 to-gray-200 p-8 rounded-2xl inline-block">
                       <svg className="w-16 h-16 text-gray-900" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -802,11 +680,9 @@ function App() {
                       </svg>
                     </div>
                   </div>
-                  
-                  {/* Titre */}
+
                   <h2 className="text-3xl font-bold text-gray-900 mb-6">Carte inactive</h2>
-                  
-                  {/* Message d'erreur */}
+
                   <div className="bg-gradient-to-br from-gray-50 to-gray-100 border-3 border-black rounded-xl p-6 mb-6">
                     <p className="text-gray-900 font-semibold text-lg mb-2">
                       Authentification refusée
@@ -820,12 +696,10 @@ function App() {
             </div>
           )}
 
-          {/* Animation de boisson prête */}
           {showDrinkReadyAnimation && (
             <div className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50 p-4">
               <div className="bg-white border-3 border-black rounded-2xl shadow-2xl p-8 max-w-sm w-full animate-slideDown">
                 <div className="text-center">
-                  {/* Icône de tasse animée */}
                   <div className="relative mb-6 flex justify-center">
                     <div className="w-24 h-24 bg-gray-100 rounded-full flex items-center justify-center animate-scaleIn">
                       <svg className="w-16 h-16 text-gray-900" fill="currentColor" viewBox="0 0 20 20">
@@ -834,11 +708,9 @@ function App() {
                     </div>
                   </div>
 
-                  {/* Titre */}
                   <h2 className="text-2xl font-bold text-gray-900 mb-2">Votre boisson est prête !</h2>
                   <p className="text-lg text-gray-600 mb-4">Bon appétit !</p>
 
-                  {/* Message convivial */}
                   <div className="bg-gradient-to-br from-gray-50 to-gray-100 border-3 border-black rounded-xl p-4">
                     <p className="text-sm text-gray-900 font-medium">
                       Récupérez votre boisson au distributeur
@@ -891,13 +763,12 @@ function App() {
             </div>
           )}
 
-          {/* Modal de confirmation avec sélecteur de sucre */}
           {showConfirmation && selectedProduct && (
             <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50 p-4">
               <div className="bg-white border-3 border-black rounded-2xl shadow-2xl p-6 max-w-md w-full animate-slideDown">
                 <div className="mb-6">
                   <h2 className="text-2xl font-bold text-gray-900 mb-2">{selectedProduct.lang.fr}</h2>
-                  <p className="text-3xl font-bold text-gray-900">{selectedProduct.price.toFixed(1)}€</p>
+                  <p className="text-3xl font-bold text-gray-900">{selectedProduct.price.toFixed(2)}€</p>
                 </div>
 
                 <div className="mb-6">
@@ -966,7 +837,6 @@ function App() {
             </div>
           )}
 
-          {/* Modal de vérification PIN initiale */}
           {showPinModal && !selectedProduct && user && (
             <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
               <div className={`bg-gradient-to-br rounded-2xl shadow-2xl p-8 max-w-md w-full animate-slideDown ${

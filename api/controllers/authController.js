@@ -104,11 +104,11 @@ const getChallenge = async (req, res) => {
       return res.status(404).json({ error: 'Card not found' });
     }
 
-    if (!card.public_key) {
-      return res.status(403).json({ error: 'Card has no public key registered' });
+    if (!card.secret_key) {
+      return res.status(403).json({ error: 'Card has no secret key registered' });
     }
 
-    const challenge = crypto.randomBytes(4).toString('hex');
+    const challenge = crypto.randomBytes(32).toString('hex');
 
     await Challenge.create({ challenge, card_id });
 
@@ -139,8 +139,8 @@ const cardAuth = async (req, res) => {
       return res.status(403).json({ error: 'Card is not active' });
     }
 
-    if (!card.public_key) {
-      return res.status(403).json({ error: 'Card has no public key registered' });
+    if (!card.secret_key) {
+      return res.status(403).json({ error: 'Card has no secret key registered' });
     }
 
     if (!card.user_id) {
@@ -158,22 +158,19 @@ const cardAuth = async (req, res) => {
 
     await Challenge.deleteOne({ _id: challengeDoc._id });
 
-    const keyBuffer = Buffer.from(card.public_key, 'hex');
+    const secretKeyBuffer = Buffer.from(card.secret_key, 'hex');
     const challengeBuffer = Buffer.from(challenge, 'hex');
     const signatureBuffer = Buffer.from(signature, 'base64');
 
-    if (keyBuffer.length !== 4 || challengeBuffer.length !== 4 || signatureBuffer.length !== 4) {
+    if (secretKeyBuffer.length !== 32 || challengeBuffer.length !== 32 || signatureBuffer.length !== 32) {
       return res.status(401).json({ error: 'Invalid signature format' });
     }
 
-    const recoveredKey = Buffer.alloc(4);
-    for (let i = 0; i < 4; i++) {
-      recoveredKey[i] = signatureBuffer[i] ^ challengeBuffer[i];
-    }
+    const hmac = crypto.createHmac('sha256', secretKeyBuffer);
+    hmac.update(challengeBuffer);
+    const expectedSignature = hmac.digest();
 
-    const isValid = crypto.timingSafeEqual(recoveredKey, keyBuffer);
-
-    if (!isValid) {
+    if (!crypto.timingSafeEqual(signatureBuffer, expectedSignature)) {
       return res.status(401).json({ error: 'Invalid signature' });
     }
 
