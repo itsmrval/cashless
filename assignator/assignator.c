@@ -2,6 +2,8 @@
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
+#include <fcntl.h>
+#include <unistd.h>
 #include "card.h"
 
 int main(int argc, char *argv[])
@@ -73,14 +75,32 @@ int main(int argc, char *argv[])
     }
     puk[SIZE_PUK] = '\0';
 
-    printf("Generating simple key (4 bytes)...\n");
-    unsigned char key_raw[4];
+    printf("Generating secret key...\n");
+    unsigned char secret_key[32];
 
-    for (i = 0; i < 4; i++) {
-        key_raw[i] = rand() & 0xFF;
+    int urandom = open("/dev/urandom", O_RDONLY);
+    if (urandom < 0) {
+        printf("Error: Cannot open /dev/urandom\n");
+        disconnect_card();
+        cleanup_card();
+        return 1;
     }
+    if (read(urandom, secret_key, 32) != 32) {
+        printf("Error: Cannot read random bytes\n");
+        close(urandom);
+        disconnect_card();
+        cleanup_card();
+        return 1;
+    }
+    close(urandom);
 
-    int private_key_len = 4;
+    int private_key_len = 32;
+
+    printf("Secret key (save for API): ");
+    for (i = 0; i < 32; i++) {
+        printf("%02x", secret_key[i]);
+    }
+    printf("\n");
 
     printf("Assigning card ID: %s\n", argv[1]);
     printf("Generated PUK: %s\n", puk);
@@ -106,18 +126,13 @@ int main(int argc, char *argv[])
         cleanup_card();
         return 1;
     }
-    if (!write_private_key(key_raw, private_key_len)) {
+    if (!write_private_key(secret_key, private_key_len)) {
         printf("Error: Failed to write key to card\n");
         disconnect_card();
         cleanup_card();
         return 1;
     }
 
-    printf("Card key (hex): ");
-    for (i = 0; i < 4; i++) {
-        printf("%02x", key_raw[i]);
-    }
-    printf("\n");
 
     if (!connect_card()) {
         printf("Error: Failed to reconnect after assignment\n");

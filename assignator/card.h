@@ -5,6 +5,7 @@
 #include <stdint.h>
 
 #ifdef __APPLE__
+#include <PCSC/wintypes.h>
 #include <PCSC/winscard.h>
 #else
 #include <pcsclite.h>

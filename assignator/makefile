@@ -2,15 +2,15 @@ NAME = assignator
 
 CC = gcc
 
-PCSC_CFLAGS = $(shell pkg-config --cflags libpcsclite 2>/dev/null || echo "-I/usr/include/PCSC")
-CFLAGS = -Wall $(PCSC_CFLAGS)
-
-PCSC_LDFLAGS = $(shell pkg-config --libs libpcsclite 2>/dev/null || echo "-lpcsclite")
-LDFLAGS = $(PCSC_LDFLAGS)
-
 UNAME_S := $(shell uname -s)
 ifeq ($(UNAME_S),Darwin)
+    CFLAGS = -Wall
     LDFLAGS = -framework PCSC
+else
+    PCSC_CFLAGS = $(shell pkg-config --cflags libpcsclite 2>/dev/null || echo "-I/usr/include/PCSC")
+    CFLAGS = -Wall $(PCSC_CFLAGS)
+    PCSC_LDFLAGS = $(shell pkg-config --libs libpcsclite 2>/dev/null || echo "-lpcsclite")
+    LDFLAGS = $(PCSC_LDFLAGS)
 endif
 
 all: check-deps $(NAME)
