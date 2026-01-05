@@ -95,6 +95,10 @@ void read_version()
 uint8_t pin_buffer[SIZE_PIN];
 uint8_t puk_buffer[SIZE_PUK];
 uint8_t challenge_buffer[SIZE_CHALLENGE];
+uint8_t sign_work_buffer[SIZE_ED25519_SIGNATURE];
+#define sign_private_key sign_work_buffer
+#define sign_public_key (sign_work_buffer + SIZE_ED25519_PRIVATE_KEY)
+#define sign_signature sign_work_buffer
 
 void write_pin_only()
 {
@@ -304,7 +308,7 @@ void is_pin_defined()
 }
 
 uint8_t card_id_buffer[SIZE_CARD_ID];
-uint8_t private_key_chunk_buffer[SIZE_PRIVATE_KEY_CHUNK];
+#define private_key_chunk_buffer sign_signature
 
 void assign_card()
 {
@@ -433,9 +437,6 @@ void set_challenge()
 void sign_challenge()
 {
     int i;
-    uint8_t private_key[SIZE_ED25519_PRIVATE_KEY];
-    uint8_t public_key[SIZE_ED25519_PUBLIC_KEY];
-    uint8_t signature[SIZE_ED25519_SIGNATURE];
 
     if (!check_pin_verified()) {
         return;
@@ -457,15 +458,15 @@ void sign_challenge()
     }
 
     for (i = 0; i < SIZE_ED25519_PRIVATE_KEY; i++) {
-        private_key[i] = eeprom_read_byte((uint8_t*)(EEPROM_PRIVATE_KEY_DATA_ADDR + i));
+        sign_private_key[i] = eeprom_read_byte((uint8_t*)(EEPROM_PRIVATE_KEY_DATA_ADDR + i));
     }
 
-    edsign_sec_to_pub(public_key, private_key);
-    edsign_sign(signature, public_key, private_key, challenge_buffer, SIZE_CHALLENGE);
+    edsign_sec_to_pub(sign_public_key, sign_private_key);
+    edsign_sign(sign_signature, sign_public_key, sign_private_key, challenge_buffer, SIZE_CHALLENGE);
 
     sendbytet0(ins);
     for (i = 0; i < SIZE_ED25519_SIGNATURE; i++) {
-        sendbytet0(signature[i]);
+        sendbytet0(sign_signature[i]);
     }
 
     sw1 = 0x90;
