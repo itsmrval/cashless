@@ -1,7 +1,6 @@
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const crypto = require('crypto');
-const nacl = require('tweetnacl');
 const User = require('../models/User');
 const Card = require('../models/Card');
 const Challenge = require('../models/Challenge');
@@ -105,8 +104,8 @@ const getChallenge = async (req, res) => {
       return res.status(404).json({ error: 'Card not found' });
     }
 
-    if (!card.public_key) {
-      return res.status(403).json({ error: 'Card has no public key registered' });
+    if (!card.secret_key) {
+      return res.status(403).json({ error: 'Card has no secret key registered' });
     }
 
     const challenge = crypto.randomBytes(32).toString('hex');
@@ -140,8 +139,8 @@ const cardAuth = async (req, res) => {
       return res.status(403).json({ error: 'Card is not active' });
     }
 
-    if (!card.public_key) {
-      return res.status(403).json({ error: 'Card has no public key registered' });
+    if (!card.secret_key) {
+      return res.status(403).json({ error: 'Card has no secret key registered' });
     }
 
     if (!card.user_id) {
@@ -159,27 +158,19 @@ const cardAuth = async (req, res) => {
 
     await Challenge.deleteOne({ _id: challengeDoc._id });
 
-    const publicKeyBuffer = Buffer.from(card.public_key, 'hex');
+    const secretKeyBuffer = Buffer.from(card.secret_key, 'hex');
     const challengeBuffer = Buffer.from(challenge, 'hex');
     const signatureBuffer = Buffer.from(signature, 'base64');
 
-    if (publicKeyBuffer.length !== 32) {
-      return res.status(401).json({ error: 'Invalid public key format' });
-    }
-    if (challengeBuffer.length !== 32) {
-      return res.status(401).json({ error: 'Invalid challenge format' });
-    }
-    if (signatureBuffer.length !== 64) {
+    if (secretKeyBuffer.length !== 32 || challengeBuffer.length !== 32 || signatureBuffer.length !== 32) {
       return res.status(401).json({ error: 'Invalid signature format' });
     }
 
-    const isValid = nacl.sign.detached.verify(
-      challengeBuffer,
-      signatureBuffer,
-      publicKeyBuffer
-    );
+    const hmac = crypto.createHmac('sha256', secretKeyBuffer);
+    hmac.update(challengeBuffer);
+    const expectedSignature = hmac.digest();
 
-    if (!isValid) {
+    if (!crypto.timingSafeEqual(signatureBuffer, expectedSignature)) {
       return res.status(401).json({ error: 'Invalid signature' });
     }
 

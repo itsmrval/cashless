@@ -19,7 +19,7 @@ const cardSchema = new mongoose.Schema({
     type: String,
     default: null
   },
-  public_key: {
+  secret_key: {
     type: String,
     unique: true,
     sparse: true,

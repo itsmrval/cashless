@@ -271,7 +271,7 @@ int sign_challenge_on_card(const unsigned char *challenge, unsigned char *signat
 {
     LONG rv;
     BYTE cmd_set_challenge[5 + 32] = {0x80, 0x0C, 0x00, 0x00, 0x20};
-    BYTE cmd_get_signature[5] = {0x80, 0x0B, 0x00, 0x00, 0x40};
+    BYTE cmd_get_signature[5] = {0x80, 0x0B, 0x00, 0x00, 0x20};
     BYTE response[258];
     DWORD responseLen;
     SCARD_IO_REQUEST pioSendPci;
@@ -323,13 +323,13 @@ int sign_challenge_on_card(const unsigned char *challenge, unsigned char *signat
 
     int sig_len = responseLen - 2;
     printf("DEBUG: SIGN_CHALLENGE success, signature length: %d bytes\n", sig_len);
-    if (sig_len == 64) {
+    if (sig_len == 32) {
         memcpy(signature, response, sig_len);
         *signature_len = sig_len;
         return 1;
     }
 
-    printf("DEBUG: Unexpected signature length: %d (expected 64)\n", sig_len);
+    printf("DEBUG: Unexpected signature length: %d (expected 32)\n", sig_len);
     return 0;
 }
 

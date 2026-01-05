@@ -3,7 +3,7 @@
 #include <avr/eeprom.h>
 #include <avr/pgmspace.h>
 #include <string.h>
-#include "edsign.h"
+#include "hmac_sha256.h"
 
 extern void sendbytet0(uint8_t b);
 extern uint8_t recbytet0(void);
@@ -15,15 +15,14 @@ uint8_t pin_verified = 0;
 #define SIZE_ATR 8
 const char atr_str[SIZE_ATR] PROGMEM = "cashless";
 
-#define CARD_VERSION 200
+#define CARD_VERSION 201
 #define SIZE_CARD_ID 24
 #define SIZE_PIN 4
 #define SIZE_PUK 4
 #define SIZE_PRIVATE_KEY_CHUNK 64
 #define SIZE_CHALLENGE 32
-#define SIZE_ED25519_PRIVATE_KEY 32
-#define SIZE_ED25519_PUBLIC_KEY 32
-#define SIZE_ED25519_SIGNATURE 64
+#define SIZE_SECRET_KEY 32
+#define SIZE_HMAC_SIGNATURE 32
 #define EEPROM_PIN_ADDR 0
 #define EEPROM_CARD_ID_ADDR 4
 #define EEPROM_ASSIGNED_FLAG_ADDR 28
@@ -95,10 +94,8 @@ void read_version()
 uint8_t pin_buffer[SIZE_PIN];
 uint8_t puk_buffer[SIZE_PUK];
 uint8_t challenge_buffer[SIZE_CHALLENGE];
-uint8_t sign_work_buffer[SIZE_ED25519_SIGNATURE];
-#define sign_private_key sign_work_buffer
-#define sign_public_key (sign_work_buffer + SIZE_ED25519_PRIVATE_KEY)
-#define sign_signature sign_work_buffer
+uint8_t secret_key_buffer[SIZE_SECRET_KEY];
+uint8_t signature_buffer[SIZE_HMAC_SIGNATURE];
 
 void write_pin_only()
 {
@@ -308,7 +305,7 @@ void is_pin_defined()
 }
 
 uint8_t card_id_buffer[SIZE_CARD_ID];
-#define private_key_chunk_buffer sign_signature
+#define private_key_chunk_buffer signature_buffer
 
 void assign_card()
 {
@@ -442,31 +439,30 @@ void sign_challenge()
         return;
     }
 
-    if (p3 != SIZE_ED25519_SIGNATURE) {
+    if (p3 != SIZE_HMAC_SIGNATURE) {
         sw1 = 0x6c;
-        sw2 = SIZE_ED25519_SIGNATURE;
+        sw2 = SIZE_HMAC_SIGNATURE;
         return;
     }
 
     uint16_t key_size = ((uint16_t)eeprom_read_byte((uint8_t*)EEPROM_PRIVATE_KEY_SIZE_ADDR) << 8) |
                         (uint16_t)eeprom_read_byte((uint8_t*)(EEPROM_PRIVATE_KEY_SIZE_ADDR + 1));
 
-    if (key_size != SIZE_ED25519_PRIVATE_KEY) {
+    if (key_size != SIZE_SECRET_KEY) {
         sw1 = 0x6a;
         sw2 = 0x88;
         return;
     }
 
-    for (i = 0; i < SIZE_ED25519_PRIVATE_KEY; i++) {
-        sign_private_key[i] = eeprom_read_byte((uint8_t*)(EEPROM_PRIVATE_KEY_DATA_ADDR + i));
+    for (i = 0; i < SIZE_SECRET_KEY; i++) {
+        secret_key_buffer[i] = eeprom_read_byte((uint8_t*)(EEPROM_PRIVATE_KEY_DATA_ADDR + i));
     }
 
-    edsign_sec_to_pub(sign_public_key, sign_private_key);
-    edsign_sign(sign_signature, sign_public_key, sign_private_key, challenge_buffer, SIZE_CHALLENGE);
+    hmac_sha256(secret_key_buffer, SIZE_SECRET_KEY, challenge_buffer, SIZE_CHALLENGE, signature_buffer);
 
     sendbytet0(ins);
-    for (i = 0; i < SIZE_ED25519_SIGNATURE; i++) {
-        sendbytet0(sign_signature[i]);
+    for (i = 0; i < SIZE_HMAC_SIGNATURE; i++) {
+        sendbytet0(signature_buffer[i]);
     }
 
     sw1 = 0x90;

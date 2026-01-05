@@ -5,7 +5,6 @@
 #include <fcntl.h>
 #include <unistd.h>
 #include "card.h"
-#include "edsign.h"
 
 int main(int argc, char *argv[])
 {
@@ -76,9 +75,8 @@ int main(int argc, char *argv[])
     }
     puk[SIZE_PUK] = '\0';
 
-    printf("Generating Ed25519 keypair...\n");
-    unsigned char key_raw[32];
-    unsigned char public_key[32];
+    printf("Generating secret key...\n");
+    unsigned char secret_key[32];
 
     int urandom = open("/dev/urandom", O_RDONLY);
     if (urandom < 0) {
@@ -87,7 +85,7 @@ int main(int argc, char *argv[])
         cleanup_card();
         return 1;
     }
-    if (read(urandom, key_raw, 32) != 32) {
+    if (read(urandom, secret_key, 32) != 32) {
         printf("Error: Cannot read random bytes\n");
         close(urandom);
         disconnect_card();
@@ -96,13 +94,11 @@ int main(int argc, char *argv[])
     }
     close(urandom);
 
-    edsign_sec_to_pub(public_key, key_raw);
-
     int private_key_len = 32;
 
-    printf("Public key (save for API): ");
+    printf("Secret key (save for API): ");
     for (i = 0; i < 32; i++) {
-        printf("%02x", public_key[i]);
+        printf("%02x", secret_key[i]);
     }
     printf("\n");
 
@@ -130,7 +126,7 @@ int main(int argc, char *argv[])
         cleanup_card();
         return 1;
     }
-    if (!write_private_key(key_raw, private_key_len)) {
+    if (!write_private_key(secret_key, private_key_len)) {
         printf("Error: Failed to write key to card\n");
         disconnect_card();
         cleanup_card();
