@@ -345,6 +345,13 @@ int main(int argc, char *argv[])
                                 sscanf(challenge + 2*i, "%2hhx", &challenge_bytes[i]);
                             }
 
+                            fprintf(stderr, "DEBUG: Challenge (hex): %s\n", challenge);
+                            fprintf(stderr, "DEBUG: Challenge (bytes): ");
+                            for (size_t i = 0; i < 32; i++) {
+                                fprintf(stderr, "%02x", challenge_bytes[i]);
+                            }
+                            fprintf(stderr, "\n");
+
                             unsigned char signature[256];
                             size_t signature_len = 0;
                             if (!sign_challenge_on_card(challenge_bytes, signature, &signature_len)) {
@@ -352,6 +359,12 @@ int main(int argc, char *argv[])
                                 card_present = 1;
                                 continue;
                             }
+
+                            fprintf(stderr, "DEBUG: Signature (bytes): ");
+                            for (size_t i = 0; i < signature_len; i++) {
+                                fprintf(stderr, "%02x", signature[i]);
+                            }
+                            fprintf(stderr, "\n");
 
                             if (!reconnect_card()) {
                                 if (!connect_card()) {

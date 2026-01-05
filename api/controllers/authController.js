@@ -162,7 +162,17 @@ const cardAuth = async (req, res) => {
     const challengeBuffer = Buffer.from(challenge, 'hex');
     const signatureBuffer = Buffer.from(signature, 'base64');
 
+    console.log('=== HMAC Debug ===');
+    console.log('Card ID:', card_id);
+    console.log('Secret Key (hex):', card.secret_key);
+    console.log('Challenge (hex):', challenge);
+    console.log('Signature (base64):', signature);
+    console.log('Secret Key Buffer:', secretKeyBuffer.toString('hex'), '(' + secretKeyBuffer.length + ' bytes)');
+    console.log('Challenge Buffer:', challengeBuffer.toString('hex'), '(' + challengeBuffer.length + ' bytes)');
+    console.log('Signature Buffer:', signatureBuffer.toString('hex'), '(' + signatureBuffer.length + ' bytes)');
+
     if (secretKeyBuffer.length !== 32 || challengeBuffer.length !== 32 || signatureBuffer.length !== 32) {
+      console.log('ERROR: Invalid buffer lengths');
       return res.status(401).json({ error: 'Invalid signature format' });
     }
 
@@ -170,9 +180,16 @@ const cardAuth = async (req, res) => {
     hmac.update(challengeBuffer);
     const expectedSignature = hmac.digest();
 
+    console.log('Expected Signature:', expectedSignature.toString('hex'));
+    console.log('Received Signature:', signatureBuffer.toString('hex'));
+    console.log('Match:', crypto.timingSafeEqual(signatureBuffer, expectedSignature));
+
     if (!crypto.timingSafeEqual(signatureBuffer, expectedSignature)) {
+      console.log('ERROR: Signature mismatch!');
       return res.status(401).json({ error: 'Invalid signature' });
     }
+
+    console.log('SUCCESS: Signature verified');
 
     const token = jwt.sign(
       {
