@@ -137,11 +137,6 @@ int main(int argc, char *argv[])
         return 1;
     }
 
-    printf("Card key (hex): ");
-    for (i = 0; i < 4; i++) {
-        printf("%02x", key_raw[i]);
-    }
-    printf("\n");
 
     if (!connect_card()) {
         printf("Error: Failed to reconnect after assignment\n");
