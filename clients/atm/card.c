@@ -305,8 +305,10 @@ int sign_challenge_on_card(const unsigned char *challenge, unsigned char *signat
                       NULL, response, &responseLen);
 
     if (rv != SCARD_S_SUCCESS) {
+        printf("DEBUG: SIGN_CHALLENGE transmit failed: 0x%08X\n", (unsigned int)rv);
         return 0;
     }
+    printf("DEBUG: SIGN_CHALLENGE transmit success, responseLen=%u\n", (unsigned int)responseLen);
 
     if (responseLen < 2) {
         printf("DEBUG: SIGN_CHALLENGE response too short: %ld bytes\n", responseLen);
