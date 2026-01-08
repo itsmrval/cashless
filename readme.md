@@ -269,3 +269,12 @@ Card identifies itself with the string "cashless".
 - Commands `SET_CHALLENGE` and `SIGN_CHALLENGE` require prior PIN/PUK verification
 - Authenticated state persists until card power cycle (removal from reader)
 - Attempting protected commands without verification returns `0x69 0x82`
+
+## Division of task
+
+| Member | Tasks |
+|--------|-------|
+| Val | Crypto, API, Database, Algorithm, Documentation |
+| Duolingo | Documentation, Frontend/Backend Banking |
+| Mathieu | PowerPoint, Frontend/Backend Pump |
+| Antoine | Frontend/Backend Coffee Shop, Socket Reader |
