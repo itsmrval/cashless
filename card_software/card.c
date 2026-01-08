@@ -97,9 +97,27 @@ uint8_t challenge_buffer[SIZE_CHALLENGE];
 uint8_t secret_key_buffer[SIZE_SECRET_KEY];
 uint8_t signature_buffer[SIZE_HMAC_SIGNATURE];
 
+void hash_pin_puk(const uint8_t *data, uint8_t data_len, uint8_t *output_4bytes)
+{
+    int i;
+    uint8_t card_id[SIZE_CARD_ID];
+    uint8_t hash[SIZE_HMAC_SIGNATURE];
+
+    for (i = 0; i < SIZE_CARD_ID; i++) {
+        card_id[i] = eeprom_read_byte((uint8_t*)(EEPROM_CARD_ID_ADDR + i));
+    }
+
+    hmac_sha256(card_id, SIZE_CARD_ID, data, data_len, hash);
+
+    for (i = 0; i < 4; i++) {
+        output_4bytes[i] = hash[i];
+    }
+}
+
 void write_pin_only()
 {
     int i;
+    uint8_t hashed_pin[SIZE_PIN];
 
     if (p3 != SIZE_PIN) {
         sw1 = 0x6c;
@@ -112,8 +130,10 @@ void write_pin_only()
         pin_buffer[i] = recbytet0();
     }
 
+    hash_pin_puk(pin_buffer, SIZE_PIN, hashed_pin);
+
     for (i = 0; i < SIZE_PIN; i++) {
-        eeprom_update_byte((uint8_t*)(EEPROM_PIN_ADDR + i), pin_buffer[i]);
+        eeprom_update_byte((uint8_t*)(EEPROM_PIN_ADDR + i), hashed_pin[i]);
     }
 
     eeprom_update_byte((uint8_t*)EEPROM_PIN_ATTEMPTS_ADDR, MAX_PIN_ATTEMPTS);
@@ -127,6 +147,8 @@ void write_pin_only()
 void write_pin()
 {
     int i;
+    uint8_t hashed_pin[SIZE_PIN];
+    uint8_t hashed_puk[SIZE_PUK];
 
     if (p3 != SIZE_PIN + SIZE_PUK) {
         sw1 = 0x6c;
@@ -142,11 +164,14 @@ void write_pin()
         puk_buffer[i] = recbytet0();
     }
 
+    hash_pin_puk(pin_buffer, SIZE_PIN, hashed_pin);
+    hash_pin_puk(puk_buffer, SIZE_PUK, hashed_puk);
+
     for (i = 0; i < SIZE_PIN; i++) {
-        eeprom_update_byte((uint8_t*)(EEPROM_PIN_ADDR + i), pin_buffer[i]);
+        eeprom_update_byte((uint8_t*)(EEPROM_PIN_ADDR + i), hashed_pin[i]);
     }
     for (i = 0; i < SIZE_PUK; i++) {
-        eeprom_update_byte((uint8_t*)(EEPROM_PUK_ADDR + i), puk_buffer[i]);
+        eeprom_update_byte((uint8_t*)(EEPROM_PUK_ADDR + i), hashed_puk[i]);
     }
 
     eeprom_update_byte((uint8_t*)EEPROM_PIN_ATTEMPTS_ADDR, MAX_PIN_ATTEMPTS);
@@ -161,7 +186,8 @@ void verify_pin()
 {
     int i;
     uint8_t pin_attempts;
-    uint8_t stored_pin;
+    uint8_t stored_pin_hash;
+    uint8_t hashed_pin[SIZE_PIN];
     uint8_t match = 1;
 
     if (p3 != SIZE_PIN) {
@@ -183,9 +209,11 @@ void verify_pin()
         pin_buffer[i] = recbytet0();
     }
 
+    hash_pin_puk(pin_buffer, SIZE_PIN, hashed_pin);
+
     for (i = 0; i < SIZE_PIN; i++) {
-        stored_pin = eeprom_read_byte((uint8_t*)(EEPROM_PIN_ADDR + i));
-        if (pin_buffer[i] != stored_pin) {
+        stored_pin_hash = eeprom_read_byte((uint8_t*)(EEPROM_PIN_ADDR + i));
+        if (hashed_pin[i] != stored_pin_hash) {
             match = 0;
         }
     }
@@ -208,7 +236,9 @@ void verify_puk()
 {
     int i;
     uint8_t puk_attempts;
-    uint8_t stored_puk;
+    uint8_t stored_puk_hash;
+    uint8_t hashed_puk[SIZE_PUK];
+    uint8_t hashed_pin[SIZE_PIN];
     uint8_t match = 1;
 
     if (p3 != SIZE_PUK + SIZE_PIN) {
@@ -233,17 +263,20 @@ void verify_puk()
         pin_buffer[i] = recbytet0();
     }
 
+    hash_pin_puk(puk_buffer, SIZE_PUK, hashed_puk);
+
     for (i = 0; i < SIZE_PUK; i++) {
-        stored_puk = eeprom_read_byte((uint8_t*)(EEPROM_PUK_ADDR + i));
-        if (puk_buffer[i] != stored_puk) {
+        stored_puk_hash = eeprom_read_byte((uint8_t*)(EEPROM_PUK_ADDR + i));
+        if (hashed_puk[i] != stored_puk_hash) {
             match = 0;
         }
     }
 
     if (match) {
         pin_verified = 1;
+        hash_pin_puk(pin_buffer, SIZE_PIN, hashed_pin);
         for (i = 0; i < SIZE_PIN; i++) {
-            eeprom_update_byte((uint8_t*)(EEPROM_PIN_ADDR + i), pin_buffer[i]);
+            eeprom_update_byte((uint8_t*)(EEPROM_PIN_ADDR + i), hashed_pin[i]);
         }
         eeprom_update_byte((uint8_t*)EEPROM_PIN_ATTEMPTS_ADDR, MAX_PIN_ATTEMPTS);
         eeprom_update_byte((uint8_t*)EEPROM_PUK_ATTEMPTS_ADDR, MAX_PUK_ATTEMPTS);
@@ -311,6 +344,7 @@ void assign_card()
 {
     int i;
     uint8_t is_assigned;
+    uint8_t hashed_puk[SIZE_PUK];
 
     if (p3 != SIZE_CARD_ID + SIZE_PUK) {
         sw1 = 0x6c;
@@ -338,8 +372,10 @@ void assign_card()
         eeprom_update_byte((uint8_t*)(EEPROM_CARD_ID_ADDR + i), card_id_buffer[i]);
     }
 
+    hash_pin_puk(puk_buffer, SIZE_PUK, hashed_puk);
+
     for (i = 0; i < SIZE_PUK; i++) {
-        eeprom_update_byte((uint8_t*)(EEPROM_PUK_ADDR + i), puk_buffer[i]);
+        eeprom_update_byte((uint8_t*)(EEPROM_PUK_ADDR + i), hashed_puk[i]);
     }
 
     eeprom_update_byte((uint8_t*)EEPROM_PIN_ATTEMPTS_ADDR, MAX_PIN_ATTEMPTS);
