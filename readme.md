@@ -274,7 +274,7 @@ Card identifies itself with the string "cashless".
 
 | Member | Tasks |
 |--------|-------|
-| Val | Crypto, API, Database, Algorithm, Documentation |
-| Duolingo | Documentation, Frontend/Backend Banking |
+| Valentin | Crypto, API, Database, Algorithm, Documentation |
+| François | Documentation, Frontend/Backend Banking |
 | Mathieu | PowerPoint, Frontend/Backend Pump |
 | Antoine | Frontend/Backend Coffee Shop, Socket Reader |
